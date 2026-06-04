@@ -1,0 +1,3409 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ClearCut — Clear the cut-off</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#1e3a5f">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="ClearCut">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=DM+Serif+Display&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<style>
+:root{
+  --navy:#1e3a5f; --navy-d:#152c4a; --navy-l:#2a4d7a;
+  --gold:#f59e0b; --gold-l:#fde68a; --gold-d:#d97706;
+  --bg:#f0f4f8; --surface:#ffffff; --surface2:#f8fafc;
+  --eng:#3b82f6; --quant:#10b981; --reas:#f97316;
+  --text:#1e293b; --muted:#64748b; --border:#e2e8f0;
+  --danger:#ef4444; --ok:#22c55e;
+  --r:14px; --sh:0 1px 3px rgba(0,0,0,.06),0 4px 16px rgba(0,0,0,.08);
+  --sh-md:0 4px 24px rgba(0,0,0,.12);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;-webkit-font-smoothing:antialiased;font-size:14px}
+
+/* ── SETUP ── */
+#setup{min-height:100vh;display:flex;align-items:stretch}
+.setup-split{display:flex;width:100%;min-height:100vh}
+.setup-left{flex:1;background:linear-gradient(155deg,#0f2340 0%,#1e3a5f 50%,#2a4d7a 100%);
+  display:flex;flex-direction:column;justify-content:center;padding:60px 56px;position:relative;overflow:hidden}
+.setup-left::before{content:'';position:absolute;top:-100px;right:-80px;width:400px;height:400px;
+  background:rgba(245,158,11,.06);border-radius:50%}
+.setup-left::after{content:'';position:absolute;bottom:-80px;left:-60px;width:300px;height:300px;
+  background:rgba(59,130,246,.05);border-radius:50%}
+.sl-brand{display:flex;align-items:center;gap:14px;margin-bottom:52px}
+.sl-icon{width:52px;height:52px;border-radius:14px;background:rgba(245,158,11,.2);
+  display:flex;align-items:center;justify-content:center;font-size:26px;border:1px solid rgba(245,158,11,.3)}
+.sl-name{font-family:'DM Serif Display',serif;font-size:26px;color:#fff}
+.sl-tag{font-size:11px;color:rgba(255,255,255,.45);font-weight:600;letter-spacing:.8px;margin-top:2px}
+.sl-hero{font-family:'DM Serif Display',serif;font-size:38px;line-height:1.2;color:#fff;margin-bottom:16px}
+.sl-hero em{font-style:italic;color:var(--gold)}
+.sl-sub{font-size:14px;color:rgba(255,255,255,.6);line-height:1.8;margin-bottom:44px;max-width:380px}
+.sl-feats{display:flex;flex-direction:column;gap:13px}
+.sl-feat{display:flex;align-items:center;gap:10px;font-size:13px;color:rgba(255,255,255,.78)}
+.sl-dot{width:7px;height:7px;border-radius:50%;background:var(--gold);flex-shrink:0}
+.setup-right{width:500px;display:flex;align-items:center;justify-content:center;padding:52px 44px;background:#fff}
+.setup-card{width:100%;max-width:420px}
+.sc-title{font-family:'DM Serif Display',serif;font-size:28px;color:var(--navy);margin-bottom:6px}
+.sc-sub{color:var(--muted);font-size:13px;margin-bottom:32px;line-height:1.6}
+.sc-label{display:block;font-weight:700;font-size:11px;text-transform:uppercase;letter-spacing:.6px;
+  color:var(--muted);margin-bottom:6px;margin-top:18px}
+.sc-input{width:100%;padding:12px 14px;border:1.5px solid var(--border);border-radius:10px;
+  font-family:inherit;font-size:13px;color:var(--text);transition:.18s;background:#fafafa}
+.sc-input:focus{outline:none;border-color:var(--navy);box-shadow:0 0 0 3px rgba(30,58,95,.09);background:#fff}
+.sc-hint{font-size:11px;color:var(--muted);margin-top:5px;line-height:1.6}
+.sc-optional{margin-top:24px;padding:16px;background:#f0f4f8;border-radius:12px}
+.sc-optional-title{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--muted);margin-bottom:12px}
+.sc-btn{width:100%;margin-top:28px;padding:15px;background:linear-gradient(135deg,var(--navy),var(--navy-l));
+  color:#fff;border:none;border-radius:12px;font-family:inherit;font-size:15px;font-weight:700;cursor:pointer;
+  letter-spacing:.2px;transition:.2s;box-shadow:0 4px 14px rgba(30,58,95,.35)}
+.sc-btn:hover{transform:translateY(-1px);box-shadow:0 6px 20px rgba(30,58,95,.45)}
+@media(max-width:860px){
+  .setup-split{flex-direction:column}
+  .setup-left{padding:40px 28px;min-height:auto}
+  .setup-left::before,.setup-left::after{display:none}
+  .sl-hero{font-size:28px}
+  .setup-right{width:100%;padding:36px 24px}
+}
+
+/* ── APP ── */
+#app{display:none;min-height:100vh;padding-bottom:40px}
+.app-header{background:linear-gradient(135deg,var(--navy),var(--navy-l));padding:0;
+  box-shadow:0 2px 12px rgba(30,58,95,.25);position:sticky;top:0;z-index:100}
+.app-header-inner{max-width:1100px;margin:0 auto;padding:0 20px;
+  display:flex;align-items:center;justify-content:space-between;height:60px;gap:12px}
+.ah-brand{display:flex;align-items:center;gap:10px}
+.ah-icon{width:34px;height:34px;border-radius:9px;background:rgba(245,158,11,.2);
+  display:flex;align-items:center;justify-content:center;font-size:17px;border:1px solid rgba(245,158,11,.3)}
+.ah-name{font-family:'DM Serif Display',serif;font-size:18px;color:#fff}
+.ah-tag{font-size:10px;color:rgba(255,255,255,.5);font-weight:600;letter-spacing:.5px}
+.ah-greeting{font-size:13px;color:rgba(255,255,255,.75);font-weight:500}
+
+nav.tabs{background:var(--surface);border-bottom:1px solid var(--border);
+  position:sticky;top:60px;z-index:99;box-shadow:0 2px 8px rgba(0,0,0,.05)}
+.tabs-inner{max-width:1100px;margin:0 auto;padding:0 12px;display:flex;gap:2px;overflow-x:auto;scrollbar-width:none}
+.tabs-inner::-webkit-scrollbar{display:none}
+nav.tabs button{border:none;background:transparent;padding:14px 16px;font-family:inherit;font-weight:600;
+  font-size:13px;color:var(--muted);cursor:pointer;transition:.15s;white-space:nowrap;border-bottom:2px solid transparent;margin-bottom:-1px}
+nav.tabs button.on{color:var(--navy);border-bottom-color:var(--gold)}
+nav.tabs button:hover:not(.on){color:var(--text)}
+
+.wrap{max-width:1100px;margin:0 auto;padding:24px 20px 0}
+.panel{display:none;animation:fade .2s ease}
+.panel.on{display:block}
+@keyframes fade{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:none}}
+
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);
+  padding:20px;box-shadow:var(--sh);margin-bottom:16px}
+.card-title{font-family:'DM Serif Display',serif;font-size:19px;color:var(--text);margin-bottom:4px}
+.card-sub{color:var(--muted);font-size:13px;margin-bottom:16px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px}
+.grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+@media(max-width:700px){.grid2,.grid3,.grid4{grid-template-columns:1fr 1fr}}
+@media(max-width:480px){.grid2,.grid3,.grid4{grid-template-columns:1fr}}
+
+/* stat cards */
+.stat-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);
+  padding:10px 14px;box-shadow:var(--sh)}
+.stat-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--muted)}
+.stat-val{font-family:'DM Serif Display',serif;font-size:24px;color:var(--navy);margin-top:2px;line-height:1}
+.stat-val small{font-family:'DM Sans',sans-serif;font-size:11px;color:var(--muted);font-weight:500}
+.stat-card.accent{background:linear-gradient(135deg,var(--navy),var(--navy-l));border:none}
+.stat-card.accent .stat-label{color:rgba(255,255,255,.6)}
+.stat-card.accent .stat-val{color:#fff}
+.stat-card.gold{background:linear-gradient(135deg,#fffbeb,#fef3c7);border-color:#fde68a}
+.stat-card.gold .stat-val{color:var(--gold-d)}
+
+/* insight */
+.insight{background:linear-gradient(135deg,#fffbeb,#fef9ec);border:1px solid #fde68a;
+  border-radius:var(--r);padding:8px 12px;margin-bottom:8px;display:flex;gap:8px;align-items:center}
+.insight-icon{font-size:16px;line-height:1;flex-shrink:0}
+.insight b{color:var(--gold-d)}
+.insight-text{font-size:12px;line-height:1.4}
+
+/* countdown pills row */
+.countdown-grid{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px}
+.cd-card{background:var(--surface);border:1px solid var(--border);border-radius:30px;
+  padding:6px 14px;box-shadow:var(--sh);display:flex;align-items:center;gap:8px;cursor:pointer}
+.cd-card:hover{border-color:var(--navy)}
+.cd-exam{font-size:11px;font-weight:700;color:var(--muted)}
+.cd-days{font-family:'DM Serif Display',serif;font-size:16px;color:var(--navy);font-weight:700}
+.cd-days small{font-family:'DM Sans',sans-serif;font-size:11px;color:var(--muted)}
+.cd-date{font-size:10px;color:var(--muted)}
+.cd-edit{display:none}
+
+/* forms */
+label.fld{display:block;margin-bottom:12px}
+label.fld span{display:block;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;
+  color:var(--muted);margin-bottom:5px}
+input,select,textarea{width:100%;font-family:inherit;font-size:14px;padding:10px 12px;
+  border:1.5px solid var(--border);border-radius:10px;background:var(--surface);color:var(--text);transition:.15s}
+input:focus,select:focus,textarea:focus{outline:none;border-color:var(--navy);
+  box-shadow:0 0 0 3px rgba(30,58,95,.08)}
+.sec-card{border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:12px;background:var(--surface2)}
+.sec-card-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+.sec-card-name{font-weight:700;font-size:15px;display:flex;align-items:center;gap:8px}
+.sec-dot{width:9px;height:9px;border-radius:50%;display:inline-block}
+.sec-meta{font-size:12px;color:var(--muted)}
+.row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
+@media(max-width:480px){.row3{grid-template-columns:1fr}}
+.score-line{font-size:12px;color:var(--muted);margin-top:8px}
+.score-line b{color:var(--text)}
+.totbar{display:flex;justify-content:space-between;align-items:center;
+  background:var(--navy);color:#fff;padding:14px 18px;border-radius:12px;margin:8px 0 16px}
+.totbar .tot-val{font-family:'DM Serif Display',serif;font-size:28px}
+
+/* chips */
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{font-size:12px;padding:5px 11px;border-radius:20px;border:1px solid var(--border);
+  background:var(--surface);cursor:pointer;color:var(--muted);user-select:none;transition:.12s;font-weight:500}
+.chip.on{background:var(--navy);color:#fff;border-color:var(--navy)}
+.chip-group-title{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;
+  margin:12px 0 5px;color:var(--muted)}
+.chip.eng.on{background:var(--eng);border-color:var(--eng)}
+.chip.quant.on{background:var(--quant);border-color:var(--quant)}
+.chip.reas.on{background:var(--reas);border-color:var(--reas)}
+
+/* btn */
+.btn{font-family:inherit;font-weight:600;font-size:14px;padding:11px 18px;border:none;border-radius:10px;cursor:pointer;transition:.15s}
+.btn.primary{background:linear-gradient(135deg,var(--navy),var(--navy-l));color:#fff;width:100%}
+.btn.primary:hover{box-shadow:0 4px 14px rgba(30,58,95,.35)}
+.btn.ghost{background:transparent;border:1.5px solid var(--border);color:var(--text)}
+.btn.ghost:hover{border-color:var(--navy);color:var(--navy)}
+.btn.danger{background:var(--danger);color:#fff}
+.btn.sm{padding:7px 12px;font-size:12px}
+.btn.gold{background:linear-gradient(135deg,var(--gold),var(--gold-d));color:#fff}
+
+/* syllabus */
+.topic-row{display:flex;align-items:center;justify-content:space-between;padding:8px 0;
+  border-bottom:1px solid var(--border)}
+.topic-row:last-child{border-bottom:none}
+.topic-check{display:flex;align-items:center;gap:9px;cursor:pointer;flex:1}
+.topic-check input[type=checkbox]{width:16px;height:16px;accent-color:var(--navy);cursor:pointer;flex-shrink:0}
+.topic-name{font-size:14px;font-weight:500}
+.topic-name.done{text-decoration:line-through;color:var(--muted)}
+.warn-badge{font-size:10px;font-weight:700;padding:2px 7px;border-radius:10px;
+  background:#fef3c7;color:#92400e;border:1px solid #fde68a;white-space:nowrap}
+.progress-bar-wrap{height:8px;background:var(--border);border-radius:10px;margin:10px 0 4px;overflow:hidden}
+.progress-bar{height:100%;border-radius:10px;transition:.4s}
+.section-progress{display:flex;justify-content:space-between;font-size:12px;color:var(--muted);margin-bottom:16px}
+
+/* history */
+.mock-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px 16px;margin-bottom:10px}
+.mock-top{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
+.mock-name{font-weight:700;font-size:15px}
+.mock-meta{font-size:12px;color:var(--muted);margin-top:2px}
+.mock-score{font-family:'DM Serif Display',serif;font-size:24px;color:var(--navy);text-align:right;line-height:1}
+.mock-score small{font-family:'DM Sans',sans-serif;font-size:11px;color:var(--muted)}
+.mock-sections{display:flex;gap:14px;margin-top:10px;flex-wrap:wrap}
+.mock-section{font-size:12px;color:var(--muted);display:flex;align-items:center;gap:4px}
+.mock-section b{color:var(--text)}
+.mock-actions{display:flex;gap:8px;margin-top:10px}
+.badge{font-size:10px;font-weight:700;padding:2px 8px;border-radius:10px;white-space:nowrap}
+.badge.local{background:#fef3c7;color:#92400e}
+.badge.cloud{background:#d1fae5;color:#065f46}
+.empty{text-align:center;color:var(--muted);padding:40px 20px;font-size:14px}
+
+/* heatmap */
+.heat{display:grid;grid-template-columns:repeat(15,1fr);gap:4px}
+.heat-cell{aspect-ratio:1;border-radius:4px;background:var(--border)}
+.heat-cell.active{background:var(--navy)}
+.heat-cell.syllabus{background:var(--quant)}
+.heat-cell.both{background:var(--gold-d)}
+
+/* timer */
+.timer-wrap{text-align:center;padding:20px 0}
+.clock{font-family:'DM Serif Display',serif;font-size:88px;font-weight:400;line-height:1;letter-spacing:-2px}
+.clock.warn{color:var(--gold-d)}
+.clock.done{color:var(--danger)}
+.timer-label{font-size:14px;color:var(--muted);margin-top:8px;font-weight:500}
+.timer-chips{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-bottom:20px}
+.timer-controls{display:flex;gap:10px;justify-content:center;margin-top:20px}
+
+/* cutoffs table */
+table{width:100%;border-collapse:collapse;font-size:14px}
+th{text-align:left;padding:10px 12px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;
+  color:var(--muted);border-bottom:2px solid var(--border)}
+td{padding:10px 12px;border-bottom:1px solid var(--border)}
+tr:last-child td{border-bottom:none}
+.gap-neg{color:var(--danger);font-weight:700}
+.gap-ok{color:var(--ok);font-weight:700}
+.gap-zero{color:var(--muted)}
+
+/* motivational card */
+.moti-card{background:linear-gradient(135deg,#1e3a5f,#2a4d7a);border-radius:var(--r);
+  padding:24px;color:#fff;margin-bottom:16px}
+.moti-msg{font-family:'DM Serif Display',serif;font-size:17px;line-height:1.5;margin-bottom:16px;color:#fff}
+.moti-quote{font-size:13px;color:rgba(255,255,255,.7);font-style:italic;border-top:1px solid rgba(255,255,255,.15);
+  padding-top:14px;line-height:1.7}
+.moti-quote-nav{display:flex;gap:8px;margin-top:12px;justify-content:flex-end}
+.moti-quote-nav button{background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.2);
+  color:rgba(255,255,255,.8);border-radius:6px;padding:4px 10px;cursor:pointer;font-size:12px;font-family:inherit}
+
+/* today focus */
+.focus-card{background:linear-gradient(135deg,#fdf4ff,#fce7f3);border:1px solid #f0abfc;border-radius:var(--r);padding:18px;margin-bottom:16px}
+.focus-title{font-weight:700;font-size:15px;color:#701a75;margin-bottom:10px}
+.focus-item{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid rgba(240,171,252,.3)}
+.focus-item:last-child{border-bottom:none}
+.focus-num{width:22px;height:22px;border-radius:50%;background:#a21caf;color:#fff;
+  font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.focus-topic{font-size:14px;font-weight:500;color:#4a044e}
+
+.week-plan{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-top:12px}
+.week-day{background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:12px}
+.week-day-name{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--navy);margin-bottom:6px}
+.week-day-topics{font-size:12px;color:var(--muted);line-height:1.6}
+
+/* filter */
+.filter-row{display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;align-items:center}
+.filter-select{padding:8px 12px;border:1.5px solid var(--border);border-radius:8px;
+  font-family:inherit;font-size:13px;color:var(--text);background:var(--surface)}
+
+/* exam date edit modal */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:200;
+  align-items:center;justify-content:center;padding:20px}
+.modal-overlay.open{display:flex}
+.modal{background:var(--surface);border-radius:16px;padding:28px;width:100%;max-width:420px;
+  box-shadow:var(--sh-md)}
+.modal-title{font-family:'DM Serif Display',serif;font-size:20px;margin-bottom:16px}
+.modal-actions{display:flex;gap:10px;margin-top:20px}
+
+/* Supabase note */
+.sb-note{font-size:11px;color:var(--muted);margin-top:10px;line-height:1.7;padding:10px 12px;
+  background:var(--surface2);border-radius:8px;border:1px solid var(--border)}
+.sb-note code{background:#e2e8f0;padding:1px 4px;border-radius:4px;font-size:10px}
+
+@media(max-width:600px){
+  .clock{font-size:68px}
+  .wrap{padding:16px 14px 0}
+  .card{padding:16px}
+}
+
+/* study log */
+.sl-log-item{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--border)}
+.sl-log-item:last-child{border-bottom:none}
+.sl-sec-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0}
+.sl-log-topic{flex:1;font-size:14px;font-weight:500}
+.sl-log-dur{font-size:12px;color:var(--muted);white-space:nowrap}
+.sl-conf-badge{font-size:10px;font-weight:700;padding:2px 8px;border-radius:10px;white-space:nowrap}
+.sl-conf-badge.easy{background:#d1fae5;color:#065f46}
+.sl-conf-badge.medium{background:#fef3c7;color:#92400e}
+.sl-conf-badge.hard{background:#fee2e2;color:#991b1b}
+.sl-date-header{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);
+  margin:14px 0 6px;padding-bottom:4px;border-bottom:2px solid var(--border)}
+.chip.conf-easy.on{background:#10b981;border-color:#10b981;color:#fff}
+.chip.conf-medium.on{background:#f59e0b;border-color:#f59e0b;color:#fff}
+.chip.conf-hard.on{background:#ef4444;border-color:#ef4444;color:#fff}
+
+/* ── REPORT CARD ── */
+.report-card{background:#fff;padding:24px;border-radius:16px;border:1px solid var(--border);box-shadow:var(--sh-md)}
+.rc-header{margin-bottom:20px}
+.rc-title{font-family:'DM Serif Display',serif;font-size:22px;color:var(--navy);margin-bottom:4px}
+.rc-week-label{font-size:13px;color:var(--muted);font-weight:500}
+.rc-nav{display:flex;justify-content:space-between;align-items:center;margin-top:12px}
+.rc-nav-label{font-size:14px;font-weight:700;color:var(--navy)}
+.rc-nav-btn{background:transparent;border:1.5px solid var(--border);border-radius:8px;padding:7px 14px;
+  font-family:inherit;font-size:13px;font-weight:600;cursor:pointer;color:var(--text);transition:.15s}
+.rc-nav-btn:hover{border-color:var(--navy);color:var(--navy)}
+.rc-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px}
+.rc-stat{background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:14px;text-align:center}
+.rc-stat-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--muted);margin-bottom:6px}
+.rc-stat-val{font-family:'DM Serif Display',serif;font-size:22px;color:var(--navy);line-height:1}
+.rc-stat-val small{font-family:'DM Sans',sans-serif;font-size:11px;color:var(--muted);font-weight:500}
+.rc-section-title{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--muted);margin-bottom:10px}
+.rc-perf-row{margin-bottom:10px}
+.rc-perf-label{display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;font-size:13px;font-weight:600}
+.rc-perf-bar-wrap{height:8px;background:var(--border);border-radius:6px;overflow:hidden}
+.rc-perf-bar{height:100%;border-radius:6px;transition:.5s}
+.rc-topics-wrap{display:flex;flex-wrap:wrap;gap:6px}
+.rc-topic-chip{font-size:12px;padding:4px 10px;border-radius:16px;font-weight:600;border:1px solid transparent;white-space:nowrap}
+.rc-topic-chip.easy{background:#d1fae5;color:#065f46;border-color:#a7f3d0}
+.rc-topic-chip.medium{background:#fef3c7;color:#92400e;border-color:#fde68a}
+.rc-topic-chip.hard{background:#fee2e2;color:#991b1b;border-color:#fca5a5}
+.rc-manoj-card{background:#fff0f3;border:1px solid #fecdd3;border-radius:12px;padding:16px;margin-bottom:16px}
+.rc-manoj-label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:#be123c;margin-bottom:8px}
+.rc-manoj-text{font-size:13px;line-height:1.7;color:#3f0a17}
+.rc-ai-card{background:#f5f3ff;border:1px solid #e9d5ff;border-radius:12px;padding:16px;margin-bottom:16px}
+.rc-ai-label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:#6d28d9;margin-bottom:8px}
+.rc-ai-text{font-size:13px;line-height:1.7;color:#2e1065}
+.rc-screenshot-btn{width:100%;padding:13px;background:var(--navy);color:#fff;border:none;border-radius:10px;
+  font-family:inherit;font-size:14px;font-weight:700;cursor:pointer;transition:.2s;margin-top:4px}
+.rc-screenshot-btn:hover{background:var(--navy-d);box-shadow:0 4px 14px rgba(30,58,95,.35)}
+.rc-divider{height:1px;background:var(--border);margin:16px 0}
+.rc-empty{text-align:center;color:var(--muted);padding:32px 20px;font-size:14px}
+@media(max-width:480px){.rc-stats{grid-template-columns:1fr 1fr}}
+</style>
+</head>
+<body>
+
+<!-- ══════════════ LOVE SPLASH ══════════════ -->
+<div id="love-splash" style="display:none;position:fixed;inset:0;z-index:9999;
+  background:linear-gradient(135deg,#0f172a 0%,#1e1b4b 50%,#0f172a 100%);
+  flex-direction:column;align-items:center;justify-content:center;
+  padding:40px 32px;text-align:center;cursor:pointer" onclick="dismissSplash()">
+
+  <div style="font-size:48px;margin-bottom:24px">💙</div>
+  <div style="font-family:'DM Serif Display',serif;font-size:14px;font-weight:400;
+    color:rgba(165,180,252,.7);text-transform:uppercase;letter-spacing:3px;margin-bottom:16px">
+    A note from Manoj
+  </div>
+  <div id="splash-note-text" style="font-family:'DM Serif Display',serif;font-size:24px;
+    line-height:1.6;color:#f1f5f9;max-width:480px;margin-bottom:32px"></div>
+  <div style="font-size:13px;color:rgba(165,180,252,.5)">Tap anywhere to continue</div>
+
+  <!-- Progress bar -->
+  <div style="position:absolute;bottom:0;left:0;height:3px;background:rgba(165,180,252,.2);width:100%">
+    <div id="splash-progress" style="height:100%;background:#6366f1;width:0%;transition:width 4s linear"></div>
+  </div>
+</div>
+
+<!-- Celebration overlay -->
+<div id="celebration-overlay" style="display:none;position:fixed;inset:0;z-index:9998;
+  align-items:center;justify-content:center;padding:24px" onclick="dismissCelebration()">
+
+  <!-- Confetti canvas (for big milestones) -->
+  <canvas id="confetti-canvas" style="position:absolute;inset:0;width:100%;height:100%;pointer-events:none"></canvas>
+
+  <!-- Celebration card -->
+  <div id="celebration-card" style="position:relative;z-index:1;background:#fff;border-radius:24px;
+    padding:32px 28px;text-align:center;max-width:360px;width:100%;box-shadow:0 25px 60px rgba(0,0,0,.3)">
+    <div id="cel-emoji" style="font-size:56px;margin-bottom:12px"></div>
+    <div id="cel-label" style="font-family:'DM Serif Display',serif;font-size:26px;color:#1e3a5f;margin-bottom:8px"></div>
+    <div id="cel-desc" style="font-size:14px;color:#64748b;line-height:1.6;margin-bottom:16px"></div>
+    <div id="cel-note" style="background:linear-gradient(135deg,#fdf2f8,#fce7f3);border:1px solid #f9a8d4;
+      border-radius:12px;padding:12px 16px;font-size:13px;color:#831843;line-height:1.6;margin-bottom:20px;
+      font-style:italic"></div>
+    <button onclick="dismissCelebration()" style="background:linear-gradient(135deg,#1e3a5f,#3b5a8f);
+      color:#fff;border:none;border-radius:12px;padding:12px 32px;font-family:'DM Sans',sans-serif;
+      font-weight:700;font-size:15px;cursor:pointer;width:100%">
+      Thank you Manoj 💙
+    </button>
+    <div style="font-size:11px;color:#cbd5e1;margin-top:10px">Tap anywhere to close</div>
+  </div>
+</div>
+
+<!-- ══════════════ SETUP SCREEN ══════════════ -->
+<div id="setup">
+  <div class="setup-split">
+    <div class="setup-left">
+      <div class="sl-brand">
+        <div class="sl-icon">🎯</div>
+        <div>
+          <div class="sl-name">ClearCut</div>
+          <div class="sl-tag">Clear the cut-off</div>
+        </div>
+      </div>
+      <div class="sl-hero">Your personal<br>bank exam<br><em>command centre</em></div>
+      <div class="sl-sub">Track every mock, know your weak spots, stay on streak. Built to help you clear SBI, IBPS & RRB prelims.</div>
+      <div class="sl-feats">
+        <div class="sl-feat"><div class="sl-dot"></div>Smart mock logging with auto score calculation</div>
+        <div class="sl-feat"><div class="sl-dot"></div>Section-wise accuracy charts & trend analysis</div>
+        <div class="sl-feat"><div class="sl-dot"></div>Full syllabus tracker with weak-topic flags</div>
+        <div class="sl-feat"><div class="sl-dot"></div>Auto-generated study plan from your weak areas</div>
+        <div class="sl-feat"><div class="sl-dot"></div>Countdown to SBI PO, IBPS PO, RRB & more</div>
+        <div class="sl-feat"><div class="sl-dot"></div>Sectional timer with exam-pace training</div>
+      </div>
+    </div>
+    <div class="setup-right">
+      <div class="setup-card">
+        <div class="sc-title">Let's get started</div>
+        <div class="sc-sub">Your scores, your progress, your plan — all in one place.</div>
+        <label class="sc-label">Your name</label>
+        <input class="sc-input" id="su_name" placeholder="e.g. Nanditha" type="text">
+        <label class="sc-label">Primary target exam</label>
+        <select class="sc-input" id="su_exam">
+          <option>SBI PO</option>
+          <option>SBI Clerk</option>
+          <option>IBPS PO</option>
+          <option>IBPS Clerk</option>
+          <option>IBPS RRB PO</option>
+          <option>IBPS RRB Clerk</option>
+        </select>
+        <div class="sc-optional" style="background:#e8f5e9;border:1px solid #c8e6c9;">
+          <div class="sc-optional-title" style="color:#2e7d32">☁ Cloud sync enabled</div>
+          <div class="sc-hint" style="margin-top:0;color:#388e3c">Your progress syncs automatically across all devices. No setup needed.</div>
+        </div>
+        <button class="sc-btn" onclick="completeSetup()">Get Started →</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════ MAIN APP ══════════════ -->
+<div id="app">
+  <div class="app-header">
+    <div class="app-header-inner">
+      <div class="ah-brand">
+        <div class="ah-icon">🎯</div>
+        <div>
+          <div class="ah-name">ClearCut</div>
+          <div class="ah-tag">Clear the cut-off</div>
+        </div>
+      </div>
+      <div class="ah-greeting" id="ahGreeting"></div>
+    </div>
+  </div>
+
+  <nav class="tabs" id="tabs">
+    <div class="tabs-inner">
+      <button class="on" data-t="dash">Dashboard</button>
+      <button data-t="logmock">Log Mock</button>
+      <button data-t="syllabus">Syllabus</button>
+      <button data-t="plan">Study Plan</button>
+      <button data-t="timer">Timer</button>
+      <button data-t="history">History</button>
+      <button data-t="goals">Goals &amp; Cutoffs</button>
+      <button data-t="dqtab">🧠 Practice Q</button>
+      <button data-t="aichat">🤖 AI Coach</button>
+      <button data-t="studylog">📖 Study Log</button>
+      <button data-t="report">📊 Report Card</button>
+    </div>
+  </nav>
+
+  <div class="wrap">
+
+    <!-- ── DASHBOARD ── -->
+    <section class="panel on" id="dash">
+      <div id="dash-countdowns" class="countdown-grid"></div>
+
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px">
+        <div class="stat-card gold" style="flex:1;min-width:100px;padding:8px 12px">
+          <div class="stat-label">🔥 Streak</div>
+          <div class="stat-val" id="d-streak" style="font-size:20px">0 <small>days</small></div>
+        </div>
+        <div class="stat-card" style="flex:1;min-width:100px;padding:8px 12px">
+          <div class="stat-label">Mocks logged</div>
+          <div class="stat-val" id="d-mocks" style="font-size:20px">0</div>
+        </div>
+        <div class="stat-card" style="flex:1;min-width:100px;padding:8px 12px">
+          <div class="stat-label">Best score</div>
+          <div class="stat-val" id="d-best" style="font-size:20px">— <small>/100</small></div>
+        </div>
+        <div class="stat-card" style="flex:1;min-width:100px;padding:8px 12px">
+          <div class="stat-label">Gap to cutoff</div>
+          <div class="stat-val" id="d-gap" style="font-size:20px">—</div>
+        </div>
+      </div>
+
+      <!-- Cutoff Progress Section -->
+      <div id="cutoff-progress-section" style="background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:14px 16px;margin-bottom:10px">
+        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin-bottom:12px">
+          📊 Cutoff Progress — Best Score vs Target
+        </div>
+        <div id="cutoff-progress-bars"></div>
+      </div>
+
+      <!-- Prediction card -->
+      <div id="pred-card" style="background:linear-gradient(135deg,#0f2340,#1e3a5f);border-radius:14px;padding:14px 16px;margin-bottom:10px;display:none">
+        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#a5b4fc;margin-bottom:4px">📈 Readiness Prediction</div>
+        <div style="font-size:13px;color:#c7d2fe">Log at least <b style="color:#fff">3 mocks</b> to unlock your predicted readiness date.</div>
+      </div>
+
+      <div id="dq-teaser" style="background:linear-gradient(135deg,#1e1b4b,#312e81);border-radius:14px;padding:14px 16px;margin-bottom:10px;cursor:pointer;display:none" onclick="goToDQTab()">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <div>
+            <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#a5b4fc;margin-bottom:4px">🧠 Today's Practice Question</div>
+            <div id="dq-teaser-text" style="font-size:13px;color:#e2e8f0;line-height:1.4"></div>
+          </div>
+          <div style="font-size:20px;margin-left:12px;flex-shrink:0" id="dq-teaser-status">→</div>
+        </div>
+      </div>
+
+      <div id="today-activity" style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:10px 16px;margin-bottom:10px;display:none">
+        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin-bottom:6px">Today's Activity</div>
+        <div id="today-activity-list" style="font-size:13px;color:var(--text)"></div>
+      </div>
+
+      <div class="insight" id="dash-insight" style="display:none">
+        <div class="insight-icon">🎯</div>
+        <div class="insight-text" id="dash-insight-text"></div>
+      </div>
+
+      <!-- AI Insight card -->
+      <div id="ai-card" class="card" style="padding:14px 16px;margin-bottom:10px;border-left:3px solid #7c3aed">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+          <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#7c3aed">🤖 AI Coach</div>
+          <div style="display:flex;gap:8px">
+            <button onclick="askAI('her')" class="btn ghost" style="padding:5px 10px;font-size:11px;border-radius:8px">For Nanditha</button>
+            <button onclick="askAI('him')" class="btn ghost" style="padding:5px 10px;font-size:11px;border-radius:8px">For Manoj</button>
+          </div>
+        </div>
+        <div id="ai-text" style="font-size:13px;line-height:1.7;color:var(--text)">Click a button above to get AI analysis.</div>
+        <div id="ai-loading" style="display:none;font-size:13px;color:var(--muted)">🤖 Analysing her prep data...</div>
+      </div>
+
+      <div id="dash-note-card" style="display:none;background:linear-gradient(135deg,#fdf2f8,#fce7f3);
+        border:1px solid #f9a8d4;border-radius:14px;padding:14px 16px;margin-bottom:10px;
+        position:relative">
+        <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;
+          color:#be185d;margin-bottom:6px">💙 From Manoj</div>
+        <div id="dash-note-text" style="font-size:13px;line-height:1.6;color:#831843;
+          padding-right:24px"></div>
+        <button onclick="dismissDashNote()" style="position:absolute;top:10px;right:12px;
+          background:none;border:none;color:#f472b6;font-size:16px;cursor:pointer;
+          line-height:1;padding:0">✕</button>
+      </div>
+
+      <div id="dash-empty" class="card">
+        <div class="card-title">No data yet</div>
+        <div class="card-sub" style="margin-bottom:0">Log your first mock under <b>Log Mock</b> and charts will appear here. Your weak topics, score trend, and study streak — all in one view.</div>
+      </div>
+
+      <div id="dash-charts" style="display:none">
+
+        <!-- Row 1: Score trend + Section accuracy in one card -->
+        <div class="card" style="padding:14px 16px;margin-bottom:10px">
+          <div style="display:flex;gap:20px;flex-wrap:wrap">
+            <!-- Score trend sparkline -->
+            <div style="flex:1;min-width:160px">
+              <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin-bottom:8px">Score trend</div>
+              <div id="score-bars" style="display:flex;align-items:flex-end;gap:4px;height:60px"></div>
+              <div id="score-labels" style="display:flex;gap:4px;margin-top:4px"></div>
+            </div>
+            <!-- Divider -->
+            <div style="width:1px;background:var(--border);flex-shrink:0"></div>
+            <!-- Section accuracy bars -->
+            <div style="flex:1;min-width:160px">
+              <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin-bottom:10px">Section accuracy</div>
+              <div id="acc-bars"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Row 2: Weak topics + Heatmap -->
+        <div class="grid2">
+          <div class="card" style="padding:12px 14px">
+            <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin-bottom:8px">Weak topics</div>
+            <canvas id="c-weak" height="100"></canvas>
+          </div>
+          <div class="card" style="padding:12px 14px">
+            <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin-bottom:8px">30-day activity</div>
+            <div class="heat" id="dash-heat" style="margin-top:4px"></div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ── LOG MOCK ── -->
+    <section class="panel" id="logmock">
+      <div class="card">
+        <div class="card-title" id="log-title">Log a mock</div>
+        <div class="card-sub">Enter what you attempted and got right. Score auto-calculates with −0.25 negative marking.</div>
+
+        <div class="grid2">
+          <label class="fld"><span>Date</span><input type="date" id="f-date"></label>
+          <label class="fld"><span>Exam type</span>
+            <select id="f-exam" onchange="onExamChange()">
+              <option>SBI PO</option>
+              <option>SBI Clerk</option>
+              <option>IBPS PO</option>
+              <option>IBPS Clerk</option>
+              <option>IBPS RRB PO</option>
+              <option>IBPS RRB Clerk</option>
+              <option>Other</option>
+            </select>
+          </label>
+        </div>
+        <label class="fld"><span>Mock name (optional)</span>
+          <input id="f-name" placeholder="e.g. Oliveboard Mock 12 / PYP 2024" type="text">
+        </label>
+
+        <div id="sec-inputs"></div>
+
+        <div class="totbar">
+          <span style="font-weight:600">Total score</span>
+          <span class="tot-val" id="f-total">0 / 100</span>
+        </div>
+
+        <label class="fld"><span>Weak topics (tap any that gave trouble)</span></label>
+        <div id="topic-chips"></div>
+
+        <label class="fld" style="margin-top:14px">
+          <span>Notes (optional)</span>
+          <textarea id="f-notes" rows="2" placeholder="Silly errors in DI, ran out of time in puzzles..."></textarea>
+        </label>
+
+        <button class="btn primary" id="save-btn" onclick="saveMock()">Save mock</button>
+        <button class="btn ghost" id="cancel-edit" style="width:100%;margin-top:8px;display:none" onclick="resetForm()">Cancel edit</button>
+      </div>
+    </section>
+
+    <!-- ── SYLLABUS ── -->
+    <section class="panel" id="syllabus">
+      <div id="syl-sections"></div>
+    </section>
+
+    <!-- ── STUDY PLAN ── -->
+    <section class="panel" id="plan">
+      <div id="plan-focus"></div>
+
+      <div class="card">
+        <div class="card-title">This Week's Plan</div>
+        <div class="card-sub">Auto-generated from your weak areas</div>
+        <div class="week-plan" id="week-plan"></div>
+      </div>
+
+      <div class="moti-card">
+        <div class="moti-msg">Manoj is building this just for you — every line of code is his way of saying he believes in you. You've got this. 💙</div>
+        <div class="moti-quote" id="moti-quote"></div>
+        <div class="moti-quote-nav">
+          <button onclick="prevQuote()">← Prev</button>
+          <button onclick="nextQuote()">Next →</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── TIMER ── -->
+    <section class="panel" id="timer">
+      <div class="card">
+        <div class="card-title">Sectional timer</div>
+        <div class="card-sub">Train at exam pace. Prelims gives ~20 min per section.</div>
+        <div class="timer-chips" id="timer-chips"></div>
+        <div class="timer-wrap">
+          <div class="clock" id="clock">20:00</div>
+          <div class="timer-label" id="timer-label">English · 20 minutes</div>
+          <div class="timer-controls">
+            <button class="btn primary" style="width:auto;padding:12px 32px" id="t-start" onclick="toggleTimer()">Start</button>
+            <button class="btn ghost" onclick="resetTimer()">Reset</button>
+          </div>
+        </div>
+        <div id="custom-timer-row" style="display:none;margin-top:16px">
+          <label class="fld" style="margin-bottom:0"><span>Custom minutes</span>
+            <input type="number" id="custom-min" min="1" max="300" placeholder="Enter minutes" oninput="setCustomTimer()">
+          </label>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── HISTORY ── -->
+    <section class="panel" id="history">
+      <div class="card">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+          <div class="card-title" style="margin-bottom:0">History</div>
+          <span class="badge" id="sync-badge"></span>
+        </div>
+        <div class="card-sub">All mocks, newest first.</div>
+        <div class="filter-row">
+          <select class="filter-select" id="hist-filter" onchange="renderHistory()">
+            <option value="">All exams</option>
+            <option>SBI PO</option>
+            <option>SBI Clerk</option>
+            <option>IBPS PO</option>
+            <option>IBPS Clerk</option>
+            <option>IBPS RRB PO</option>
+            <option>IBPS RRB Clerk</option>
+            <option>Other</option>
+          </select>
+        </div>
+        <div id="hist-list"></div>
+        <div class="sb-note" id="sb-note"></div>
+      </div>
+    </section>
+
+    <!-- ── GOALS & CUTOFFS ── -->
+    <section class="panel" id="goals">
+      <div class="card">
+        <div class="card-title">Exam Dates</div>
+        <div class="card-sub">Set your target dates to see countdowns on the dashboard.</div>
+        <div id="goals-dates"></div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Previous Year Cutoffs vs Your Best</div>
+        <div class="card-sub">2024 general category cutoffs. Gap = cutoff − your best score.</div>
+        <table id="cutoff-table">
+          <thead>
+            <tr><th>Exam</th><th>2024 Cutoff (Gen)</th><th>Your Best</th><th>Gap</th></tr>
+          </thead>
+          <tbody id="cutoff-tbody"></tbody>
+        </table>
+      </div>
+
+      <div class="card" style="margin-top:0">
+        <div class="card-title">🔔 Daily Study Reminder</div>
+        <div class="card-sub">She'll get a notification every day at this time to study.</div>
+        <div id="notif-permission-banner" style="display:none;background:#fef3c7;border:1px solid #fde68a;border-radius:10px;padding:10px 14px;margin-bottom:14px;font-size:13px;color:#92400e">
+          ⚠️ Notifications blocked. Please allow notifications in browser settings.
+        </div>
+        <div id="notif-enabled-badge" style="display:none;background:#d1fae5;border:1px solid #6ee7b7;border-radius:10px;padding:8px 14px;margin-bottom:14px;font-size:13px;color:#065f46;font-weight:600">
+          ✅ Notifications enabled — she'll be reminded daily!
+        </div>
+        <div class="grid2" style="margin-bottom:14px">
+          <label class="fld"><span>Reminder time</span>
+            <input type="time" id="notif-time" value="18:00">
+          </label>
+          <label class="fld"><span>Message tone</span>
+            <select id="notif-tone">
+              <option value="motivating">Motivating 💪</option>
+              <option value="gentle">Gentle 🌸</option>
+              <option value="urgent">Urgent ⚡</option>
+            </select>
+          </label>
+        </div>
+        <button class="btn primary" onclick="saveNotifSettings()" style="margin-bottom:8px">Save Reminder</button>
+        <button class="btn ghost" onclick="testNotification()" style="width:100%">Send Test Notification</button>
+      </div>
+    </section>
+
+    <!-- ── AI CHAT ── -->
+    <section class="panel" id="aichat" style="padding-bottom:40px">
+      <div class="card" style="padding:14px 16px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+          <div>
+            <div class="card-title" style="margin-bottom:2px">🤖 AI Coach Chat</div>
+            <div class="card-sub" style="margin-bottom:0">Ask anything — exam tips, topic doubts, study plan, motivation</div>
+          </div>
+          <div style="display:flex;gap:6px">
+            <button onclick="setChatMode('her')" id="chat-mode-her" class="btn ghost" style="padding:6px 12px;font-size:12px;border-radius:20px;background:var(--navy);color:#fff;border-color:var(--navy)">Nanditha</button>
+            <button onclick="setChatMode('him')" id="chat-mode-him" class="btn ghost" style="padding:6px 12px;font-size:12px;border-radius:20px">Manoj</button>
+          </div>
+        </div>
+
+        <!-- Quick prompts -->
+        <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px" id="quick-prompts"></div>
+
+        <!-- Chat messages -->
+        <div id="chat-messages" style="height:380px;overflow-y:auto;display:flex;flex-direction:column;gap:10px;padding:4px 0;margin-bottom:12px"></div>
+
+        <!-- Input -->
+        <div style="display:flex;gap:8px;align-items:flex-end">
+          <textarea id="chat-input" rows="2" placeholder="Ask your AI coach anything..." style="flex:1;resize:none;border-radius:12px;padding:10px 14px;font-size:14px" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendChat()}"></textarea>
+          <button onclick="sendChat()" class="btn primary" style="width:auto;padding:10px 18px;border-radius:12px;flex-shrink:0">Send</button>
+        </div>
+        <div style="font-size:11px;color:var(--muted);margin-top:6px">Press Enter to send · Shift+Enter for new line</div>
+      </div>
+    </section>
+
+    <!-- ── STUDY LOG ── -->
+    <section class="panel" id="studylog">
+      <div class="card">
+        <div class="card-title">Log Study Session</div>
+        <div class="card-sub">Track what you studied, how long, and how confident you felt.</div>
+
+        <div class="grid2">
+          <label class="fld"><span>Date</span><input type="date" id="sl-date"></label>
+          <label class="fld"><span>Section</span>
+            <select id="sl-section">
+              <option value="English">English</option>
+              <option value="Quant">Quant</option>
+              <option value="Reasoning">Reasoning</option>
+              <option value="General Awareness">General Awareness</option>
+              <option value="Full Mock Revision">Full Mock Revision</option>
+              <option value="Other">Other</option>
+            </select>
+          </label>
+        </div>
+        <div class="grid2">
+          <label class="fld"><span>Topic</span>
+            <input type="text" id="sl-topic" placeholder="e.g. Puzzles, Number Series">
+          </label>
+          <label class="fld"><span>Duration (minutes)</span>
+            <input type="number" id="sl-duration" min="1" max="600" placeholder="e.g. 45">
+          </label>
+        </div>
+
+        <label class="fld" style="margin-bottom:8px"><span>Confidence</span></label>
+        <div id="sl-confidence-chips" class="chips" style="margin-bottom:14px"></div>
+
+        <label class="fld">
+          <span>Notes (optional)</span>
+          <textarea id="sl-notes" rows="2" placeholder="What went well? What was tricky?"></textarea>
+        </label>
+
+        <button class="btn primary" onclick="saveStudyLog()">Log Study</button>
+      </div>
+
+      <div id="studylog-list"></div>
+    </section>
+
+    <!-- ── REPORT CARD ── -->
+    <section class="panel" id="report">
+      <div id="report-card-content" class="report-card">
+
+        <!-- Header -->
+        <div class="rc-header">
+          <div class="rc-title">📊 Weekly Report Card</div>
+          <div class="rc-week-label" id="rc-week-label">Week of …</div>
+          <div class="rc-nav">
+            <button class="rc-nav-btn" onclick="changeReportWeek(-1)">← Prev Week</button>
+            <span class="rc-nav-label" id="rc-nav-label">This Week</span>
+            <button class="rc-nav-btn" onclick="changeReportWeek(1)">Next Week →</button>
+          </div>
+        </div>
+
+        <div class="rc-divider"></div>
+
+        <!-- Loading / content -->
+        <div id="rc-loading" style="display:none;text-align:center;padding:32px 20px;font-size:14px;color:var(--muted)">🤖 Generating your report...</div>
+
+        <div id="rc-body">
+          <!-- Stats row -->
+          <div class="rc-stats" id="rc-stats"></div>
+
+          <div class="rc-divider"></div>
+
+          <!-- Section performance -->
+          <div style="margin-bottom:16px">
+            <div class="rc-section-title">Section Performance (this week)</div>
+            <div id="rc-perf"></div>
+          </div>
+
+          <div class="rc-divider"></div>
+
+          <!-- Topics studied -->
+          <div style="margin-bottom:16px">
+            <div class="rc-section-title">📖 Topics Studied This Week</div>
+            <div class="rc-topics-wrap" id="rc-topics"></div>
+          </div>
+
+          <div class="rc-divider"></div>
+
+          <!-- Message from Manoj -->
+          <div class="rc-manoj-card">
+            <div class="rc-manoj-label">💌 Message from Manoj</div>
+            <div class="rc-manoj-text" id="rc-manoj-text">Generating…</div>
+          </div>
+
+          <!-- AI Weekly Analysis -->
+          <div class="rc-ai-card">
+            <div class="rc-ai-label">🤖 AI Weekly Analysis</div>
+            <div class="rc-ai-text" id="rc-ai-text">Generating…</div>
+          </div>
+        </div>
+
+      </div><!-- /report-card-content -->
+
+      <!-- Screenshot button lives outside the screenshot div -->
+      <button class="rc-screenshot-btn" id="rc-screenshot-btn" onclick="downloadReport()">📸 Save as Screenshot</button>
+
+    </section>
+
+    <!-- ── PRACTICE Q ── -->
+    <section class="panel" id="dqtab" style="padding-bottom:40px">
+
+      <!-- Stats strip -->
+      <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap">
+        <div class="stat-card" style="flex:1;min-width:100px;padding:8px 12px">
+          <div class="stat-label">Questions Answered</div>
+          <div class="stat-val" id="dq-total" style="font-size:20px">0</div>
+        </div>
+        <div class="stat-card" style="flex:1;min-width:100px;padding:8px 12px">
+          <div class="stat-label">Correct</div>
+          <div class="stat-val" id="dq-correct" style="font-size:20px;color:#10b981">0</div>
+        </div>
+        <div class="stat-card" style="flex:1;min-width:100px;padding:8px 12px">
+          <div class="stat-label">Accuracy</div>
+          <div class="stat-val" id="dq-accuracy" style="font-size:20px">—</div>
+        </div>
+        <div class="stat-card gold" style="flex:1;min-width:100px;padding:8px 12px">
+          <div class="stat-label">Streak 🔥</div>
+          <div class="stat-val" id="dq-streak" style="font-size:20px">0</div>
+        </div>
+      </div>
+
+      <!-- Question card -->
+      <div class="card" id="dq-card">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+          <div>
+            <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--muted)" id="dq-meta">Loading...</div>
+            <div style="font-size:11px;color:var(--muted);margin-top:2px" id="dq-difficulty-badge"></div>
+          </div>
+          <button onclick="generateDQ(true)" class="btn ghost" style="padding:6px 12px;font-size:12px" id="dq-refresh-btn">🔄 New Q</button>
+        </div>
+
+        <!-- Question text -->
+        <div id="dq-loading" style="text-align:center;padding:30px;color:var(--muted);font-size:14px">🤖 Generating your question...</div>
+        <div id="dq-question" style="display:none">
+          <div id="dq-qtext" style="font-size:15px;line-height:1.7;color:var(--text);margin-bottom:16px;font-weight:500"></div>
+
+          <!-- Options -->
+          <div id="dq-options" style="display:flex;flex-direction:column;gap:8px;margin-bottom:16px"></div>
+
+          <!-- Submit -->
+          <button class="btn primary" id="dq-submit-btn" onclick="submitDQ()" style="display:none">Submit Answer</button>
+
+          <!-- Result -->
+          <div id="dq-result" style="display:none;border-radius:12px;padding:14px 16px;margin-top:8px">
+            <div id="dq-result-icon" style="font-size:24px;margin-bottom:6px"></div>
+            <div id="dq-result-msg" style="font-size:14px;font-weight:700;margin-bottom:6px"></div>
+            <div id="dq-explanation" style="font-size:13px;line-height:1.6;color:var(--text)"></div>
+            <button onclick="generateDQ(true)" class="btn primary" style="margin-top:12px">Next Question →</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Recent answers -->
+      <div class="card" id="dq-history-card" style="display:none">
+        <div class="card-title">Recent Answers</div>
+        <div id="dq-history-list"></div>
+      </div>
+
+    </section>
+
+  </div><!-- /wrap -->
+</div><!-- /app -->
+
+<div id="coach-view" style="display:none;min-height:100vh;background:#0f172a;color:#f1f5f9;font-family:'DM Sans',sans-serif">
+
+  <!-- Header -->
+  <div style="background:#1e293b;border-bottom:1px solid #334155;padding:16px 24px;display:flex;justify-content:space-between;align-items:center">
+    <div>
+      <div style="font-family:'DM Serif Display',serif;font-size:22px;color:#f1f5f9">Manoj's Dashboard</div>
+      <div style="font-size:12px;color:#64748b;margin-top:2px">Nanditha's prep — private view</div>
+    </div>
+    <div style="font-size:11px;color:#64748b" id="coach-last-updated"></div>
+  </div>
+
+  <div style="max-width:900px;margin:0 auto;padding:24px 20px">
+
+    <!-- Write a note for Nanditha -->
+    <div style="background:#1e293b;border:1px solid #334155;border-radius:14px;padding:16px;margin-bottom:20px">
+      <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#64748b;margin-bottom:10px">
+        💌 Write a note for Nanditha
+      </div>
+      <div style="font-size:12px;color:#475569;margin-bottom:10px">Write your own or let AI write it for you based on her progress.</div>
+      <textarea id="coach-note-input" rows="3" placeholder="Write something for her, or click 🤖 AI Write below..."
+        style="width:100%;background:#0f172a;border:1px solid #334155;border-radius:10px;
+        padding:10px 12px;color:#f1f5f9;font-family:'DM Sans',sans-serif;font-size:14px;
+        resize:none;margin-bottom:10px"></textarea>
+      <div style="display:flex;gap:8px;margin-bottom:0">
+        <button onclick="aiWriteNote()" id="ai-write-btn"
+          style="flex:1;background:#0f172a;border:1px solid #6366f1;color:#a5b4fc;border-radius:10px;
+          padding:10px;font-family:'DM Sans',sans-serif;font-weight:600;font-size:13px;cursor:pointer">
+          🤖 AI Write for me
+        </button>
+        <button onclick="saveCoachNote()"
+          style="flex:2;background:#6366f1;color:#fff;border:none;border-radius:10px;padding:10px 20px;
+          font-family:'DM Sans',sans-serif;font-weight:600;font-size:14px;cursor:pointer">
+          💌 Send Note to Nanditha
+        </button>
+      </div>
+      <div id="coach-note-saved" style="display:none;margin-top:8px;font-size:12px;color:#4ade80;text-align:center">
+        ✅ Note saved — she'll see it next time she opens the app!
+      </div>
+      <div style="margin-top:10px;font-size:11px;color:#475569" id="coach-note-preview"></div>
+    </div>
+
+    <!-- Should I be worried? AI card -->
+    <div id="coach-ai-card" style="background:linear-gradient(135deg,#1e1b4b,#312e81);border:1px solid #4338ca;border-radius:16px;padding:20px 24px;margin-bottom:20px">
+      <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#a5b4fc;margin-bottom:8px">🤖 AI Assessment — Should You Be Worried?</div>
+      <div id="coach-ai-text" style="font-size:15px;line-height:1.7;color:#e2e8f0">Loading...</div>
+    </div>
+
+    <!-- Key stats row -->
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-bottom:20px" id="coach-stats"></div>
+
+    <!-- Consistency & Mood -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px">
+      <div style="background:#1e293b;border:1px solid #334155;border-radius:14px;padding:16px">
+        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#64748b;margin-bottom:12px">📅 Study Consistency (Last 14 days)</div>
+        <div id="coach-consistency" style="display:flex;gap:4px;flex-wrap:wrap"></div>
+        <div id="coach-consistency-score" style="margin-top:10px;font-size:13px;color:#94a3b8"></div>
+      </div>
+      <div style="background:#1e293b;border:1px solid #334155;border-radius:14px;padding:16px">
+        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#64748b;margin-bottom:12px">🧠 Confidence Trend</div>
+        <div id="coach-mood" style="font-size:13px;color:#94a3b8;line-height:1.8"></div>
+      </div>
+    </div>
+
+    <!-- Score trend -->
+    <div style="background:#1e293b;border:1px solid #334155;border-radius:14px;padding:16px;margin-bottom:20px">
+      <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#64748b;margin-bottom:12px">📈 Score Trend — All Mocks</div>
+      <div id="coach-scores" style="display:flex;align-items:flex-end;gap:6px;height:80px"></div>
+      <div id="coach-score-labels" style="display:flex;gap:6px;margin-top:4px"></div>
+    </div>
+
+    <!-- Section weakness -->
+    <div style="background:#1e293b;border:1px solid #334155;border-radius:14px;padding:16px;margin-bottom:20px">
+      <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#64748b;margin-bottom:12px">⚠️ Weak Areas — Help Her With These</div>
+      <div id="coach-weak"></div>
+    </div>
+
+    <!-- Recent activity -->
+    <div style="background:#1e293b;border:1px solid #334155;border-radius:14px;padding:16px;margin-bottom:20px">
+      <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#64748b;margin-bottom:12px">📋 Recent Activity (Last 7 days)</div>
+      <div id="coach-activity"></div>
+    </div>
+
+    <!-- Milestones achieved -->
+    <div style="background:#1e293b;border:1px solid #334155;border-radius:14px;padding:16px;margin-bottom:20px">
+      <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#64748b;margin-bottom:12px">
+        🏆 Milestones Achieved
+      </div>
+      <div id="coach-milestones"></div>
+    </div>
+
+    <!-- What to do this week -->
+    <div style="background:#1e293b;border:1px solid #334155;border-radius:14px;padding:16px">
+      <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#64748b;margin-bottom:12px">💡 Your Action Plan This Week</div>
+      <div id="coach-action" style="font-size:13px;color:#94a3b8;line-height:1.8">Loading...</div>
+    </div>
+
+  </div>
+</div>
+
+<!-- Exam date modal -->
+<div class="modal-overlay" id="date-modal">
+  <div class="modal">
+    <div class="modal-title" id="modal-exam-name">Set Exam Date</div>
+    <label class="fld"><span>Exam date</span><input type="date" id="modal-date-input"></label>
+    <div class="modal-actions">
+      <button class="btn primary" onclick="saveModalDate()" style="flex:1">Save</button>
+      <button class="btn ghost" onclick="closeModal()" style="flex:1">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ══════════════════════════════════════════════
+   CONFIG — paste your Supabase credentials here
+   Leave blank to run entirely on localStorage.
+   ══════════════════════════════════════════════ */
+const SB_URL = "https://jvnhcwqtdxbpwvxbnzok.supabase.co";
+const SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp2bmhjd3F0ZHhicHd2eGJuem9rIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkzNzQ0NDYsImV4cCI6MjA5NDk1MDQ0Nn0.5zVOEAe7NR_Uz1Zz5sx6CSLWd6o29KL5R8l29HJZ7j0";
+const TABLE  = "clearcut_mocks";
+const GROQ_KEY = "GROQ_KEY_REMOVED";
+const GROQ_MODEL = "llama-3.1-8b-instant";
+const SYLLABUS_TABLE = "clearcut_syllabus";
+const STUDY_LOG_TABLE = "clearcut_study_log";
+const NEG    = 0.25;
+
+/* ── CONSTANTS ── */
+const CUTOFFS = [
+  {exam:"SBI PO",      cutoff:62},
+  {exam:"IBPS PO",     cutoff:56},
+  {exam:"IBPS Clerk",  cutoff:68},
+  {exam:"SBI Clerk",   cutoff:70},
+  {exam:"IBPS RRB PO", cutoff:63},
+  {exam:"IBPS RRB Clerk",cutoff:67},
+];
+
+const EXAM_DATES_DEFAULT = {
+  "SBI PO":         "",
+  "IBPS PO":        "",
+  "IBPS Clerk":     "",
+  "IBPS RRB PO":    "",
+};
+
+const SECTIONS_FULL = [
+  {key:"eng",   name:"English",   q:30, color:"#3b82f6", cls:"eng",
+   topics:["Reading Comprehension","Cloze Test","Error Spotting","Sentence Improvement","Para Jumbles","Fillers","Vocabulary","Phrase Replacement","Odd One Out"]},
+  {key:"quant", name:"Quant",     q:35, color:"#10b981", cls:"quant",
+   topics:["Data Interpretation","Simplification/Approx","Number Series","Quadratic Equations","Arithmetic (P&L)","Time & Work","SI & CI","Ratio & Proportion","Percentage","Ages","Boats & Streams","Trains","Data Sufficiency","Missing Number Series"]},
+  {key:"reas",  name:"Reasoning", q:35, color:"#f97316", cls:"reas",
+   topics:["Puzzles","Seating Arrangement (Linear)","Seating Arrangement (Circular)","Syllogism","Inequality","Blood Relations","Direction Sense","Coding-Decoding","Order & Ranking","Alphanumeric Series","Machine Input-Output","Statement & Conclusion"]},
+];
+
+const SECTIONS_RRB = [
+  {key:"quant", name:"Quant",     q:40, color:"#10b981", cls:"quant",
+   topics:["Data Interpretation","Simplification/Approx","Number Series","Quadratic Equations","Arithmetic (P&L)","Time & Work","SI & CI","Ratio & Proportion","Percentage","Ages","Boats & Streams","Trains","Data Sufficiency","Missing Number Series"]},
+  {key:"reas",  name:"Reasoning", q:40, color:"#f97316", cls:"reas",
+   topics:["Puzzles","Seating Arrangement (Linear)","Seating Arrangement (Circular)","Syllogism","Inequality","Blood Relations","Direction Sense","Coding-Decoding","Order & Ranking","Alphanumeric Series","Machine Input-Output","Statement & Conclusion"]},
+];
+
+const QUOTES = [
+  "Success is not final, failure is not fatal: it is the courage to continue that counts. Bank exams are marathons — every mock is a mile.",
+  "The more you practice, the luckier you get. Every DI set you solve today is a cutoff mark you'll cross tomorrow.",
+  "Don't wish it were easier. Wish you were better. That's what this tracker is for.",
+  "A bank job is not just a career — it is security, pride, and the start of everything you've planned. Keep going.",
+  "Toppers don't just study harder. They study smarter — they know their weak topics and attack them daily.",
+  "You're not just preparing for an exam. You're preparing for a life you've always imagined. That's worth every late night.",
+  "Prelims is a filter, not a wall. You've already decided to clear it — now it's just execution.",
+  "Negative marking only hurts those who don't know their strengths. Know yours. Track them here.",
+];
+
+const DAY_NAMES = ["Mon","Tue","Wed","Thu","Fri","Sat"];
+
+/* ── STORAGE ── */
+const USE_SB = !!(SB_URL && SB_KEY);
+
+async function sbReq(path, opts={}) {
+  const res = await fetch(SB_URL+'/rest/v1/'+path, {...opts, headers:{
+    apikey: SB_KEY, Authorization: 'Bearer '+SB_KEY,
+    'Content-Type': 'application/json', Prefer: 'return=representation',
+    ...(opts.headers||{})
+  }});
+  if (!res.ok) throw new Error('Supabase '+res.status+': '+await res.text());
+  return res.status===204 ? null : res.json();
+}
+
+const LS_MOCKS    = 'cc_mocks';
+const LS_SYLLABUS = 'cc_syllabus';
+const LS_PROFILE  = 'cc_profile';
+const LS_DATES    = 'cc_examdates';
+
+const local = {
+  getMocks()   { try{return JSON.parse(localStorage.getItem(LS_MOCKS))||[]}catch{return[]} },
+  setMocks(a)  { localStorage.setItem(LS_MOCKS, JSON.stringify(a)) },
+  getSyl()     { try{return JSON.parse(localStorage.getItem(LS_SYLLABUS))||{}}catch{return{}} },
+  setSyl(o)    { localStorage.setItem(LS_SYLLABUS, JSON.stringify(o)) },
+  getProfile() { try{return JSON.parse(localStorage.getItem(LS_PROFILE))||{}}catch{return{}} },
+  setProfile(o){ localStorage.setItem(LS_PROFILE, JSON.stringify(o)) },
+  getDates()   { try{return JSON.parse(localStorage.getItem(LS_DATES))||{}}catch{return{}} },
+  setDates(o)  { localStorage.setItem(LS_DATES, JSON.stringify(o)) },
+  getLogs()    { try{return JSON.parse(localStorage.getItem('cc_studylogs'))||[]}catch{return[]} },
+  setLogs(a)   { localStorage.setItem('cc_studylogs', JSON.stringify(a)) },
+};
+
+const db = {
+  _uq() { return PROFILE.name ? '&user_name=eq.'+encodeURIComponent(PROFILE.name) : ''; },
+  async all() {
+    if (USE_SB) return await sbReq(TABLE+'?select=*'+this._uq()+'&order=date.asc,id.asc');
+    return local.getMocks().filter(m=>!m.user_name||m.user_name===PROFILE.name).sort((a,b)=>(a.date+a.id)<(b.date+b.id)?-1:1);
+  },
+  async add(o) {
+    o.id = Date.now()+''+Math.floor(Math.random()*9999);
+    if (PROFILE.name) o.user_name = PROFILE.name;
+    if (USE_SB) return (await sbReq(TABLE, {method:'POST', body:JSON.stringify(o)}))[0];
+    const a=local.getMocks(); a.push(o); local.setMocks(a); return o;
+  },
+  async update(id, o) {
+    if (USE_SB) return await sbReq(TABLE+'?id=eq.'+id, {method:'PATCH', body:JSON.stringify(o)});
+    const a=local.getMocks(); const i=a.findIndex(m=>m.id==id);
+    if (i>-1){a[i]={...a[i],...o}; local.setMocks(a);} return null;
+  },
+  async del(id) {
+    if (USE_SB) return await sbReq(TABLE+'?id=eq.'+id, {method:'DELETE'});
+    local.setMocks(local.getMocks().filter(m=>m.id!=id)); return null;
+  }
+};
+
+const studyLogDb = {
+  _uq() { return PROFILE.name ? '&user_name=eq.'+encodeURIComponent(PROFILE.name) : ''; },
+  async all() {
+    if (USE_SB) return await sbReq(STUDY_LOG_TABLE+'?select=*'+this._uq()+'&order=date.asc,id.asc');
+    return local.getLogs().filter(l=>!l.user_name||l.user_name===PROFILE.name).sort((a,b)=>(a.date+a.id)<(b.date+b.id)?-1:1);
+  },
+  async add(o) {
+    o.id = Date.now()+''+Math.floor(Math.random()*9999);
+    if (PROFILE.name) o.user_name = PROFILE.name;
+    if (USE_SB) return (await sbReq(STUDY_LOG_TABLE, {method:'POST', body:JSON.stringify(o)}))[0];
+    const a=local.getLogs(); a.push(o); local.setLogs(a); return o;
+  },
+  async del(id) {
+    if (USE_SB) return await sbReq(STUDY_LOG_TABLE+'?id=eq.'+id, {method:'DELETE'});
+    local.setLogs(local.getLogs().filter(l=>l.id!=id)); return null;
+  }
+};
+
+/* ── HELPERS ── */
+let MOCKS = [];
+let SYLLABUS = {};
+let PROFILE = {};
+let EXAM_DATES = {};
+let STUDY_LOGS = [];
+let charts = {};
+let editingId = null;
+let currentSections = SECTIONS_FULL;
+let quoteIdx = 0;
+let modalExamKey = null;
+
+const $ = id => document.getElementById(id);
+const fmt = n => +(Math.round(n*100)/100);
+
+function isRRB(exam) { return exam && (exam.includes('RRB')); }
+
+function getSections(exam) {
+  return isRRB(exam) ? SECTIONS_RRB : SECTIONS_FULL;
+}
+
+function maxScore(secs) {
+  return secs.reduce((s,x)=>s+x.q, 0);
+}
+
+function secScore(m, k) {
+  const corr = m[k+'_corr']||0;
+  const att  = m[k+'_att']||0;
+  const wrong = Math.max(0, att-corr);
+  return fmt(corr - NEG*wrong);
+}
+
+function totalScore(m) {
+  const secs = getSections(m.exam);
+  return fmt(secs.reduce((s,x)=>s+secScore(m,x.key), 0));
+}
+
+function totalMax(m) {
+  return getSections(m.exam).reduce((s,x)=>s+x.q, 0);
+}
+
+function todayStr() { return new Date().toISOString().slice(0,10); }
+
+function daysUntil(dateStr) {
+  if (!dateStr) return null;
+  const d = new Date(dateStr); const t = new Date(); t.setHours(0,0,0,0);
+  return Math.ceil((d-t)/864e5);
+}
+
+function fmtDate(s) {
+  if (!s) return '';
+  return new Date(s).toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'});
+}
+
+/* streak: consecutive days with mock logged OR syllabus checked OR study log entry */
+function calcStreak() {
+  const mockDays = new Set(MOCKS.map(m=>m.date));
+  const sylDays  = new Set(Object.values(SYLLABUS).map(v=>v.date||'').filter(Boolean));
+  const logDays  = new Set(STUDY_LOGS.map(l=>l.date));
+  const allDays  = new Set([...mockDays, ...sylDays, ...logDays]);
+  let s=0, d=new Date(); d.setHours(0,0,0,0);
+  if (!allDays.has(d.toISOString().slice(0,10))) d.setDate(d.getDate()-1);
+  while (allDays.has(d.toISOString().slice(0,10))) { s++; d.setDate(d.getDate()-1); }
+  return s;
+}
+
+function bestScore(exam) {
+  const filtered = exam ? MOCKS.filter(m=>m.exam===exam) : MOCKS;
+  if (!filtered.length) return null;
+  return Math.max(...filtered.map(totalScore));
+}
+
+function weakTopicFreq() {
+  const freq = {};
+  MOCKS.forEach(m=>(m.weak_topics||[]).forEach(t=>{
+    const name = t.includes('·') ? t.split('·').pop().trim() : t;
+    freq[name] = (freq[name]||0)+1;
+  }));
+  return freq;
+}
+
+function topWeakTopics(n) {
+  return Object.entries(weakTopicFreq()).sort((a,b)=>b[1]-a[1]).slice(0,n).map(e=>e[0]);
+}
+
+function lowestAccSection() {
+  let worst = null;
+  SECTIONS_FULL.forEach(s=>{
+    const arr = MOCKS.map(m=>{const a=m[s.key+'_att']||0; return a?(m[s.key+'_corr']||0)/a:null;}).filter(x=>x!=null);
+    if (arr.length) {
+      const avg = arr.reduce((a,b)=>a+b,0)/arr.length;
+      if (!worst || avg<worst.avg) worst={name:s.name, avg, key:s.key};
+    }
+  });
+  return worst;
+}
+
+/* ── SETUP ── */
+function completeSetup() {
+  const name = $('su_name').value.trim() || 'You';
+  const exam = $('su_exam').value;
+  PROFILE = {name, targetExam: exam, sburl: SB_URL, sbkey: SB_KEY};
+  local.setProfile(PROFILE);
+  $('setup').style.display = 'none';
+  $('app').style.display   = 'block';
+  bootApp();
+}
+
+/* ── TABS ── */
+$('tabs').addEventListener('click', e=>{
+  const b = e.target.closest('button'); if (!b) return;
+  document.querySelectorAll('#tabs button').forEach(x=>x.classList.remove('on'));
+  b.classList.add('on');
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('on'));
+  $(b.dataset.t).classList.add('on');
+  if (b.dataset.t === 'dash')     { renderDash(); renderCutoffProgress(); }
+  if (b.dataset.t === 'syllabus') renderSyllabus();
+  if (b.dataset.t === 'plan')     renderPlan();
+  if (b.dataset.t === 'history')  renderHistory();
+  if (b.dataset.t === 'aichat')   initChat();
+  if (b.dataset.t === 'goals') { renderGoals(); initNotifUI(); }
+  if (b.dataset.t === 'studylog') renderStudyLog();
+  if (b.dataset.t === 'report')   renderReport();
+  if (b.dataset.t === 'dqtab') { updateDQStats(); if (!currentDQ || getTodayDQ()?.date !== todayStr()) generateDQ(false); }
+});
+
+/* ── EXAM DATE MODAL ── */
+function openDateModal(examKey) {
+  modalExamKey = examKey;
+  $('modal-exam-name').textContent = 'Set date — '+examKey;
+  $('modal-date-input').value = EXAM_DATES[examKey]||'';
+  $('date-modal').classList.add('open');
+}
+function closeModal() { $('date-modal').classList.remove('open'); }
+function saveModalDate() {
+  EXAM_DATES[modalExamKey] = $('modal-date-input').value;
+  local.setDates(EXAM_DATES);
+  closeModal();
+  renderCountdowns();
+  renderGoals();
+}
+$('date-modal').addEventListener('click', e=>{ if(e.target===$('date-modal')) closeModal(); });
+
+/* ── COUNTDOWN CARDS ── */
+function renderCountdowns() {
+  const exams = Object.keys(EXAM_DATES_DEFAULT);
+  $('dash-countdowns').innerHTML = exams.map(ex=>{
+    const d = EXAM_DATES[ex]||'';
+    const days = daysUntil(d);
+    const daysHtml = days==null ? '<span style="color:var(--muted);font-size:16px">Not set</span>'
+      : days<0 ? '<span style="color:var(--muted)">Past</span>'
+      : days+'<small> days</small>';
+    return `<div class="cd-card">
+      <div class="cd-exam">${ex}</div>
+      <div class="cd-days">${daysHtml}</div>
+      <div class="cd-date">${d ? fmtDate(d) : 'Tap to set date'}</div>
+      <button class="cd-edit" onclick="openDateModal('${ex}')">✎ Edit</button>
+    </div>`;
+  }).join('');
+}
+
+/* ── CUTOFF PROGRESS ── */
+function renderCutoffProgress() {
+  const bestSc = MOCKS.length ? Math.max(...MOCKS.map(totalScore)) : 0;
+
+  const exams = [
+    { name: 'SBI PO',      cutoff: 62, color: '#1e3a5f' },
+    { name: 'IBPS PO',     cutoff: 56, color: '#3b82f6' },
+    { name: 'IBPS Clerk',  cutoff: 68, color: '#10b981' },
+    { name: 'IBPS RRB PO', cutoff: 63, color: '#f97316' },
+  ];
+
+  $('cutoff-progress-bars').innerHTML = exams.map(e => {
+    const pct = Math.min(100, Math.round((bestSc / e.cutoff) * 100));
+    const gap = e.cutoff - bestSc;
+    const above = bestSc >= e.cutoff;
+    const barColor = above ? '#10b981' : pct >= 85 ? '#f59e0b' : pct >= 60 ? '#3b82f6' : '#94a3b8';
+    const statusMsg = above
+      ? `<span style="color:#10b981;font-weight:600">✓ ${fmt(bestSc - e.cutoff)} marks above cutoff!</span>`
+      : pct >= 85
+        ? `<span style="color:#f59e0b">Almost there — just ${fmt(gap)} more marks!</span>`
+        : pct >= 60
+          ? `<span style="color:#3b82f6">Need ${fmt(gap)} more marks — keep pushing!</span>`
+          : `<span style="color:#94a3b8">Need ${fmt(gap)} more marks — early stage, every mock counts!</span>`;
+
+    return `<div style="margin-bottom:14px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px">
+        <div style="display:flex;align-items:center;gap:8px">
+          <div style="width:8px;height:8px;border-radius:50%;background:${e.color};flex-shrink:0"></div>
+          <span style="font-size:13px;font-weight:600;color:var(--text)">${e.name}</span>
+        </div>
+        <span style="font-size:12px;color:var(--muted)"><b style="color:var(--text)">${fmt(bestSc)}</b> / ${e.cutoff}</span>
+      </div>
+      <div style="background:#e2e8f0;border-radius:6px;height:10px;overflow:hidden;margin-bottom:4px">
+        <div class="cutoff-bar" data-width="${pct}" style="background:${barColor};width:0%;height:100%;border-radius:6px;transition:width 1s ease"></div>
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <div style="font-size:11px">${statusMsg}</div>
+        <div style="font-size:11px;color:var(--muted);font-weight:600">${pct}%</div>
+      </div>
+    </div>`;
+  }).join('');
+
+  // Animate bars after render
+  requestAnimationFrame(() => {
+    document.querySelectorAll('.cutoff-bar').forEach(bar => {
+      bar.style.width = bar.dataset.width + '%';
+    });
+  });
+}
+
+/* ── PREDICTION ── */
+function calcPrediction() {
+  if (MOCKS.length < 3) return null;
+  const scores = MOCKS.map(totalScore);
+  const n = scores.length;
+  // Linear regression: y = slope*x + intercept
+  const sumX = scores.reduce((_,__,i) => _ + i, 0);
+  const sumY = scores.reduce((a,b) => a + b, 0);
+  const sumXY = scores.reduce((acc, s, i) => acc + i * s, 0);
+  const sumX2 = scores.reduce((acc, _, i) => acc + i * i, 0);
+  const denom = (n * sumX2 - sumX * sumX);
+  const slope = denom ? (n * sumXY - sumX * sumY) / denom : 0;
+  const examName = PROFILE?.targetExam || 'SBI PO';
+  const targetCutoff = CUTOFFS.find(c => c.exam === examName);
+  const cutoffScore = targetCutoff ? targetCutoff.cutoff : 62;
+  const latestScore = scores[n - 1];
+  if (latestScore >= cutoffScore) return { status:'ready', slope, latestScore, cutoffScore, examName };
+  if (slope <= 0.1) return { status:'plateau', slope, latestScore, cutoffScore, examName };
+  const mocksNeeded = Math.ceil((cutoffScore - latestScore) / slope);
+  const weeksNeeded = mocksNeeded / 3; // assume 3 mocks/week
+  const readyDate = new Date();
+  readyDate.setDate(readyDate.getDate() + Math.round(weeksNeeded * 7));
+  return { status:'on-track', slope: fmt(slope), mocksNeeded, readyDate, latestScore, cutoffScore, examName };
+}
+
+async function renderPrediction() {
+  const el = $('pred-card');
+  if (!el) return;
+  el.style.display = 'block';
+  const pred = calcPrediction();
+  if (!pred) {
+    el.innerHTML = `<div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#a5b4fc;margin-bottom:4px">📈 Readiness Prediction</div>
+      <div style="font-size:13px;color:#c7d2fe">Log at least <b style="color:#fff">3 mocks</b> to unlock your predicted readiness date.</div>`;
+    return;
+  }
+  let headline = '', sub = '';
+  if (pred.status === 'ready') {
+    headline = `🎉 You're already cutoff-ready for ${pred.examName}!`;
+    sub = `Score above target. Stay consistent — don't let it slip.`;
+  } else if (pred.status === 'plateau') {
+    headline = `📊 Scores are plateauing — time to change strategy`;
+    sub = `Try timed sectional practice to break through the plateau.`;
+  } else {
+    const dateStr = pred.readyDate.toLocaleString('en-IN', { month:'long', year:'numeric' });
+    headline = `📈 Ready for ${pred.examName} by <b style="color:#fde68a">${dateStr}</b>`;
+    sub = `Improving ~${pred.slope} pts/mock · ${pred.mocksNeeded} more mock${pred.mocksNeeded!==1?'s':''} to reach cutoff`;
+  }
+  // AI sentence — cached per day + status
+  const cacheKey = 'cc_pred_ai';
+  const todayKey = new Date().toISOString().slice(0,10);
+  let aiText = '';
+  try {
+    const c = JSON.parse(localStorage.getItem(cacheKey)||'null');
+    if (c && c.date === todayKey && c.status === pred.status) aiText = c.text;
+  } catch(e){}
+  el.innerHTML = `
+    <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#a5b4fc;margin-bottom:6px">📈 Readiness Prediction</div>
+    <div style="font-size:14px;color:#e2e8f0;margin-bottom:4px;line-height:1.5">${headline}</div>
+    <div style="font-size:12px;color:#7dd3fc;margin-bottom:8px">${sub}</div>
+    <div id="pred-ai-text" style="font-size:12px;color:#c7d2fe;font-style:italic;line-height:1.6">${aiText || '<span style="opacity:.5">loading message…</span>'}</div>
+  `;
+  if (!aiText) {
+    try {
+      let userPrompt = '';
+      if (pred.status === 'ready') {
+        userPrompt = `Nanditha is already above the ${pred.examName} cutoff in mocks. One motivational sentence (max 18 words) to keep her consistent.`;
+      } else if (pred.status === 'plateau') {
+        userPrompt = `Nanditha's mock scores are plateauing. One honest, encouraging sentence (max 18 words) to help her break through.`;
+      } else {
+        const ds = pred.readyDate.toLocaleString('en-IN',{month:'long',year:'numeric'});
+        userPrompt = `Nanditha improves ${pred.slope} points per mock and is on track to clear ${pred.examName} by ${ds}. One personal, motivational sentence (max 18 words). No hashtags.`;
+      }
+      const text = await askGroq(`You are Manoj, Nanditha's boyfriend and study coach. Speak directly to her. Respond with ONE sentence only.`, userPrompt);
+      const clean = text.replace(/^["']|["']$/g,'').trim();
+      try { localStorage.setItem(cacheKey, JSON.stringify({ date:todayKey, status:pred.status, text:clean })); } catch(e){}
+      const aiEl = $('pred-ai-text');
+      if (aiEl) aiEl.textContent = clean;
+    } catch(e) {
+      const aiEl = $('pred-ai-text');
+      if (aiEl) aiEl.textContent = '';
+    }
+  }
+}
+
+/* ── DASHBOARD ── */
+function renderDash() {
+  renderCountdowns();
+  renderCutoffProgress();
+  renderPrediction();
+
+  const streak = calcStreak();
+  $('d-streak').innerHTML = streak+' <small>days</small>';
+  $('d-mocks').textContent = MOCKS.length;
+
+  const best = bestScore();
+  $('d-best').innerHTML = best!=null ? fmt(best)+' <small>/100</small>' : '— <small>/100</small>';
+
+  // Gap card
+  const prof = PROFILE;
+  const targetCutoff = CUTOFFS.find(c=>c.exam===prof.targetExam);
+  if (targetCutoff && best!=null) {
+    const gap = fmt(targetCutoff.cutoff - best);
+    $('d-gap').innerHTML = gap>0
+      ? `<span style="color:var(--danger)">-${gap}</span>`
+      : `<span style="color:var(--ok)">+${Math.abs(gap)}</span>`;
+    $('d-gap').title = gap>0 ? `Need ${gap} more to clear ${prof.targetExam}` : 'Already above cutoff!';
+  } else {
+    $('d-gap').textContent = '—';
+  }
+
+  // Insight
+  if (MOCKS.length >= 2) {
+    const worst = lowestAccSection();
+    const freq = weakTopicFreq();
+    const topWeak = Object.entries(freq).sort((a,b)=>b[1]-a[1])[0];
+    let msg = '';
+    if (worst) msg += `Weakest section: <b>${worst.name}</b> (${Math.round(worst.avg*100)}% accuracy).`;
+    if (topWeak) msg += ` Focus topic: <b>${topWeak[0]}</b> flagged ${topWeak[1]} time${topWeak[1]>1?'s':''}.`;
+    if (targetCutoff && best!=null) {
+      const gap = fmt(targetCutoff.cutoff - best);
+      if (gap>0) msg += ` You need <b>${gap} more marks</b> to clear ${prof.targetExam}.`;
+      else msg += ` You're already <b>above the ${prof.targetExam} cutoff</b>! Keep it consistent.`;
+    }
+    $('dash-insight-text').innerHTML = msg;
+    $('dash-insight').style.display = 'flex';
+  } else {
+    $('dash-insight').style.display = 'none';
+  }
+
+  if (!MOCKS.length) {
+    $('dash-empty').style.display = 'block';
+    $('dash-charts').style.display = 'none';
+    return;
+  }
+  $('dash-empty').style.display = 'none';
+  $('dash-charts').style.display = 'block';
+
+  const last10 = MOCKS.slice(-10);
+
+  // Score trend — mini bar chart (no Chart.js)
+  const scores = last10.map(totalScore);
+  const maxSc = Math.max(...scores, 1);
+  $('score-bars').innerHTML = scores.map((s,i)=>{
+    const pct = Math.round((s/100)*100);
+    const col = s>=65?'#10b981':s>=50?'#1e3a5f':'#f97316';
+    return `<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:2px">
+      <div style="font-size:9px;font-weight:700;color:${col}">${fmt(s)}</div>
+      <div style="width:100%;background:${col};border-radius:3px 3px 0 0;height:${Math.max(4,Math.round((s/100)*50))}px"></div>
+    </div>`;
+  }).join('');
+  $('score-labels').innerHTML = scores.map((_,i)=>
+    `<div style="flex:1;text-align:center;font-size:9px;color:#94a3b8;overflow:hidden">${i+1}</div>`
+  ).join('');
+
+  // Section accuracy — progress bars (no Chart.js)
+  const sections = currentSections || SECTIONS_FULL;
+  $('acc-bars').innerHTML = sections.map(s=>{
+    const accs = MOCKS.map(m=>{const a=m[s.key+'_att']||0;return a?Math.round((m[s.key+'_corr']||0)/a*100):null;}).filter(x=>x!==null);
+    const avg = accs.length ? Math.round(accs.reduce((a,b)=>a+b,0)/accs.length) : 0;
+    const recent = accs.slice(-1)[0] ?? avg;
+    return `<div style="margin-bottom:8px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:3px">
+        <span style="font-size:12px;font-weight:600;color:${s.color}">${s.name}</span>
+        <span style="font-size:12px;font-weight:700;color:var(--text)">${recent}%</span>
+      </div>
+      <div style="background:#e2e8f0;border-radius:4px;height:7px">
+        <div style="background:${s.color};width:${recent}%;height:100%;border-radius:4px;transition:.4s"></div>
+      </div>
+      <div style="font-size:10px;color:var(--muted);margin-top:2px">avg ${avg}% across ${accs.length} mock${accs.length!==1?'s':''}</div>
+    </div>`;
+  }).join('');
+
+  // Weak topics bar
+  const freq = weakTopicFreq();
+  const sorted = Object.entries(freq).sort((a,b)=>b[1]-a[1]).slice(0,8);
+  mkChart('c-weak','bar',{
+    labels:sorted.map(x=>x[0]),
+    datasets:[{data:sorted.map(x=>x[1]),backgroundColor:'#f59e0b',borderRadius:5}]
+  },{
+    indexAxis:'y',
+    scales:{x:{grid,ticks:{...ticks,stepSize:1}},y:{grid:{display:false},ticks:{...ticks,font:{size:11,family:'DM Sans'}}}},
+    plugins:{legend:{display:false}}
+  });
+
+  // Heatmap
+  const mockDays = new Set(MOCKS.map(m=>m.date));
+  const sylDays  = new Set(Object.entries(SYLLABUS).map(([k,v])=>v.date||'').filter(Boolean));
+  const studyLogDays = new Set(STUDY_LOGS.map(l=>l.date));
+  let heat = '';
+  for (let i=29;i>=0;i--) {
+    const d = new Date(); d.setDate(d.getDate()-i);
+    const ds = d.toISOString().slice(0,10);
+    const hasMock = mockDays.has(ds);
+    const hasSyl  = sylDays.has(ds) || studyLogDays.has(ds);
+    const cls = hasMock&&hasSyl?'both':hasMock?'active':hasSyl?'syllabus':'';
+    heat += `<div class="heat-cell ${cls}" title="${fmtDate(ds)}"></div>`;
+  }
+  $('dash-heat').innerHTML = heat;
+
+  renderTodayActivity();
+  updateDQTeaser();
+}
+
+function mkChart(id,type,data,opts) {
+  if (charts[id]) charts[id].destroy();
+  const ctx = $(id);
+  if (!ctx) return;
+  charts[id] = new Chart(ctx, {type, data, options:{responsive:true, maintainAspectRatio:false, ...opts}});
+}
+
+/* ── LOG MOCK ── */
+function onExamChange() {
+  const exam = $('f-exam').value;
+  currentSections = getSections(exam);
+  buildSecInputs();
+  buildTopicChips();
+  recalc();
+}
+
+function buildSecInputs() {
+  $('sec-inputs').innerHTML = currentSections.map(s=>`
+    <div class="sec-card">
+      <div class="sec-card-header">
+        <div class="sec-card-name">
+          <span class="sec-dot" style="background:${s.color}"></span>${s.name}
+        </div>
+        <span class="sec-meta">${s.q} questions · −0.25 negative</span>
+      </div>
+      <div class="row3">
+        <label class="fld" style="margin:0"><span>Attempted</span>
+          <input type="number" min="0" max="${s.q}" id="i-${s.key}-att" oninput="recalc()" placeholder="0"></label>
+        <label class="fld" style="margin:0"><span>Correct</span>
+          <input type="number" min="0" max="${s.q}" id="i-${s.key}-corr" oninput="recalc()" placeholder="0"></label>
+        <label class="fld" style="margin:0"><span>Time (min)</span>
+          <input type="number" min="0" step="0.5" id="i-${s.key}-time" placeholder="0"></label>
+      </div>
+      <div class="score-line" id="sl-${s.key}">Score: <b>0</b></div>
+    </div>`).join('');
+}
+
+function buildTopicChips() {
+  let html = '';
+  currentSections.forEach(s=>{
+    const wf = weakTopicFreq();
+    html += `<div class="chip-group-title" style="color:${s.color}">${s.name}</div><div class="chips">`;
+    html += s.topics.map(t=>{
+      const key = `${s.name} · ${t}`;
+      const isWeak = wf[t] > 0;
+      return `<span class="chip ${s.cls}" data-topic="${key}" onclick="this.classList.toggle('on')">${t}${isWeak?` <small style="opacity:.7">(${wf[t]}×)</small>`:''}</span>`;
+    }).join('');
+    html += '</div>';
+  });
+  $('topic-chips').innerHTML = html;
+}
+
+function recalc() {
+  let tot = 0;
+  let maxTot = 0;
+  currentSections.forEach(s=>{
+    const att  = +($('i-'+s.key+'-att')?.value||0);
+    const corr = +($('i-'+s.key+'-corr')?.value||0);
+    const wrong = Math.max(0,att-corr);
+    const sc = corr - NEG*wrong; tot += sc; maxTot += s.q;
+    const sl = $('sl-'+s.key);
+    if (sl) sl.innerHTML=`Score: <b>${fmt(sc)}</b> &nbsp; <span style="color:var(--muted)">(${corr} right, ${wrong} wrong)</span>`;
+  });
+  $('f-total').textContent = fmt(tot)+' / '+maxTot;
+}
+
+function resetForm() {
+  editingId = null;
+  $('log-title').textContent = 'Log a mock';
+  $('save-btn').textContent = 'Save mock';
+  $('cancel-edit').style.display = 'none';
+  $('f-date').value = todayStr();
+  $('f-exam').value = PROFILE.targetExam||'SBI PO';
+  $('f-name').value = '';
+  $('f-notes').value = '';
+  onExamChange();
+}
+
+async function saveMock() {
+  const exam = $('f-exam').value;
+  const secs = getSections(exam);
+  const o = {
+    date:       $('f-date').value || todayStr(),
+    exam,
+    mock_name:  $('f-name').value.trim(),
+    weak_topics:[...document.querySelectorAll('#topic-chips .chip.on')].map(c=>c.dataset.topic),
+    notes:      $('f-notes').value.trim()
+  };
+  secs.forEach(s=>{
+    o[s.key+'_att']  = +($('i-'+s.key+'-att')?.value||0);
+    o[s.key+'_corr'] = +($('i-'+s.key+'-corr')?.value||0);
+    o[s.key+'_time'] = +($('i-'+s.key+'-time')?.value||0);
+  });
+  if (secs.every(s=>!o[s.key+'_att'])) { alert('Enter at least one section.'); return; }
+
+  $('save-btn').textContent = 'Saving…'; $('save-btn').disabled = true;
+  try {
+    if (editingId) await db.update(editingId, o); else await db.add(o);
+    await load();
+    checkMilestones();
+    resetForm();
+    document.querySelector('[data-t="dash"]').click();
+    // Auto-trigger AI insight after saving
+    if (!editingId) askAI('her');
+  } catch(e) { alert('Save failed: '+e.message); }
+  $('save-btn').disabled = false; $('save-btn').textContent = editingId?'Update mock':'Save mock';
+}
+
+function editMock(id) {
+  const m = MOCKS.find(x=>x.id==id); if (!m) return;
+  editingId = id;
+  $('log-title').textContent = 'Edit mock';
+  $('save-btn').textContent = 'Update mock';
+  $('cancel-edit').style.display = 'block';
+  $('f-date').value = m.date;
+  $('f-exam').value = m.exam||'SBI PO';
+  $('f-name').value = m.mock_name||'';
+  $('f-notes').value = m.notes||'';
+  onExamChange();
+  const secs = getSections(m.exam);
+  secs.forEach(s=>{
+    ['att','corr','time'].forEach(f=>{
+      const el = $('i-'+s.key+'-'+f);
+      if (el) el.value = m[s.key+'_'+f]||'';
+    });
+  });
+  const wt = m.weak_topics||[];
+  document.querySelectorAll('#topic-chips .chip').forEach(c=>{
+    c.classList.toggle('on', wt.includes(c.dataset.topic));
+  });
+  recalc();
+  document.querySelector('[data-t="logmock"]').click();
+  window.scrollTo(0,0);
+}
+
+async function delMock(id) {
+  if (!confirm('Delete this mock?')) return;
+  await db.del(id); await load(); renderHistory();
+}
+
+/* ── SYLLABUS ── */
+function renderSyllabus() {
+  const freq = weakTopicFreq();
+  let html = '';
+  SECTIONS_FULL.forEach(s=>{
+    const done = s.topics.filter(t=>SYLLABUS[s.key+':'+t]?.checked).length;
+    const pct  = Math.round(done/s.topics.length*100);
+    html += `<div class="card">
+      <div class="card-title" style="display:flex;align-items:center;gap:8px">
+        <span style="width:10px;height:10px;border-radius:50%;background:${s.color};display:inline-block"></span>
+        ${s.name}
+      </div>
+      <div class="section-progress">
+        <span>${done} / ${s.topics.length} topics covered</span>
+        <span style="font-weight:700;color:${s.color}">${pct}%</span>
+      </div>
+      <div class="progress-bar-wrap">
+        <div class="progress-bar" style="width:${pct}%;background:${s.color}"></div>
+      </div>
+      <div>`;
+    s.topics.forEach(t=>{
+      const key = s.key+':'+t;
+      const checked = SYLLABUS[key]?.checked||false;
+      const wc = freq[t]||0;
+      html += `<div class="topic-row">
+        <label class="topic-check" onclick="toggleTopic('${key}')">
+          <input type="checkbox" ${checked?'checked':''} onclick="event.stopPropagation();toggleTopic('${key}')">
+          <span class="topic-name ${checked?'done':''}">${t}</span>
+        </label>
+        ${wc>0?`<span class="warn-badge">⚠ Weak × ${wc}</span>`:''}
+      </div>`;
+    });
+    html += '</div></div>';
+  });
+  $('syl-sections').innerHTML = html;
+}
+
+function toggleTopic(key) {
+  const cur = SYLLABUS[key]?.checked||false;
+  SYLLABUS[key] = {checked:!cur, date: todayStr()};
+  local.setSyl(SYLLABUS);
+  renderSyllabus();
+}
+
+/* ── STUDY PLAN ── */
+function renderPlan() {
+  // Today's focus
+  const weak3 = topWeakTopics(3);
+  const worstSec = lowestAccSection();
+
+  let focusHtml = '';
+  if (!MOCKS.length) {
+    focusHtml = `<div class="card"><div class="card-sub">Log some mocks first and your personalised focus will appear here.</div></div>`;
+  } else {
+    const focusItems = weak3.length ? weak3 : (worstSec?[worstSec.name+' (section)']:[]);
+    if (!focusItems.length && worstSec) focusItems.push(worstSec.name);
+    focusHtml = `<div class="focus-card">
+      <div class="focus-title">🎯 Today's Focus — Top Weak Areas</div>
+      ${focusItems.length ? focusItems.map((t,i)=>`
+        <div class="focus-item">
+          <div class="focus-num">${i+1}</div>
+          <div class="focus-topic">${t}</div>
+        </div>`).join('') : '<div style="color:#701a75;font-size:13px">No weak topics flagged yet. Keep logging mocks!</div>'}
+    </div>`;
+  }
+  $('plan-focus').innerHTML = focusHtml;
+
+  // Weekly plan
+  const allWeakTopics = topWeakTopics(12);
+  const sectionNames  = SECTIONS_FULL.map(s=>s.name);
+  const pool = allWeakTopics.length >= 6 ? allWeakTopics : [...allWeakTopics, ...sectionNames].slice(0,12);
+  const weekHtml = DAY_NAMES.map((day,i)=>{
+    const topics = pool.slice(i*2, i*2+2);
+    if (!topics.length) topics.push('Revision & Mock');
+    return `<div class="week-day">
+      <div class="week-day-name">${day}</div>
+      <div class="week-day-topics">${topics.join('<br>')}</div>
+    </div>`;
+  }).join('');
+  $('week-plan').innerHTML = weekHtml;
+
+  showQuote();
+}
+
+let quoteInterval = null;
+function showQuote() {
+  $('moti-quote').textContent = '"'+QUOTES[quoteIdx % QUOTES.length]+'"';
+}
+function nextQuote() { quoteIdx = (quoteIdx+1)%QUOTES.length; showQuote(); }
+function prevQuote() { quoteIdx = (quoteIdx-1+QUOTES.length)%QUOTES.length; showQuote(); }
+
+/* ── TIMER ── */
+const TIMER_OPTS = [
+  {l:'English 20m', v:20, label:'English · 20 minutes'},
+  {l:'Quant 20m',   v:20, label:'Quant · 20 minutes'},
+  {l:'Reasoning 20m',v:20, label:'Reasoning · 20 minutes'},
+  {l:'Full Mock 60m',v:60, label:'Full Mock · 60 minutes'},
+  {l:'Custom',       v:0,  label:'Custom'},
+];
+let tDur=20*60, tLeft=20*60, tRun=false, tInt=null, curTimerLabel='English · 20 minutes';
+
+function buildTimerChips() {
+  $('timer-chips').innerHTML = TIMER_OPTS.map((o,i)=>
+    `<span class="chip ${i===0?'on':''}" data-v="${o.v}" data-label="${o.label}" onclick="pickTimer(this)">${o.l}</span>`
+  ).join('');
+}
+
+function pickTimer(el) {
+  document.querySelectorAll('#timer-chips .chip').forEach(c=>c.classList.remove('on'));
+  el.classList.add('on');
+  const v = +el.dataset.v;
+  curTimerLabel = el.dataset.label;
+  $('custom-timer-row').style.display = v===0 ? 'block' : 'none';
+  if (v>0) { tDur = v*60; if (!tRun){tLeft=tDur; paintClock();} }
+  $('timer-label').textContent = curTimerLabel;
+}
+
+function setCustomTimer() {
+  const v = +$('custom-min').value;
+  if (v>0) { tDur=v*60; if (!tRun){tLeft=tDur; paintClock();} }
+}
+
+function paintClock() {
+  const m=Math.floor(tLeft/60), s=tLeft%60;
+  const c=$('clock');
+  c.textContent=`${m}:${String(s).padStart(2,'0')}`;
+  c.className='clock'+(tLeft<=0?' done':tLeft<=60?' warn':'');
+}
+
+function beep() {
+  try {
+    const ctx = new (window.AudioContext||window.webkitAudioContext)();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain); gain.connect(ctx.destination);
+    osc.frequency.value = 880; osc.type = 'sine';
+    gain.gain.setValueAtTime(0.5, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime+1.5);
+    osc.start(ctx.currentTime); osc.stop(ctx.currentTime+1.5);
+  } catch(e){}
+}
+
+function toggleTimer() {
+  if (tRun) {
+    clearInterval(tInt); tRun=false; $('t-start').textContent='Resume'; return;
+  }
+  tRun=true; $('t-start').textContent='Pause';
+  tInt = setInterval(()=>{
+    tLeft--; paintClock();
+    if (tLeft<=0) {
+      clearInterval(tInt); tRun=false; $('t-start').textContent='Start';
+      beep();
+    }
+  },1000);
+}
+
+function resetTimer() {
+  clearInterval(tInt); tRun=false; tLeft=tDur;
+  $('t-start').textContent='Start'; paintClock();
+}
+
+/* ── HISTORY ── */
+function renderHistory() {
+  $('sync-badge').textContent = USE_SB ? '☁ Cloud synced' : '• On this device';
+  $('sync-badge').className   = 'badge '+(USE_SB?'cloud':'local');
+  $('sb-note').innerHTML = USE_SB
+    ? '☁ Data syncing to Supabase across all devices.'
+    : `Running on this device only. To sync: paste <code>SB_URL</code> &amp; <code>SB_KEY</code> at top of the file.`;
+
+  const filter = $('hist-filter').value;
+  const list = filter ? MOCKS.filter(m=>m.exam===filter) : MOCKS;
+  const sorted = [...list].reverse();
+
+  if (!sorted.length) {
+    $('hist-list').innerHTML = '<div class="empty">No mocks yet. Log one to begin.</div>';
+    return;
+  }
+
+  $('hist-list').innerHTML = sorted.map(m=>{
+    const secs = getSections(m.exam);
+    const sc = totalScore(m), mx = totalMax(m);
+    const pct = Math.round(sc/mx*100);
+    return `<div class="mock-card">
+      <div class="mock-top">
+        <div>
+          <div class="mock-name">${m.mock_name||m.exam}</div>
+          <div class="mock-meta">${m.exam} · ${fmtDate(m.date)}</div>
+        </div>
+        <div>
+          <div class="mock-score">${fmt(sc)}<small> /${mx}</small></div>
+          <div style="font-size:11px;color:var(--muted);text-align:right">${pct}%</div>
+        </div>
+      </div>
+      <div class="mock-sections">
+        ${secs.map(s=>`
+          <span class="mock-section">
+            <span style="width:8px;height:8px;border-radius:50%;background:${s.color};display:inline-block"></span>
+            ${s.name}: <b>${fmt(secScore(m,s.key))}</b>/${s.q}
+          </span>`).join('')}
+      </div>
+      ${m.weak_topics&&m.weak_topics.length?`<div style="margin-top:8px;font-size:12px;color:var(--muted)">Weak: ${m.weak_topics.map(t=>t.includes('·')?t.split('·').pop().trim():t).join(', ')}</div>`:''}
+      ${m.notes?`<div style="margin-top:6px;font-size:12px;color:var(--muted);font-style:italic">"${m.notes}"</div>`:''}
+      <div class="mock-actions">
+        <button class="btn ghost sm" onclick="editMock('${m.id}')">Edit</button>
+        <button class="btn sm" style="background:none;border:none;color:var(--danger);cursor:pointer;font-family:inherit;font-weight:600" onclick="delMock('${m.id}')">Delete</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+/* ── GOALS & CUTOFFS ── */
+function renderGoals() {
+  // Exam dates editor
+  const exams = Object.keys(EXAM_DATES_DEFAULT);
+  $('goals-dates').innerHTML = `<div class="grid2">
+    ${exams.map(ex=>`
+      <div style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:14px">
+        <div style="font-size:12px;font-weight:700;color:var(--muted);margin-bottom:8px;text-transform:uppercase;letter-spacing:.5px">${ex}</div>
+        <input type="date" value="${EXAM_DATES[ex]||''}" onchange="EXAM_DATES['${ex}']=this.value;local.setDates(EXAM_DATES);renderCountdowns()">
+      </div>`).join('')}
+  </div>`;
+
+  // Cutoffs table
+  $('cutoff-tbody').innerHTML = CUTOFFS.map(row=>{
+    const myBest = bestScore(row.exam);
+    const gap = myBest!=null ? fmt(row.cutoff - myBest) : null;
+    const gapHtml = gap==null ? '<span class="gap-zero">—</span>'
+      : gap>0  ? `<span class="gap-neg">−${gap}</span>`
+      : gap===0? `<span class="gap-zero">On cutoff</span>`
+      : `<span class="gap-ok">+${Math.abs(gap)}</span>`;
+    return `<tr>
+      <td><b>${row.exam}</b></td>
+      <td>${row.cutoff}</td>
+      <td>${myBest!=null?fmt(myBest):'—'}</td>
+      <td>${gapHtml}</td>
+    </tr>`;
+  }).join('');
+}
+
+/* ── STUDY LOG ── */
+const SECTION_COLORS = {
+  'English':          '#3b82f6',
+  'Quant':            '#10b981',
+  'Reasoning':        '#f97316',
+  'General Awareness':'#8b5cf6',
+  'Full Mock Revision':'#1e3a5f',
+  'Other':            '#64748b',
+};
+
+let selectedConfidence = '';
+
+function buildStudyLogForm() {
+  $('sl-date').value = todayStr();
+  selectedConfidence = '';
+  const chips = [
+    {val:'Easy',   cls:'conf-easy',   label:'Easy'},
+    {val:'Medium', cls:'conf-medium', label:'Medium'},
+    {val:'Hard',   cls:'conf-hard',   label:'Hard'},
+  ];
+  $('sl-confidence-chips').innerHTML = chips.map(c=>
+    `<span class="chip ${c.cls}" data-conf="${c.val}" onclick="pickConfidence(this)">${c.label}</span>`
+  ).join('');
+}
+
+function pickConfidence(el) {
+  document.querySelectorAll('#sl-confidence-chips .chip').forEach(c=>c.classList.remove('on'));
+  el.classList.add('on');
+  selectedConfidence = el.dataset.conf;
+}
+
+async function saveStudyLog() {
+  const date     = $('sl-date').value || todayStr();
+  const section  = $('sl-section').value;
+  const topic    = $('sl-topic').value.trim();
+  const duration = +($('sl-duration').value||0);
+  const notes    = $('sl-notes').value.trim();
+  const confidence = selectedConfidence;
+
+  if (!topic)    { alert('Please enter a topic.'); return; }
+  if (!duration) { alert('Please enter duration in minutes.'); return; }
+  if (!confidence) { alert('Please select a confidence level.'); return; }
+
+  const o = { date, section, topic, duration, confidence, notes };
+
+  try {
+    await studyLogDb.add(o);
+    await loadStudyLogs();
+    // Reset form fields
+    $('sl-topic').value = '';
+    $('sl-duration').value = '';
+    $('sl-notes').value = '';
+    selectedConfidence = '';
+    document.querySelectorAll('#sl-confidence-chips .chip').forEach(c=>c.classList.remove('on'));
+    renderStudyLog();
+    renderTodayActivity();
+    renderDash();
+    checkMilestones();
+  } catch(e) { alert('Save failed: '+e.message); }
+}
+
+function renderStudyLog() {
+  buildStudyLogForm();
+
+  const today = todayStr();
+  const cutoff = new Date(); cutoff.setDate(cutoff.getDate()-6);
+  const cutoffStr = cutoff.toISOString().slice(0,10);
+
+  // Group logs by date (last 7 days + today), newest first
+  const recent = STUDY_LOGS.filter(l=>l.date>=cutoffStr).slice().reverse();
+
+  if (!recent.length) {
+    $('studylog-list').innerHTML = '<div class="empty">No study sessions logged in the last 7 days. Log your first one above!</div>';
+    return;
+  }
+
+  // Group by date
+  const byDate = {};
+  recent.forEach(l=>{ if (!byDate[l.date]) byDate[l.date]=[]; byDate[l.date].push(l); });
+  const dates = Object.keys(byDate).sort().reverse();
+
+  let html = '';
+  dates.forEach(date=>{
+    const label = date===today ? 'Today' : fmtDate(date);
+    html += `<div class="card" style="margin-bottom:12px">
+      <div class="sl-date-header">${label}</div>`;
+    byDate[date].forEach(l=>{
+      const color = SECTION_COLORS[l.section]||'#64748b';
+      const confCls = l.confidence ? l.confidence.toLowerCase() : '';
+      html += `<div class="sl-log-item">
+        <span class="sl-sec-dot" style="background:${color}"></span>
+        <div style="flex:1;min-width:0">
+          <div class="sl-log-topic">${l.topic}</div>
+          <div style="font-size:11px;color:var(--muted)">${l.section}${l.notes?` · <em>${l.notes}</em>`:''}</div>
+        </div>
+        <span class="sl-log-dur">${l.duration} min</span>
+        <span class="sl-conf-badge ${confCls}">${l.confidence||''}</span>
+        <button onclick="deleteStudyLog('${l.id}')" style="background:none;border:none;color:var(--danger);cursor:pointer;font-size:13px;font-family:inherit;font-weight:600;padding:2px 6px;margin-left:2px">×</button>
+      </div>`;
+    });
+    html += '</div>';
+  });
+  $('studylog-list').innerHTML = html;
+}
+
+async function deleteStudyLog(id) {
+  if (!confirm('Delete this study session?')) return;
+  await studyLogDb.del(id);
+  await loadStudyLogs();
+  renderStudyLog();
+  renderTodayActivity();
+  renderDash();
+}
+
+function renderTodayActivity() {
+  const today = todayStr();
+  const todayLogs = STUDY_LOGS.filter(l=>l.date===today);
+  const strip = $('today-activity');
+  if (!strip) return;
+  if (!todayLogs.length) {
+    strip.style.display = 'none';
+    return;
+  }
+  strip.style.display = 'block';
+  const totalMins = todayLogs.reduce((s,l)=>s+(+l.duration||0),0);
+  const items = todayLogs.map(l=>{
+    const color = SECTION_COLORS[l.section]||'#64748b';
+    const confCls = l.confidence ? l.confidence.toLowerCase() : '';
+    return `<span style="display:inline-flex;align-items:center;gap:5px;margin-right:12px;margin-bottom:4px">
+      <span style="width:8px;height:8px;border-radius:50%;background:${color};display:inline-block;flex-shrink:0"></span>
+      <span style="font-weight:500">${l.topic}</span>
+      <span style="color:var(--muted);font-size:12px">${l.duration}m</span>
+      <span class="sl-conf-badge ${confCls}" style="font-size:10px">${l.confidence||''}</span>
+    </span>`;
+  }).join('');
+  $('today-activity-list').innerHTML = `<div style="margin-bottom:4px;font-size:12px;color:var(--muted)">Total: <b style="color:var(--navy)">${totalMins} min</b> across ${todayLogs.length} session${todayLogs.length!==1?'s':''}</div><div style="display:flex;flex-wrap:wrap">${items}</div>`;
+}
+
+/* ── AI CHAT ── */
+let chatMode = 'her';
+let chatHistory = [];
+
+const QUICK_HER = [
+  "How do I improve in Reasoning?",
+  "Give me 5 number series questions",
+  "I feel like giving up today",
+  "What should I study today?",
+  "Explain syllogisms with examples",
+  "How many mocks per week?"
+];
+const QUICK_HIM = [
+  "How is her prep going?",
+  "What should I quiz her on today?",
+  "Is she on track for SBI PO?",
+  "How can I motivate her today?",
+  "What's her biggest weakness?",
+  "Give me a study plan for her this week"
+];
+
+function setChatMode(mode) {
+  chatMode = mode;
+  $('chat-mode-her').style.background = mode==='her'?'var(--navy)':'';
+  $('chat-mode-her').style.color = mode==='her'?'#fff':'';
+  $('chat-mode-her').style.borderColor = mode==='her'?'var(--navy)':'var(--border)';
+  $('chat-mode-him').style.background = mode==='him'?'var(--navy)':'';
+  $('chat-mode-him').style.color = mode==='him'?'#fff':'';
+  $('chat-mode-him').style.borderColor = mode==='him'?'var(--navy)':'var(--border)';
+  buildQuickPrompts();
+  // Welcome message on switch
+  const who = mode==='her'?'Nanditha':'Manoj';
+  appendMsg('ai', mode==='her'
+    ? `Hi Nanditha! 👋 I'm your AI coach. Ask me anything — exam doubts, study tips, practice questions, or just talk to me when you're feeling low. I know your prep data so I can give you personalised advice!`
+    : `Hey Manoj! 👋 I can see Nanditha's full prep data. Ask me how she's doing, what to quiz her on, how to motivate her, or anything else. I'm here to help you help her win! 💙`
+  );
+}
+
+function buildQuickPrompts() {
+  const prompts = chatMode==='her' ? QUICK_HER : QUICK_HIM;
+  $('quick-prompts').innerHTML = prompts.map(p=>
+    `<span class="chip" onclick="useQuick('${p.replace(/'/g,"\\'")}'')">${p}</span>`
+  ).join('');
+}
+
+function useQuick(text) {
+  $('chat-input').value = text;
+  sendChat();
+}
+
+function appendMsg(role, text) {
+  const isAI = role==='ai';
+  const div = document.createElement('div');
+  div.style.cssText = `display:flex;justify-content:${isAI?'flex-start':'flex-end'}`;
+  div.innerHTML = `<div style="max-width:80%;padding:10px 14px;border-radius:${isAI?'4px 16px 16px 16px':'16px 4px 16px 16px'};
+    background:${isAI?'var(--surface2)':'var(--navy)'};color:${isAI?'var(--text)':'#fff'};
+    font-size:13px;line-height:1.6;white-space:pre-wrap">${text}</div>`;
+  $('chat-messages').appendChild(div);
+  $('chat-messages').scrollTop = $('chat-messages').scrollHeight;
+}
+
+function appendTyping() {
+  const div = document.createElement('div');
+  div.id = 'chat-typing';
+  div.style.cssText = 'display:flex;justify-content:flex-start';
+  div.innerHTML = `<div style="padding:10px 14px;border-radius:4px 16px 16px 16px;background:var(--surface2);font-size:13px;color:var(--muted)">🤖 typing...</div>`;
+  $('chat-messages').appendChild(div);
+  $('chat-messages').scrollTop = $('chat-messages').scrollHeight;
+}
+
+async function sendChat() {
+  const input = $('chat-input').value.trim();
+  if (!input) return;
+  $('chat-input').value = '';
+  appendMsg('user', input);
+  chatHistory.push({role:'user', content:input});
+
+  appendTyping();
+
+  const summary = buildMockSummary();
+  const sysPrompt = chatMode==='her'
+    ? `You are Nanditha's personal AI bank exam coach. She is preparing for Indian bank exams (SBI PO, IBPS PO, IBPS Clerk). Her boyfriend Manoj built this entire app just for her because he believes in her.
+
+Her current prep data: ${summary}
+
+RULES:
+- Talk like a real person, not a report writer
+- MAX 80 words per reply unless she asks for practice questions
+- NO bullet points ever — write in natural flowing sentences
+- Be warm, direct, personal — use her name occasionally
+- If she asks for practice questions, give 3 focused ones with answers
+- If she's feeling low or struggling, be genuinely human and encouraging
+- Always connect advice back to her actual data when relevant`
+    : `You are helping Manoj support his girlfriend Nanditha who is preparing for Indian bank exams. He built a custom tracking app for her.
+
+Nanditha's current prep data: ${summary}
+
+RULES:
+- Talk like a friend advising another friend — casual, direct, warm
+- MAX 80 words per reply
+- NO bullet points — natural sentences only
+- Be honest about her progress but always constructive
+- Give him specific, actionable things he can do TODAY
+- Remind him his support is a real factor in her success`;
+
+  const messages = [{role:'system',content:sysPrompt}, ...chatHistory.slice(-10)];
+
+  try {
+    const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+      method:'POST',
+      headers:{'Authorization':'Bearer '+GROQ_KEY,'Content-Type':'application/json'},
+      body: JSON.stringify({model:GROQ_MODEL, max_tokens:600, temperature:0.8, messages})
+    });
+    const d = await res.json();
+    const reply = d.choices?.[0]?.message?.content || 'Sorry, could not get a response.';
+    document.getElementById('chat-typing')?.remove();
+    appendMsg('ai', reply);
+    chatHistory.push({role:'assistant', content:reply});
+  } catch(e) {
+    document.getElementById('chat-typing')?.remove();
+    appendMsg('ai', 'Connection error: '+e.message);
+  }
+}
+
+let chatInited = false;
+function initChat() {
+  if (chatInited) return;
+  chatInited = true;
+  chatHistory = [];
+  buildQuickPrompts();
+  setChatMode('her');
+}
+
+/* ── AI ── */
+async function askGroq(system, user) {
+  const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+    method: 'POST',
+    headers: { 'Authorization': 'Bearer '+GROQ_KEY, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ model: GROQ_MODEL, max_tokens: 600, temperature: 0.85,
+      messages: [{ role:'system', content:system }, { role:'user', content:user }] })
+  });
+  const d = await res.json();
+  return d.choices?.[0]?.message?.content || 'Could not get response.';
+}
+
+function buildMockSummary() {
+  if (!MOCKS.length) return 'No mocks logged yet.';
+  const freq = weakTopicFreq();
+  const topWeak = Object.entries(freq).sort((a,b)=>b[1]-a[1]).slice(0,3).map(x=>x[0]).join(', ');
+  const scores = MOCKS.map(totalScore);
+  const avg = fmt(scores.reduce((a,b)=>a+b,0)/scores.length);
+  const best = fmt(Math.max(...scores));
+  const latest = fmt(scores[scores.length-1]);
+  const trend = scores.length >= 2 ? (scores[scores.length-1] > scores[scores.length-2] ? 'improving' : 'needs improvement') : 'just started';
+  const secStats = SECTIONS_FULL.map(s=>{
+    const accs = MOCKS.map(m=>{const a=m[s.key+'_att']||0;return a?Math.round((m[s.key+'_corr']||0)/a*100):null;}).filter(x=>x!==null);
+    const secAvg = accs.length ? Math.round(accs.reduce((a,b)=>a+b,0)/accs.length) : 0;
+    const attempted = MOCKS.map(m=>m[s.key+'_att']||0);
+    const avgAtt = Math.round(attempted.reduce((a,b)=>a+b,0)/attempted.length);
+    return `${s.name}: ${secAvg}% accuracy, avg ${avgAtt} questions attempted`;
+  }).join(' | ');
+  const stage = MOCKS.length <= 5 ? 'early stage (just started preparing)' : MOCKS.length <= 15 ? 'mid preparation' : 'advanced preparation';
+  return `Preparation stage: ${stage}. Total mocks logged: ${MOCKS.length}. Score trend: ${trend}. Average score: ${avg}/100. Personal best: ${best}/100. Latest score: ${latest}/100. All scores: ${scores.map(fmt).join(', ')}. Section details — ${secStats}. Flagged weak topics: ${topWeak||'none yet — she has not flagged topics'}. Target exam: ${PROFILE?.targetExam||'SBI PO'}.`;
+}
+
+async function askAI(mode) {
+  if (!MOCKS.length) { alert('Log at least one mock first!'); return; }
+  $('ai-card').style.display = 'block';
+  $('ai-text').style.display = 'none';
+  $('ai-loading').style.display = 'block';
+
+  const summary = buildMockSummary();
+  let system, user;
+
+  if (mode === 'her') {
+    system = `You are Nanditha's personal bank exam coach. She is preparing for Indian bank exams (SBI PO / IBPS PO). Her boyfriend Manoj loves her deeply and built this entire app just for her so she can track her prep and achieve her dream of getting a bank job.
+
+Write a SHORT personal message (under 130 words) directly to Nanditha:
+- Open with "Nanditha," — warm and personal
+- If scores are low, acknowledge it honestly BUT frame it as "this is the beginning of your journey, not the end" — every topper started here
+- Call out ONE specific section or topic she should attack this week
+- Remind her that someone who loves her (Manoj) is watching her grow every single day through this app — she is not alone
+- End with ONE powerful sentence about her dream of getting a bank job
+- Write like a real human coach, not a report. Warm. Real. Fired up.
+- NO bullet points. 2-3 short paragraphs only.`;
+    user = `Nanditha's prep data: ${summary}\n\nWrite her message now. Make her feel seen, supported, and ready to study harder today.`;
+  } else {
+    system = `You are advising Manoj, a caring boyfriend who built a custom app to help his girlfriend Nanditha crack her bank exam. He checks her progress and wants to know how to support her.
+
+Write a SHORT message (under 130 words) directly to Manoj:
+- Open with "Manoj," — like a friend talking
+- Be honest about where Nanditha's prep stands right now — no sugarcoating
+- Tell him the ONE thing she needs most right now (specific topic, section, or habit)
+- Give him 1-2 CONCRETE actions he can take THIS WEEK to help her (e.g. "quiz her on number series tonight", "remind her to attempt fewer questions but more accurately")
+- End with a line reminding him that his belief in her is part of what will get her across the finish line
+- Tone: honest, warm, friend-to-friend. NO bullet points. 2-3 short paragraphs.`;
+    user = `Nanditha's prep data: ${summary}\n\nWrite Manoj's message now. Help him understand how to be her best support this week.`;
+  }
+
+  try {
+    const reply = await askGroq(system, user);
+    $('ai-text').innerHTML = reply.replace(/\n/g,'<br>');
+    $('ai-text').style.display = 'block';
+  } catch(e) {
+    $('ai-text').innerHTML = 'AI unavailable: ' + e.message;
+    $('ai-text').style.display = 'block';
+  }
+  $('ai-loading').style.display = 'none';
+}
+
+/* ── REPORT CARD ── */
+let reportWeekOffset = 0;
+let reportAICache = {}; // keyed by week start string
+
+function getWeekRange(offset) {
+  const now = new Date();
+  // Monday = 0
+  const day = now.getDay(); // 0=Sun, 1=Mon...6=Sat
+  const diffToMon = (day === 0) ? -6 : 1 - day;
+  const mon = new Date(now);
+  mon.setDate(now.getDate() + diffToMon + offset * 7);
+  mon.setHours(0,0,0,0);
+  const sun = new Date(mon);
+  sun.setDate(mon.getDate() + 6);
+  const toStr = d => d.toISOString().slice(0,10);
+  return { start: toStr(mon), end: toStr(sun) };
+}
+
+function getWeekMocks(start, end) {
+  return MOCKS.filter(m => m.date >= start && m.date <= end);
+}
+
+function getWeekLogs(start, end) {
+  return STUDY_LOGS.filter(l => l.date >= start && l.date <= end);
+}
+
+function fmtWeekLabel(start, end) {
+  const opts = { month: 'long', day: 'numeric', year: 'numeric' };
+  const s = new Date(start + 'T00:00:00');
+  const e = new Date(end   + 'T00:00:00');
+  const sStr = s.toLocaleDateString('en-US', { month: 'long', day: 'numeric' });
+  const eStr = e.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+  return sStr + ' – ' + eStr;
+}
+
+async function generateReportAI(weekData) {
+  const cacheKey = weekData.start;
+  if (reportAICache[cacheKey]) return reportAICache[cacheKey];
+
+  const noData = weekData.mocks.length === 0 && weekData.logs.length === 0;
+
+  const dataStr = noData
+    ? 'No mocks or study sessions were logged this week.'
+    : [
+        `Week: ${weekData.start} to ${weekData.end}`,
+        `Mocks taken: ${weekData.mocks.length}`,
+        weekData.mocks.length ? `Best score this week: ${weekData.bestScore}` : '',
+        `Total study time: ${weekData.studyHours} hrs`,
+        weekData.logs.length ? `Topics studied: ${weekData.topics.map(t=>t.topic+' ('+t.duration+'min, '+t.confidence+')').join('; ')}` : '',
+        weekData.mocks.length ? `Section accuracy — ${SECTIONS_FULL.map(s=>`${s.name}: ${weekData.sectionAcc[s.key]}%`).join(', ')}` : '',
+      ].filter(Boolean).join('. ');
+
+  const [aiText, manojText] = await Promise.all([
+    askGroq(
+      "You are Nanditha's bank exam coach writing her weekly performance summary. Be honest but encouraging. Max 60 words. No bullet points. 2 short sentences only.",
+      `Nanditha's weekly data: ${dataStr}. Write her weekly analysis now.`
+    ),
+    askGroq(
+      "You are writing on behalf of Manoj, Nanditha's boyfriend who built this app for her. Write a warm, personal 2-sentence weekly message to Nanditha based on her performance this week. Sound like a loving boyfriend who genuinely believes in her. Max 50 words.",
+      `Nanditha's week data: ${dataStr}. Write Manoj's personal message to her.`
+    )
+  ]);
+
+  const result = { aiText, manojText };
+  reportAICache[cacheKey] = result;
+  return result;
+}
+
+function changeReportWeek(delta) {
+  const newOffset = reportWeekOffset + delta;
+  // Don't navigate beyond current week into future
+  if (newOffset > 0) return;
+  reportWeekOffset = newOffset;
+  renderReport();
+}
+
+async function renderReport() {
+  const { start, end } = getWeekRange(reportWeekOffset);
+
+  // Update navigation labels
+  $('rc-week-label').textContent = 'Week of ' + fmtWeekLabel(start, end);
+  $('rc-nav-label').textContent  = reportWeekOffset === 0 ? 'This Week' : reportWeekOffset === -1 ? 'Last Week' : start.slice(0,7);
+
+  // Disable/enable next button
+  const nextBtn = document.querySelectorAll('.rc-nav-btn')[1];
+  if (nextBtn) nextBtn.disabled = reportWeekOffset >= 0;
+
+  const weekMocks = getWeekMocks(start, end);
+  const weekLogs  = getWeekLogs(start, end);
+
+  // Compute stats
+  const totalMins = weekLogs.reduce((s,l) => s + (+l.duration||0), 0);
+  const studyHours = totalMins > 0 ? (totalMins / 60).toFixed(1) : '0';
+
+  const weekScores = weekMocks.map(totalScore);
+  const bestScoreVal = weekScores.length ? fmt(Math.max(...weekScores)) : null;
+
+  // Section accuracy for this week
+  const sectionAcc = {};
+  SECTIONS_FULL.forEach(s => {
+    const accs = weekMocks.map(m => {
+      const a = m[s.key+'_att']||0;
+      return a ? Math.round((m[s.key+'_corr']||0)/a*100) : null;
+    }).filter(x => x !== null);
+    sectionAcc[s.key] = accs.length ? Math.round(accs.reduce((a,b)=>a+b,0)/accs.length) : null;
+  });
+
+  // Topics list for display
+  const topics = weekLogs.map(l => ({ topic: l.topic, duration: l.duration, confidence: l.confidence, section: l.section }));
+
+  const weekData = { start, end, mocks: weekMocks, logs: weekLogs, bestScore: bestScoreVal, studyHours, sectionAcc, topics };
+
+  // Render stats row
+  $('rc-stats').innerHTML = `
+    <div class="rc-stat">
+      <div class="rc-stat-label">Mocks</div>
+      <div class="rc-stat-val">${weekMocks.length}</div>
+    </div>
+    <div class="rc-stat">
+      <div class="rc-stat-label">Study Time</div>
+      <div class="rc-stat-val">${studyHours} <small>hrs</small></div>
+    </div>
+    <div class="rc-stat">
+      <div class="rc-stat-label">Best Score</div>
+      <div class="rc-stat-val">${bestScoreVal !== null ? bestScoreVal+'<small>/100</small>' : '—'}</div>
+    </div>`;
+
+  // Section performance bars
+  const hasAnyMock = weekMocks.length > 0;
+  if (hasAnyMock) {
+    $('rc-perf').innerHTML = SECTIONS_FULL.map(s => {
+      const acc = sectionAcc[s.key];
+      if (acc === null) return `<div class="rc-perf-row"><div class="rc-perf-label"><span style="color:${s.color}">${s.name}</span><span style="color:var(--muted)">No data</span></div></div>`;
+      return `<div class="rc-perf-row">
+        <div class="rc-perf-label">
+          <span style="color:${s.color};font-weight:700">${s.name}</span>
+          <span style="font-weight:700;color:var(--text)">${acc}%</span>
+        </div>
+        <div class="rc-perf-bar-wrap">
+          <div class="rc-perf-bar" style="width:${acc}%;background:${s.color}"></div>
+        </div>
+      </div>`;
+    }).join('');
+  } else {
+    $('rc-perf').innerHTML = '<div style="color:var(--muted);font-size:13px">No mocks logged this week.</div>';
+  }
+
+  // Topics chips
+  if (topics.length) {
+    $('rc-topics').innerHTML = topics.map(t => {
+      const cls = (t.confidence||'').toLowerCase() === 'easy' ? 'easy' : (t.confidence||'').toLowerCase() === 'hard' ? 'hard' : 'medium';
+      return `<span class="rc-topic-chip ${cls}">${t.topic} ${t.duration}min ${t.confidence||''}</span>`;
+    }).join('');
+  } else {
+    $('rc-topics').innerHTML = '<div style="color:var(--muted);font-size:13px">No study sessions logged this week.</div>';
+  }
+
+  // No activity at all
+  const noActivity = weekMocks.length === 0 && weekLogs.length === 0;
+
+  // Show loading for AI
+  $('rc-manoj-text').textContent = 'Generating…';
+  $('rc-ai-text').textContent    = 'Generating…';
+
+  // Generate AI (cached per week)
+  try {
+    const { aiText, manojText } = await generateReportAI(weekData);
+    $('rc-ai-text').innerHTML    = aiText.replace(/\n/g,'<br>');
+    $('rc-manoj-text').innerHTML = manojText.replace(/\n/g,'<br>');
+  } catch(e) {
+    $('rc-ai-text').textContent    = 'AI unavailable: ' + e.message;
+    $('rc-manoj-text').textContent = 'Could not load message.';
+  }
+}
+
+async function downloadReport() {
+  const btn = $('rc-screenshot-btn');
+  const orig = btn.textContent;
+  btn.textContent = 'Capturing…';
+  btn.disabled    = true;
+  try {
+    const el = $('report-card-content');
+    const canvas = await html2canvas(el, { scale: 2, useCORS: true, backgroundColor: '#ffffff' });
+    const link = document.createElement('a');
+    const { start } = getWeekRange(reportWeekOffset);
+    link.download = 'nanditha-report-week-of-' + start + '.png';
+    link.href = canvas.toDataURL('image/png');
+    link.click();
+  } catch(e) {
+    alert('Screenshot failed: ' + e.message);
+  }
+  btn.textContent = orig;
+  btn.disabled    = false;
+}
+
+/* ── NOTIFICATIONS & PWA ── */
+// NOTE: Notifications fire via the service worker's setTimeout, which runs
+// while the browser tab/PWA is open. They will NOT fire if the browser is
+// fully closed. On Android Chrome with the PWA installed, this works more
+// reliably (background tab). For true background push you'd need a server.
+let swReg = null;
+
+async function initPWA() {
+  if (!('serviceWorker' in navigator)) return;
+  try {
+    swReg = await navigator.serviceWorker.register('/sw.js');
+    console.log('SW registered');
+  } catch(e) {
+    console.log('SW failed:', e);
+  }
+}
+
+async function requestNotifPermission() {
+  if (!('Notification' in window)) return false;
+  if (Notification.permission === 'granted') return true;
+  const result = await Notification.requestPermission();
+  return result === 'granted';
+}
+
+function getNotifSettings() {
+  try { return JSON.parse(localStorage.getItem('cc_notif')) || {time:'18:00', tone:'motivating', enabled:false}; }
+  catch { return {time:'18:00', tone:'motivating', enabled:false}; }
+}
+
+function setNotifSettings(s) { localStorage.setItem('cc_notif', JSON.stringify(s)); }
+
+function buildNotifMessage(tone) {
+  const dates = EXAM_DATES || {};
+  const target = PROFILE?.targetExam || 'SBI PO';
+  // Find days to nearest exam
+  let daysLeft = null;
+  Object.values(dates).forEach(d => {
+    if (!d) return;
+    const diff = Math.ceil((new Date(d) - new Date()) / 864e5);
+    if (diff > 0 && (daysLeft === null || diff < daysLeft)) daysLeft = diff;
+  });
+
+  const dayStr = daysLeft ? `${daysLeft} days to go.` : 'Your exam is coming.';
+
+  const messages = {
+    motivating: [
+      `Nanditha, ${dayStr} Every minute you study today brings you closer to that bank job! 💪`,
+      `Time to study, Nanditha! ${dayStr} Manoj believes in you. Go show what you've got! 🎯`,
+      `Nanditha! Your ${target} dream is ${dayStr} away. Open ClearCut and let's go! 🔥`
+    ],
+    gentle: [
+      `Hey Nanditha 🌸 Just a gentle reminder — a little study time today keeps you on track!`,
+      `Nanditha, take 30 minutes for yourself today. ${dayStr} You're doing great! 💙`,
+      `Small steps every day, Nanditha. ${dayStr} Open ClearCut and log today's study! 🌟`
+    ],
+    urgent: [
+      `⚡ Nanditha! ${dayStr} to ${target}. No breaks today — open ClearCut NOW!`,
+      `🚨 Study time, Nanditha! ${dayStr} left. Every mock counts. Let's go!`,
+      `⏰ Nanditha — ${dayStr} The exam won't wait. Your study session starts NOW!`
+    ]
+  };
+
+  const list = messages[tone] || messages.motivating;
+  return list[Math.floor(Math.random() * list.length)];
+}
+
+function msUntilTime(timeStr) {
+  const [h, m] = timeStr.split(':').map(Number);
+  const now = new Date();
+  const target = new Date();
+  target.setHours(h, m, 0, 0);
+  if (target <= now) target.setDate(target.getDate() + 1);
+  return target - now;
+}
+
+async function scheduleNotification() {
+  const s = getNotifSettings();
+  if (!s.enabled || !swReg) return;
+  if (Notification.permission !== 'granted') return;
+
+  const body = buildNotifMessage(s.tone);
+  const delay = msUntilTime(s.time);
+
+  swReg.active?.postMessage({
+    type: 'SCHEDULE_NOTIFICATION',
+    title: '📚 ClearCut — Study Reminder',
+    body,
+    delay
+  });
+}
+
+async function saveNotifSettings() {
+  const granted = await requestNotifPermission();
+  if (!granted) {
+    $('notif-permission-banner').style.display = 'block';
+    $('notif-enabled-badge').style.display = 'none';
+    return;
+  }
+  const s = {
+    time: $('notif-time').value || '18:00',
+    tone: $('notif-tone').value,
+    enabled: true
+  };
+  setNotifSettings(s);
+  $('notif-permission-banner').style.display = 'none';
+  $('notif-enabled-badge').style.display = 'block';
+  scheduleNotification();
+  alert(`✅ Reminder set for ${s.time} every day!`);
+}
+
+async function testNotification() {
+  const granted = await requestNotifPermission();
+  if (!granted) { alert('Please allow notifications first.'); return; }
+  const s = getNotifSettings();
+  const body = buildNotifMessage(s.tone);
+  new Notification('📚 ClearCut — Study Reminder', { body, tag: 'test' });
+}
+
+function initNotifUI() {
+  const s = getNotifSettings();
+  if ($('notif-time')) $('notif-time').value = s.time;
+  if ($('notif-tone')) $('notif-tone').value = s.tone;
+  if (s.enabled && Notification.permission === 'granted') {
+    $('notif-enabled-badge').style.display = 'block';
+  }
+}
+
+/* ── COACH VIEW ── */
+const IS_COACH = new URLSearchParams(window.location.search).get('coach') === 'manoj';
+
+async function initCoachView() {
+  // Hide normal app completely
+  document.getElementById('setup').style.display = 'none';
+  document.getElementById('app').style.display = 'none';
+  document.getElementById('coach-view').style.display = 'block';
+
+  // Load data
+  try { MOCKS = await db.all() || []; } catch(e) { MOCKS = local.getMocks(); }
+  try { STUDY_LOGS = await studyLogDb.all() || []; } catch(e) { STUDY_LOGS = local.getLogs(); }
+  PROFILE = local.getProfile();
+  EXAM_DATES = { ...EXAM_DATES_DEFAULT, ...local.getDates() };
+
+  $('coach-last-updated').textContent = 'Updated ' + new Date().toLocaleTimeString('en-IN', {hour:'2-digit',minute:'2-digit'});
+
+  renderCoachStats();
+  renderCoachConsistency();
+  renderCoachMood();
+  renderCoachScores();
+  renderCoachWeak();
+  renderCoachActivity();
+  await renderCoachAI();
+  initCoachNoteUI();
+  renderCoachMilestones();
+}
+
+function renderCoachStats() {
+  const scores = MOCKS.map(totalScore);
+  const avg = scores.length ? fmt(scores.reduce((a,b)=>a+b,0)/scores.length) : '—';
+  const best = scores.length ? fmt(Math.max(...scores)) : '—';
+  const latest = scores.length ? fmt(scores[scores.length-1]) : '—';
+  const trend = scores.length >= 2 ? (scores[scores.length-1] > scores[scores.length-2] ? '↑ Improving' : '↓ Declining') : '— New';
+  const trendCol = scores.length >= 2 ? (scores[scores.length-1] > scores[scores.length-2] ? '#4ade80' : '#f87171') : '#94a3b8';
+
+  // Days studied this week
+  const weekStart = new Date(); weekStart.setDate(weekStart.getDate() - weekStart.getDay() + 1); weekStart.setHours(0,0,0,0);
+  const mockDays = new Set(MOCKS.filter(m=>new Date(m.date)>=weekStart).map(m=>m.date));
+  const logDays = new Set(STUDY_LOGS.filter(l=>new Date(l.date)>=weekStart).map(l=>l.date));
+  const daysThisWeek = new Set([...mockDays, ...logDays]).size;
+
+  // Days to exam
+  let daysLeft = '—';
+  const target = PROFILE?.targetExam || 'SBI PO';
+  Object.values(EXAM_DATES||{}).forEach(d => {
+    if (!d) return;
+    const diff = Math.ceil((new Date(d) - new Date()) / 864e5);
+    if (diff > 0) daysLeft = diff;
+  });
+
+  const stats = [
+    { label: 'Total Mocks', val: MOCKS.length, col: '#60a5fa' },
+    { label: 'Avg Score', val: avg+'/100', col: '#94a3b8' },
+    { label: 'Best Score', val: best+'/100', col: '#4ade80' },
+    { label: 'Latest Score', val: latest+'/100', col: '#94a3b8' },
+    { label: 'Score Trend', val: trend, col: trendCol },
+    { label: 'Days Studied (Week)', val: daysThisWeek+'/7', col: daysThisWeek >= 5 ? '#4ade80' : daysThisWeek >= 3 ? '#fbbf24' : '#f87171' },
+    { label: 'Study Logs', val: STUDY_LOGS.length, col: '#94a3b8' },
+    { label: 'Days to Exam', val: daysLeft, col: '#f59e0b' },
+  ];
+
+  $('coach-stats').innerHTML = stats.map(s => `
+    <div style="background:#1e293b;border:1px solid #334155;border-radius:12px;padding:12px 14px">
+      <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#64748b;margin-bottom:4px">${s.label}</div>
+      <div style="font-size:20px;font-family:'DM Serif Display',serif;color:${s.col}">${s.val}</div>
+    </div>`).join('');
+}
+
+function renderCoachConsistency() {
+  const mockDays = new Set(MOCKS.map(m=>m.date));
+  const logDays = new Set(STUDY_LOGS.map(l=>l.date));
+  let html = ''; let activeDays = 0;
+  for (let i=13; i>=0; i--) {
+    const d = new Date(); d.setDate(d.getDate()-i);
+    const ds = d.toISOString().slice(0,10);
+    const hasMock = mockDays.has(ds), hasLog = logDays.has(ds);
+    const active = hasMock || hasLog;
+    if (active) activeDays++;
+    const col = hasMock && hasLog ? '#6366f1' : hasMock ? '#1e3a5f' : hasLog ? '#10b981' : '#1e293b';
+    const border = active ? 'border:1px solid #475569' : 'border:1px solid #334155';
+    html += `<div title="${ds}" style="width:28px;height:28px;border-radius:6px;background:${col};${border};display:flex;align-items:center;justify-content:center;font-size:10px">${active?'✓':''}</div>`;
+  }
+  $('coach-consistency').innerHTML = html;
+  const pct = Math.round((activeDays/14)*100);
+  const verdict = pct >= 80 ? '🟢 Excellent consistency!' : pct >= 50 ? '🟡 Moderate — push her a bit' : '🔴 Low consistency — she needs motivation';
+  $('coach-consistency-score').innerHTML = `${activeDays}/14 days active (${pct}%) — ${verdict}`;
+}
+
+function renderCoachMood() {
+  if (!STUDY_LOGS.length) { $('coach-mood').textContent = 'No study logs yet.'; return; }
+  const recent = STUDY_LOGS.slice(-10);
+  const counts = { Easy:0, Medium:0, Hard:0 };
+  recent.forEach(l => { if (counts[l.confidence] !== undefined) counts[l.confidence]++; });
+  const total = recent.length;
+  const dominant = Object.entries(counts).sort((a,b)=>b[1]-a[1])[0][0];
+  const verdict = dominant === 'Easy' ? '😌 She finds content manageable — push harder topics' :
+                  dominant === 'Medium' ? '💪 Good balance — she\'s in the learning zone' :
+                  '😓 She\'s struggling — she needs extra support this week';
+  $('coach-mood').innerHTML = `
+    <div style="margin-bottom:8px">Last ${total} sessions:</div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px">
+      <span style="background:#059669;color:#fff;padding:4px 10px;border-radius:20px;font-size:12px">Easy: ${counts.Easy}</span>
+      <span style="background:#d97706;color:#fff;padding:4px 10px;border-radius:20px;font-size:12px">Medium: ${counts.Medium}</span>
+      <span style="background:#dc2626;color:#fff;padding:4px 10px;border-radius:20px;font-size:12px">Hard: ${counts.Hard}</span>
+    </div>
+    <div style="color:#e2e8f0;font-weight:600">${verdict}</div>`;
+}
+
+function renderCoachScores() {
+  if (!MOCKS.length) { $('coach-scores').innerHTML = '<div style="color:#475569;font-size:13px">No mocks yet</div>'; return; }
+  const scores = MOCKS.map(totalScore);
+  $('coach-scores').innerHTML = scores.map((s,i) => {
+    const col = s>=65?'#4ade80':s>=50?'#60a5fa':'#f87171';
+    return `<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;min-width:20px">
+      <div style="font-size:9px;color:${col};font-weight:700">${fmt(s)}</div>
+      <div style="width:100%;background:${col};border-radius:3px 3px 0 0;height:${Math.max(4,Math.round((s/100)*60))}px"></div>
+    </div>`;
+  }).join('');
+  $('coach-score-labels').innerHTML = scores.map((_,i)=>
+    `<div style="flex:1;text-align:center;font-size:9px;color:#475569;min-width:20px">${i+1}</div>`
+  ).join('');
+}
+
+function renderCoachWeak() {
+  const freq = weakTopicFreq();
+  const sorted = Object.entries(freq).sort((a,b)=>b[1]-a[1]).slice(0,6);
+  if (!sorted.length) {
+    // Show section accuracy instead
+    const secHtml = SECTIONS_FULL.map(s => {
+      const accs = MOCKS.map(m=>{const a=m[s.key+'_att']||0;return a?Math.round((m[s.key+'_corr']||0)/a*100):null;}).filter(x=>x!==null);
+      const avg = accs.length ? Math.round(accs.reduce((a,b)=>a+b,0)/accs.length) : 0;
+      const col = avg>=70?'#4ade80':avg>=50?'#fbbf24':'#f87171';
+      return `<div style="margin-bottom:10px">
+        <div style="display:flex;justify-content:space-between;margin-bottom:4px">
+          <span style="color:#e2e8f0;font-size:13px;font-weight:600">${s.name}</span>
+          <span style="color:${col};font-size:13px;font-weight:700">${avg}%</span>
+        </div>
+        <div style="background:#334155;border-radius:4px;height:8px">
+          <div style="background:${col};width:${avg}%;height:100%;border-radius:4px"></div>
+        </div>
+      </div>`;
+    }).join('');
+    $('coach-weak').innerHTML = secHtml || '<div style="color:#475569">No data yet</div>';
+    return;
+  }
+  $('coach-weak').innerHTML = sorted.map(([topic, count]) =>
+    `<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid #1e293b">
+      <span style="color:#e2e8f0;font-size:13px">${topic}</span>
+      <span style="background:#f87171;color:#fff;padding:2px 10px;border-radius:20px;font-size:11px;font-weight:700">flagged ${count}×</span>
+    </div>`
+  ).join('');
+}
+
+function renderCoachActivity() {
+  const sevenDaysAgo = new Date(); sevenDaysAgo.setDate(sevenDaysAgo.getDate()-7);
+  const recentMocks = MOCKS.filter(m=>new Date(m.date)>=sevenDaysAgo);
+  const recentLogs = STUDY_LOGS.filter(l=>new Date(l.date)>=sevenDaysAgo);
+
+  if (!recentMocks.length && !recentLogs.length) {
+    $('coach-activity').innerHTML = '<div style="color:#475569;font-size:13px">No activity in the last 7 days — she needs a nudge!</div>';
+    return;
+  }
+
+  let html = '';
+  recentMocks.forEach(m => {
+    html += `<div style="padding:8px 0;border-bottom:1px solid #334155;display:flex;justify-content:space-between;align-items:center">
+      <div><span style="color:#60a5fa;font-size:12px;font-weight:700">MOCK</span> <span style="color:#e2e8f0;font-size:13px">${m.mock_name||m.exam}</span></div>
+      <div style="text-align:right"><span style="font-size:14px;font-weight:700;color:#4ade80">${fmt(totalScore(m))}/100</span> <span style="font-size:11px;color:#64748b;display:block">${m.date}</span></div>
+    </div>`;
+  });
+  recentLogs.forEach(l => {
+    const confCol = l.confidence==='Easy'?'#4ade80':l.confidence==='Hard'?'#f87171':'#fbbf24';
+    html += `<div style="padding:8px 0;border-bottom:1px solid #334155;display:flex;justify-content:space-between;align-items:center">
+      <div><span style="color:#10b981;font-size:12px;font-weight:700">STUDY</span> <span style="color:#e2e8f0;font-size:13px">${l.topic||l.section}</span></div>
+      <div style="text-align:right"><span style="font-size:12px;color:${confCol}">${l.confidence}</span> <span style="font-size:11px;color:#64748b;display:block">${l.duration}min · ${l.date}</span></div>
+    </div>`;
+  });
+  $('coach-activity').innerHTML = html;
+}
+
+async function renderCoachAI() {
+  const summary = buildMockSummary();
+  const logSummary = STUDY_LOGS.length ? `Study logs: ${STUDY_LOGS.length} sessions, last 5 topics: ${STUDY_LOGS.slice(-5).map(l=>l.topic||l.section).join(', ')}` : 'No study logs yet.';
+
+  // Should I be worried?
+  const system1 = `You are giving Manoj an honest private assessment of his girlfriend Nanditha's bank exam preparation. He is NOT showing this to her. Be completely honest — if she's behind, say so clearly. Max 80 words. No bullet points. 2-3 sentences. End with one specific thing Manoj should do TODAY to help her.`;
+  const user1 = `${summary} ${logSummary}\n\nIs Manoj right to be worried? Give him the honest truth and one action to take today.`;
+
+  // Action plan
+  const system2 = `You are giving Manoj a private weekly action plan to help his girlfriend Nanditha prepare for her bank exam. Max 80 words. Write 2-3 specific actions he can take this week — quiz topics, motivation tactics, study schedule suggestions. Be concrete, not generic.`;
+  const user2 = `${summary} ${logSummary}\n\nGive Manoj his 3 action items for this week.`;
+
+  try {
+    const [reply1, reply2] = await Promise.all([askGroq(system1, user1), askGroq(system2, user2)]);
+    $('coach-ai-text').innerHTML = reply1.replace(/\n/g,'<br>');
+    $('coach-action').innerHTML = reply2.replace(/\n/g,'<br>');
+  } catch(e) {
+    $('coach-ai-text').textContent = 'AI unavailable: ' + e.message;
+    $('coach-action').textContent = 'AI unavailable';
+  }
+}
+
+/* ── LOVE NOTES ── */
+const MANOJ_NOTES = [
+  "Nanditha, I built every line of this app thinking of you. You're going to get that bank job. I know it. 💙",
+  "Seeing you work this hard makes me so proud. Keep going — your dream is closer than you think.",
+  "You don't need luck, Nanditha. You have preparation, you have heart, and you have me cheering for you every single day. 🎯",
+  "Every mock you take, every topic you study — it's all adding up. The version of you that clears this exam is being built right now.",
+  "I'm not going to let you give up. Not today. Open that book and show the exam who's boss. 💪",
+  "Nanditha, the bank job you're dreaming of? Someone is going to get it. Make sure it's you.",
+  "Hard days are part of the journey. You haven't come this far to only come this far. Keep pushing. 🔥",
+  "I see how hard you're working. Even when you don't feel it, you are making progress. I promise.",
+  "You're not just studying for an exam. You're building a life for yourself. That's worth every late night.",
+  "Nanditha, I believe in you more than you believe in yourself right now. Borrow my faith until yours comes back. 💙",
+  "One more mock. One more topic. One more day. That's all. Just today. You've got this.",
+  "The girl who clears SBI PO is already inside you. She just needs more practice. Let's go.",
+  "I love watching you grow. Every score, every study log — it tells me you're serious. And serious people win.",
+  "Don't compare your chapter 1 to someone else's chapter 10. You're exactly where you need to be.",
+  "Nanditha, when you get that bank job offer, I want you to remember this moment — when you kept going anyway. 🌟",
+  "Some days are tough. That's okay. Tough days build the person who walks into that exam hall with confidence.",
+  "You studying right now is the most attractive thing I've ever seen. Seriously. Keep going. 😄💙",
+  "I built this app so you'd never feel alone in your prep. I'm always here, rooting for you.",
+  "Your consistency will beat everyone else's talent. Show up today. That's the whole plan.",
+  "Nanditha, I'm so proud of who you're becoming through this journey. Bank job or not — you're already winning. 💙"
+];
+
+function getTodayNote() {
+  const custom = localStorage.getItem('cc_custom_note');
+  if (custom) {
+    try {
+      const obj = JSON.parse(custom);
+      if (obj.date === todayStr()) return obj.text;
+    } catch {}
+  }
+  const dayIndex = Math.floor(Date.now() / 86400000) % MANOJ_NOTES.length;
+  return MANOJ_NOTES[dayIndex];
+}
+
+function showSplash() {
+  const lastSplash = localStorage.getItem('cc_last_splash');
+  if (lastSplash === todayStr()) return;
+
+  const note = getTodayNote();
+  $('splash-note-text').textContent = note;
+  const splash = $('love-splash');
+  splash.style.display = 'flex';
+
+  setTimeout(() => { $('splash-progress').style.width = '100%'; }, 50);
+  setTimeout(dismissSplash, 4000);
+}
+
+function dismissSplash() {
+  const splash = $('love-splash');
+  if (!splash || splash.style.display === 'none') return;
+  splash.style.opacity = '0';
+  splash.style.transition = 'opacity 0.5s ease';
+  setTimeout(() => { splash.style.display = 'none'; }, 500);
+  localStorage.setItem('cc_last_splash', todayStr());
+}
+
+function showDashNote() {
+  const dismissed = localStorage.getItem('cc_dash_note_dismissed');
+  if (dismissed === todayStr()) return;
+
+  const note = getTodayNote();
+  $('dash-note-text').textContent = note;
+  $('dash-note-card').style.display = 'block';
+}
+
+function dismissDashNote() {
+  $('dash-note-card').style.display = 'none';
+  localStorage.setItem('cc_dash_note_dismissed', todayStr());
+}
+
+async function aiWriteNote() {
+  const btn = $('ai-write-btn');
+  btn.textContent = '🤖 Writing...'; btn.disabled = true;
+  const summary = buildMockSummary();
+  const system = `You are writing a short personal note FROM Manoj TO his girlfriend Nanditha. Manoj is a tech guy who built a bank exam tracker app just for her. Write exactly 2 sentences — one romantic, one motivating. Sound like a real boyfriend, not an AI. Use her name. No quotes around the note.`;
+  const user = `Nanditha's prep data: ${summary}\n\nWrite a 2-sentence personal note from Manoj to Nanditha for today.`;
+  try {
+    const note = await askGroq(system, user);
+    $('coach-note-input').value = note.trim();
+  } catch(e) {
+    $('coach-note-input').value = "Nanditha, I'm so proud of how hard you're working every day. You're going to clear this exam — I believe in you completely. 💙";
+  }
+  btn.textContent = '🤖 AI Write for me'; btn.disabled = false;
+}
+
+function saveCoachNote() {
+  const text = $('coach-note-input')?.value?.trim();
+  if (!text) { alert('Write something for her first!'); return; }
+  localStorage.setItem('cc_custom_note', JSON.stringify({ date: todayStr(), text }));
+  $('coach-note-saved').style.display = 'block';
+  $('coach-note-preview').textContent = 'Preview: "' + text + '"';
+  setTimeout(() => { if ($('coach-note-saved')) $('coach-note-saved').style.display = 'none'; }, 3000);
+}
+
+function initCoachNoteUI() {
+  const saved = localStorage.getItem('cc_custom_note');
+  if (saved && $('coach-note-preview')) {
+    try {
+      const obj = JSON.parse(saved);
+      $('coach-note-input').value = obj.text;
+      $('coach-note-preview').textContent = `Last saved (${obj.date}): "${obj.text}"`;
+    } catch {}
+  }
+}
+
+/* ── MILESTONES & CELEBRATIONS ── */
+const MILESTONES = [
+  { id:'first_mock',  label:'🎯 First Mock!',     desc:'You started — that\'s the hardest step. Most people never begin.',            type:'gentle',   emoji:'🎯', check:(m)=>m.length>=1 },
+  { id:'score_30',    label:'🌟 Score 30+',        desc:'You\'re off the board! Your first real score on the board.',                   type:'gentle',   emoji:'🌟', check:(m)=>m.some(x=>totalScore(x)>=30) },
+  { id:'score_50',    label:'🚀 Score 50+',        desc:'Halfway to the cutoff! You\'re building serious momentum.',                    type:'gentle',   emoji:'🚀', check:(m)=>m.some(x=>totalScore(x)>=50) },
+  { id:'score_60',    label:'🔥 Score 60+',        desc:'Cutoff territory! You\'re knocking on the door now.',                         type:'confetti', emoji:'🔥', check:(m)=>m.some(x=>totalScore(x)>=60) },
+  { id:'score_70',    label:'👑 Score 70+',        desc:'Above cutoff! A bank job is no longer a dream — it\'s a plan.',               type:'confetti', emoji:'👑', check:(m)=>m.some(x=>totalScore(x)>=70) },
+  { id:'streak_7',    label:'🔥 7-Day Streak!',    desc:'7 days straight. Consistency is what separates toppers from the rest.',       type:'gentle',   emoji:'🔥', check:(m,l)=>calcStreakFromData(m,l)>=7 },
+  { id:'mocks_10',    label:'📚 10 Mocks Done!',   desc:'10 mocks logged. You\'re not just preparing — you\'re serious.',             type:'confetti', emoji:'📚', check:(m)=>m.length>=10 },
+  { id:'mocks_25',    label:'🏆 25 Mocks Done!',   desc:'25 mocks! You\'re in the top tier of bank exam aspirants.',                  type:'confetti', emoji:'🏆', check:(m)=>m.length>=25 },
+];
+
+const MILESTONE_NOTES = {
+  first_mock:  "Nanditha, you took the first step today. I'm so proud of you for starting. This is where your success story begins. 💙",
+  score_30:    "You got your first real score on the board! This is just the beginning — I knew you had it in you. 🌟",
+  score_50:    "Halfway to the cutoff already! Nanditha, you're growing so fast. I can feel you getting closer every day. 🚀",
+  score_60:    "60+ marks! You're in cutoff territory now. This is REAL, Nanditha. The bank job is getting closer. Keep this fire! 🔥",
+  score_70:    "70+!! You're ABOVE the cutoff! Nanditha, I'm literally smiling right now. You did it. The bank job is yours. 👑💙",
+  streak_7:    "7 days straight, Nanditha! Do you know how rare that is? Most people quit. You didn't. I'm so proud of you. 🔥",
+  mocks_10:    "10 mocks done! You're not a beginner anymore — you're a serious bank exam aspirant. And I get to watch you win. 📚",
+  mocks_25:    "25 mocks!! Nanditha, you've put in more work than 95% of people preparing for this exam. The results will show. 🏆",
+};
+
+function getMilestonesAchieved() {
+  try { return JSON.parse(localStorage.getItem('cc_milestones')) || []; } catch { return []; }
+}
+function saveMilestonesAchieved(arr) { localStorage.setItem('cc_milestones', JSON.stringify(arr)); }
+
+function calcStreakFromData(mocks, logs) {
+  const days = new Set([...(mocks||[]).map(m=>m.date), ...(logs||[]).map(l=>l.date)]);
+  let s = 0; const d = new Date(); d.setHours(0,0,0,0);
+  if (!days.has(d.toISOString().slice(0,10))) d.setDate(d.getDate()-1);
+  while (days.has(d.toISOString().slice(0,10))) { s++; d.setDate(d.getDate()-1); }
+  return s;
+}
+
+function checkMilestones() {
+  const achieved = getMilestonesAchieved();
+  const achievedIds = new Set(achieved.map(a=>a.id));
+  const newOnes = [];
+
+  MILESTONES.forEach(m => {
+    if (achievedIds.has(m.id)) return;
+    try {
+      if (m.check(MOCKS, STUDY_LOGS)) {
+        newOnes.push(m);
+        achieved.push({ id: m.id, date: todayStr(), label: m.label });
+      }
+    } catch(e) {}
+  });
+
+  saveMilestonesAchieved(achieved);
+
+  // Show celebration for first new milestone found
+  if (newOnes.length > 0) {
+    // Save to coach view notification
+    const notifs = JSON.parse(localStorage.getItem('cc_milestone_notifs')||'[]');
+    newOnes.forEach(m => notifs.push({ id: m.id, label: m.label, date: todayStr() }));
+    localStorage.setItem('cc_milestone_notifs', JSON.stringify(notifs));
+    // Show celebration
+    showCelebration(newOnes[0]);
+  }
+}
+
+let celebQueue = [];
+function showCelebration(milestone) {
+  const overlay = $('celebration-overlay');
+  $('cel-emoji').textContent = milestone.emoji;
+  $('cel-label').textContent = milestone.label;
+  $('cel-desc').textContent = milestone.desc;
+  $('cel-note').textContent = MILESTONE_NOTES[milestone.id] || "Nanditha, I'm so proud of you. Keep going! 💙";
+  overlay.style.display = 'flex';
+
+  if (milestone.type === 'confetti') {
+    overlay.style.background = 'rgba(0,0,0,0.7)';
+    startConfetti();
+  } else {
+    overlay.style.background = 'rgba(15,23,42,0.85)';
+    stopConfetti();
+  }
+}
+
+function dismissCelebration() {
+  $('celebration-overlay').style.display = 'none';
+  stopConfetti();
+}
+
+/* ── CONFETTI ── */
+let confettiAnimId = null;
+const CONFETTI_COLORS = ['#6366f1','#f59e0b','#10b981','#f43f5e','#3b82f6','#a855f7','#ec4899'];
+
+function startConfetti() {
+  const canvas = $('confetti-canvas');
+  const ctx = canvas.getContext('2d');
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+
+  const pieces = Array.from({length:120}, () => ({
+    x: Math.random() * canvas.width,
+    y: Math.random() * canvas.height - canvas.height,
+    r: Math.random() * 8 + 4,
+    d: Math.random() * 80 + 20,
+    color: CONFETTI_COLORS[Math.floor(Math.random()*CONFETTI_COLORS.length)],
+    tilt: Math.random() * 10 - 10,
+    tiltAngle: 0,
+    tiltSpeed: Math.random() * 0.1 + 0.05
+  }));
+
+  function draw() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    pieces.forEach(p => {
+      ctx.beginPath();
+      ctx.lineWidth = p.r/2;
+      ctx.strokeStyle = p.color;
+      ctx.moveTo(p.x + p.tilt + p.r/4, p.y);
+      ctx.lineTo(p.x + p.tilt, p.y + p.tilt + p.r/4);
+      ctx.stroke();
+      p.tiltAngle += p.tiltSpeed;
+      p.y += (Math.cos(p.d) + 2 + p.r/2) * 0.6;
+      p.tilt = Math.sin(p.tiltAngle) * 15;
+      if (p.y > canvas.height) { p.y = -10; p.x = Math.random() * canvas.width; }
+    });
+    confettiAnimId = requestAnimationFrame(draw);
+  }
+  draw();
+}
+
+function stopConfetti() {
+  if (confettiAnimId) { cancelAnimationFrame(confettiAnimId); confettiAnimId = null; }
+  const canvas = $('confetti-canvas');
+  if (canvas) canvas.getContext('2d').clearRect(0,0,canvas.width,canvas.height);
+}
+
+/* ── COACH MILESTONES ── */
+function renderCoachMilestones() {
+  const achieved = getMilestonesAchieved();
+  const notifs = JSON.parse(localStorage.getItem('cc_milestone_notifs')||'[]');
+
+  // Clear new notifs after viewing
+  localStorage.setItem('cc_milestone_notifs', '[]');
+
+  const el = $('coach-milestones');
+  if (!el) return;
+
+  if (!achieved.length) {
+    el.innerHTML = '<div style="color:#475569;font-size:13px">No milestones yet — she\'s just getting started!</div>';
+    return;
+  }
+
+  // Show new ones first with highlight
+  const newIds = new Set(notifs.map(n=>n.id));
+  el.innerHTML = achieved.sort((a,b)=>b.date.localeCompare(a.date)).map(a => {
+    const isNew = newIds.has(a.id);
+    return `<div style="display:flex;justify-content:space-between;align-items:center;
+      padding:8px 12px;border-radius:10px;margin-bottom:6px;
+      background:${isNew?'rgba(99,102,241,.15)':'#0f172a'};
+      border:1px solid ${isNew?'#6366f1':'#334155'}">
+      <div style="color:#e2e8f0;font-size:13px;font-weight:${isNew?'700':'400'}">${a.label} ${isNew?'<span style="color:#6366f1;font-size:11px">NEW!</span>':''}</div>
+      <div style="color:#475569;font-size:11px">${a.date}</div>
+    </div>`;
+  }).join('');
+}
+
+/* ── DAILY QUESTION ── */
+let currentDQ = null;
+let selectedOption = null;
+
+function getDQLog() { try { return JSON.parse(localStorage.getItem('cc_dq_log'))||[]; } catch { return []; } }
+function setDQLog(a) { localStorage.setItem('cc_dq_log', JSON.stringify(a)); }
+function getTodayDQ() { try { return JSON.parse(localStorage.getItem('cc_today_dq'))||null; } catch { return null; } }
+function setTodayDQ(q) { localStorage.setItem('cc_today_dq', JSON.stringify({...q, date: todayStr()})); }
+
+function getDifficulty() {
+  if (!MOCKS.length) return 'Easy';
+  const avg = MOCKS.map(totalScore).reduce((a,b)=>a+b,0) / MOCKS.length;
+  return avg >= 65 ? 'Hard' : avg >= 40 ? 'Medium' : 'Easy';
+}
+
+function getWeakTopic() {
+  const freq = weakTopicFreq();
+  const sorted = Object.entries(freq).sort((a,b)=>b[1]-a[1]);
+  if (sorted.length) return sorted[0][0];
+  // Fall back to weakest section
+  let worst = null;
+  SECTIONS_FULL.forEach(s => {
+    const accs = MOCKS.map(m=>{const a=m[s.key+'_att']||0;return a?(m[s.key+'_corr']||0)/a:null;}).filter(x=>x!==null);
+    if (accs.length) {
+      const avg = accs.reduce((a,b)=>a+b,0)/accs.length;
+      if (!worst || avg < worst.avg) worst = {name: s.name, avg};
+    }
+  });
+  return worst ? worst.name : 'Reasoning';
+}
+
+async function generateDQ(force=false) {
+  // Use cached today's question unless forced
+  if (!force) {
+    const cached = getTodayDQ();
+    if (cached && cached.date === todayStr() && !cached.answered) {
+      currentDQ = cached;
+      renderDQ(cached);
+      updateDQStats();
+      updateDQTeaser();
+      return;
+    }
+  }
+
+  // Show loading
+  $('dq-loading').style.display = 'block';
+  $('dq-question').style.display = 'none';
+  $('dq-teaser').style.display = 'block';
+  $('dq-teaser-text').textContent = 'Generating today\'s question...';
+  $('dq-teaser-status').textContent = '⏳';
+
+  const topic = getWeakTopic();
+  const difficulty = getDifficulty();
+  const section = SECTIONS_FULL.find(s => topic.toLowerCase().includes(s.name.toLowerCase()))?.name ||
+                  (topic.includes('·') ? topic.split('·')[0].trim() : 'Reasoning');
+
+  const system = `You are a bank exam question setter for Indian bank exams (SBI PO, IBPS PO). Generate ONE multiple choice question.
+
+RESPOND IN THIS EXACT JSON FORMAT — nothing else, no markdown, no explanation outside the JSON:
+{
+  "section": "Reasoning",
+  "topic": "Puzzles",
+  "difficulty": "Medium",
+  "question": "The full question text here",
+  "options": ["A) option1", "B) option2", "C) option3", "D) option4"],
+  "correct": "A",
+  "explanation": "Clear explanation of why A is correct and why others are wrong. 2-3 sentences."
+}`;
+
+  const user = `Generate a ${difficulty} difficulty ${section} question about "${topic}" suitable for SBI PO / IBPS PO prelims exam.`;
+
+  try {
+    const raw = await askGroq(system, user);
+    // Parse JSON from response
+    const jsonMatch = raw.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) throw new Error('Invalid response format');
+    const q = JSON.parse(jsonMatch[0]);
+    q.date = todayStr();
+    q.answered = false;
+    currentDQ = q;
+    setTodayDQ(q);
+    renderDQ(q);
+    updateDQTeaser();
+  } catch(e) {
+    $('dq-loading').style.display = 'none';
+    $('dq-question').style.display = 'block';
+    $('dq-qtext').textContent = 'Could not generate question. Check your connection and try again.';
+    console.error('DQ error:', e);
+  }
+  updateDQStats();
+}
+
+function renderDQ(q) {
+  $('dq-loading').style.display = 'none';
+  $('dq-question').style.display = 'block';
+  $('dq-result').style.display = 'none';
+  $('dq-submit-btn').style.display = 'none';
+  selectedOption = null;
+
+  $('dq-meta').textContent = `${q.section} · ${q.topic}`;
+  const diffColor = q.difficulty==='Easy'?'#10b981':q.difficulty==='Hard'?'#ef4444':'#f59e0b';
+  $('dq-difficulty-badge').innerHTML = `<span style="background:${diffColor}22;color:${diffColor};padding:2px 8px;border-radius:10px;font-size:11px;font-weight:700">${q.difficulty}</span>`;
+  $('dq-qtext').textContent = q.question;
+
+  $('dq-options').innerHTML = (q.options||[]).map((opt, i) => {
+    const letter = ['A','B','C','D'][i];
+    return `<div class="dq-option" data-letter="${letter}" onclick="selectOption('${letter}', this)"
+      style="border:1.5px solid var(--border);border-radius:10px;padding:11px 14px;cursor:pointer;
+      font-size:14px;color:var(--text);transition:.15s;background:var(--surface)">${opt}</div>`;
+  }).join('');
+
+  // If already answered today, show result
+  if (q.answered) {
+    showDQResult(q.userAnswer, q);
+  }
+}
+
+function selectOption(letter, el) {
+  if (currentDQ?.answered) return;
+  selectedOption = letter;
+  document.querySelectorAll('.dq-option').forEach(o => {
+    o.style.borderColor = 'var(--border)';
+    o.style.background = 'var(--surface)';
+    o.style.fontWeight = '400';
+  });
+  el.style.borderColor = 'var(--navy)';
+  el.style.background = 'rgba(30,58,95,.08)';
+  el.style.fontWeight = '600';
+  $('dq-submit-btn').style.display = 'block';
+}
+
+async function submitDQ() {
+  if (!selectedOption || !currentDQ) return;
+  const correct = selectedOption === currentDQ.correct;
+
+  // Save to log
+  const log = getDQLog();
+  log.push({ date: todayStr(), topic: currentDQ.topic, section: currentDQ.section,
+    difficulty: currentDQ.difficulty, correct, userAnswer: selectedOption, correctAnswer: currentDQ.correct });
+  setDQLog(log);
+
+  // Mark as answered
+  currentDQ.answered = true;
+  currentDQ.userAnswer = selectedOption;
+  setTodayDQ(currentDQ);
+
+  showDQResult(selectedOption, currentDQ);
+  updateDQStats();
+  updateDQTeaser();
+  checkMilestones();
+}
+
+function showDQResult(userAnswer, q) {
+  const correct = userAnswer === q.correct;
+  $('dq-submit-btn').style.display = 'none';
+  $('dq-result').style.display = 'block';
+  $('dq-result').style.background = correct ? '#f0fdf4' : '#fef2f2';
+  $('dq-result').style.border = correct ? '1px solid #86efac' : '1px solid #fca5a5';
+  $('dq-result-icon').textContent = correct ? '✅' : '❌';
+  $('dq-result-msg').textContent = correct ? 'Correct! Well done, Nanditha!' : `Wrong. Correct answer: ${q.correct}`;
+  $('dq-result-msg').style.color = correct ? '#15803d' : '#dc2626';
+  $('dq-explanation').textContent = q.explanation || '';
+
+  // Color the options
+  document.querySelectorAll('.dq-option').forEach(o => {
+    const letter = o.dataset.letter;
+    if (letter === q.correct) { o.style.borderColor='#10b981'; o.style.background='#f0fdf4'; o.style.fontWeight='700'; }
+    else if (letter === userAnswer && !correct) { o.style.borderColor='#ef4444'; o.style.background='#fef2f2'; }
+    else { o.style.opacity='0.5'; }
+  });
+}
+
+function updateDQStats() {
+  const log = getDQLog();
+  const total = log.length;
+  const correct = log.filter(q=>q.correct).length;
+  const acc = total ? Math.round((correct/total)*100) : 0;
+
+  // Streak — consecutive days with a correct answer
+  const correctDays = new Set(log.filter(q=>q.correct).map(q=>q.date));
+  let streak = 0; const d = new Date(); d.setHours(0,0,0,0);
+  if (!correctDays.has(d.toISOString().slice(0,10))) d.setDate(d.getDate()-1);
+  while (correctDays.has(d.toISOString().slice(0,10))) { streak++; d.setDate(d.getDate()-1); }
+
+  if ($('dq-total')) $('dq-total').textContent = total;
+  if ($('dq-correct')) $('dq-correct').textContent = correct;
+  if ($('dq-accuracy')) $('dq-accuracy').textContent = total ? acc+'%' : '—';
+  if ($('dq-streak')) $('dq-streak').textContent = streak;
+
+  // History
+  if (log.length && $('dq-history-card')) {
+    $('dq-history-card').style.display = 'block';
+    $('dq-history-list').innerHTML = [...log].reverse().slice(0,10).map(q =>
+      `<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border)">
+        <div style="font-size:13px;color:var(--text)">${q.topic} <span style="color:var(--muted);font-size:11px">${q.section}</span></div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <span style="font-size:11px;color:var(--muted)">${q.date}</span>
+          <span style="font-size:16px">${q.correct?'✅':'❌'}</span>
+        </div>
+      </div>`
+    ).join('');
+  }
+}
+
+function updateDQTeaser() {
+  const cached = getTodayDQ();
+  if (!cached) return;
+  $('dq-teaser').style.display = 'block';
+  if (cached.answered) {
+    const correct = cached.userAnswer === cached.correct;
+    $('dq-teaser-text').textContent = `${cached.section} · ${cached.topic} — ${correct ? 'Answered correctly!' : 'Answered (review explanation)'}`;
+    $('dq-teaser-status').textContent = correct ? '✅' : '❌';
+  } else {
+    $('dq-teaser-text').textContent = `${cached.section} · ${cached.topic} — Tap to answer!`;
+    $('dq-teaser-status').textContent = '→';
+  }
+}
+
+function goToDQTab() {
+  document.querySelector('[data-t="dqtab"]').click();
+}
+
+function initDQ() {
+  updateDQStats();
+  generateDQ(false);
+}
+
+/* ── BOOT ── */
+async function loadStudyLogs() {
+  try { STUDY_LOGS = await studyLogDb.all()||[]; } catch(e) { console.error(e); STUDY_LOGS=local.getLogs(); }
+}
+
+async function load() {
+  try { MOCKS = await db.all()||[]; } catch(e) { console.error(e); MOCKS=local.getMocks(); }
+  SYLLABUS = local.getSyl();
+  await loadStudyLogs();
+}
+
+async function bootApp() {
+  PROFILE    = local.getProfile();
+  EXAM_DATES = {...EXAM_DATES_DEFAULT, ...local.getDates()};
+
+  $('ahGreeting').textContent = PROFILE.name ? 'Hey, '+PROFILE.name+' 👋' : '';
+
+  await load();
+  renderCutoffProgress();
+  buildSecInputs();
+  buildTopicChips();
+  resetForm();
+  buildTimerChips();
+  paintClock();
+  buildStudyLogForm();
+  renderDash();
+  renderSyllabus();
+  showQuote();
+  initChat();
+  initPWA();
+  initNotifUI();
+  scheduleNotification();
+  showSplash();
+  showDashNote();
+  checkMilestones();
+  initDQ();
+}
+
+function checkSetup() {
+  if (IS_COACH) { initCoachView(); return; }
+  PROFILE = local.getProfile();
+  if (PROFILE.name) {
+    $('setup').style.display = 'none';
+    $('app').style.display   = 'block';
+    bootApp();
+  }
+}
+
+checkSetup();
+</script>
+</body>
+</html>
