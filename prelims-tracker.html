@@ -1,0 +1,537 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Prelims Tracker</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Hanken+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+  :root{
+    --paper:#f4efe6; --card:#fbf8f1; --card2:#ffffff;
+    --ink:#241f1d; --muted:#7a716a; --line:#e6ddcf;
+    --teal:#0f6e63; --teal-d:#0a554c; --amber:#c97b1e; --amber-l:#e0922b;
+    --eng:#3b6ea5; --quant:#0f6e63; --reas:#b5651d;
+    --danger:#b3402e; --ok:#3f8a4f;
+    --r:16px; --sh:0 1px 2px rgba(40,30,20,.04),0 8px 24px rgba(40,30,20,.06);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Hanken Grotesk',sans-serif;background:var(--paper);color:var(--ink);
+    line-height:1.5;-webkit-font-smoothing:antialiased;padding-bottom:40px}
+  body::before{content:"";position:fixed;inset:0;pointer-events:none;z-index:0;
+    background:radial-gradient(1200px 600px at 80% -10%,rgba(201,123,30,.07),transparent 60%),
+    radial-gradient(1000px 500px at -10% 110%,rgba(15,110,99,.06),transparent 60%);}
+  .wrap{position:relative;z-index:1;max-width:920px;margin:0 auto;padding:0 16px}
+
+  header{padding:22px 0 14px}
+  .brand{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+  .brand h1{font-family:'Fraunces',serif;font-weight:600;font-size:30px;letter-spacing:-.5px}
+  .brand .sub{color:var(--muted);font-size:13px;font-weight:500}
+  .hero{display:grid;grid-template-columns:1.3fr 1fr;gap:12px;margin-top:16px}
+  @media(max-width:560px){.hero{grid-template-columns:1fr 1fr}}
+  .stat{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:16px 18px;box-shadow:var(--sh)}
+  .stat .lbl{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;font-weight:600}
+  .stat .big{font-family:'Fraunces',serif;font-size:38px;font-weight:600;line-height:1.05;margin-top:4px}
+  .stat .big small{font-size:15px;color:var(--muted);font-family:'Hanken Grotesk';font-weight:500}
+  .stat.accent{background:linear-gradient(135deg,var(--teal),var(--teal-d));color:#fff;border:none}
+  .stat.accent .lbl{color:rgba(255,255,255,.7)}
+  .stat.flame .big{color:var(--amber)}
+  .exam-pill{display:inline-block;margin-top:6px;font-size:12px;background:rgba(15,110,99,.1);
+    color:var(--teal-d);padding:3px 9px;border-radius:20px;font-weight:600;cursor:pointer}
+
+  nav.tabs{display:flex;gap:4px;margin:18px 0 16px;background:var(--card);border:1px solid var(--line);
+    border-radius:14px;padding:5px;box-shadow:var(--sh);overflow:auto}
+  nav.tabs button{flex:1;min-width:84px;border:none;background:transparent;padding:10px 8px;border-radius:10px;
+    font-family:inherit;font-weight:600;font-size:14px;color:var(--muted);cursor:pointer;transition:.15s;white-space:nowrap}
+  nav.tabs button.on{background:var(--ink);color:var(--paper)}
+
+  .panel{display:none;animation:fade .25s ease}
+  .panel.on{display:block}
+  @keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+
+  .card{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:18px;box-shadow:var(--sh);margin-bottom:14px}
+  .card h2{font-family:'Fraunces',serif;font-weight:600;font-size:19px;margin-bottom:4px}
+  .card .hint{color:var(--muted);font-size:13px;margin-bottom:14px}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  @media(max-width:560px){.grid2{grid-template-columns:1fr}}
+
+  .insight{background:linear-gradient(135deg,#fff7ec,#fdeed8);border:1px solid #f0dcbe;border-radius:var(--r);
+    padding:16px 18px;margin-bottom:14px;display:flex;gap:12px;align-items:flex-start}
+  .insight .ic{font-size:22px;line-height:1}
+  .insight b{color:var(--amber)}
+  canvas{max-width:100%}
+
+  /* form */
+  label.fld{display:block;margin-bottom:12px}
+  label.fld span{display:block;font-size:12px;font-weight:600;color:var(--muted);margin-bottom:5px;text-transform:uppercase;letter-spacing:.05em}
+  input,select,textarea{width:100%;font-family:inherit;font-size:15px;padding:10px 12px;border:1px solid var(--line);
+    border-radius:10px;background:var(--card2);color:var(--ink)}
+  input:focus,select:focus,textarea:focus{outline:none;border-color:var(--teal)}
+  .seccard{border:1px solid var(--line);border-radius:12px;padding:14px;margin-bottom:12px;background:var(--card2)}
+  .seccard .sh{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+  .seccard .sh b{font-size:15px}
+  .dot{width:10px;height:10px;border-radius:50%;display:inline-block;margin-right:6px}
+  .row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
+  .scoreline{font-size:13px;color:var(--muted);margin-top:8px}
+  .scoreline b{color:var(--ink)}
+  .chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:4px}
+  .chip{font-size:12px;padding:5px 10px;border-radius:20px;border:1px solid var(--line);background:var(--card2);
+    cursor:pointer;color:var(--muted);user-select:none;transition:.12s}
+  .chip.on{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+  .chip-grp-title{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;margin:10px 0 4px}
+  .btn{font-family:inherit;font-weight:600;font-size:15px;padding:12px 18px;border:none;border-radius:11px;cursor:pointer;transition:.15s}
+  .btn.primary{background:var(--teal);color:#fff;width:100%}
+  .btn.primary:hover{background:var(--teal-d)}
+  .btn.ghost{background:transparent;border:1px solid var(--line);color:var(--ink)}
+  .btn.sm{padding:7px 12px;font-size:13px}
+  .totbar{display:flex;justify-content:space-between;align-items:center;background:var(--ink);color:var(--paper);
+    padding:14px 18px;border-radius:12px;margin:6px 0 14px}
+  .totbar .t{font-family:'Fraunces',serif;font-size:26px;font-weight:600}
+
+  /* timer */
+  .timer-wrap{text-align:center;padding:10px 0}
+  .clock{font-family:'Fraunces',serif;font-size:84px;font-weight:600;letter-spacing:-2px;line-height:1}
+  .clock.warn{color:var(--amber)} .clock.done{color:var(--danger)}
+  .tsel{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin:14px 0}
+  .tsel .chip.on{background:var(--teal);border-color:var(--teal)}
+  .tctrl{display:flex;gap:10px;justify-content:center;margin-top:18px}
+
+  /* history */
+  .mock{border:1px solid var(--line);border-radius:12px;padding:14px;margin-bottom:10px;background:var(--card2)}
+  .mock .top{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
+  .mock .nm{font-weight:700}
+  .mock .meta{font-size:12px;color:var(--muted)}
+  .mock .sc{font-family:'Fraunces',serif;font-size:22px;font-weight:600;text-align:right}
+  .mbreak{display:flex;gap:14px;margin-top:8px;font-size:12px;color:var(--muted);flex-wrap:wrap}
+  .mbreak b{color:var(--ink)}
+  .x{background:none;border:none;color:var(--danger);cursor:pointer;font-size:13px;font-weight:600;padding:0}
+  .empty{text-align:center;color:var(--muted);padding:36px 10px;font-size:14px}
+  .heat{display:grid;grid-template-columns:repeat(15,1fr);gap:4px;margin-top:6px}
+  .heat div{aspect-ratio:1;border-radius:4px;background:#eadfce}
+  .heat div.h{background:var(--teal)}
+  .cfgnote{font-size:12px;color:var(--muted);margin-top:10px;line-height:1.6}
+  .cfgnote code{background:#eee6d6;padding:1px 5px;border-radius:4px;font-size:11px}
+  .modeflag{font-size:11px;font-weight:600;padding:3px 9px;border-radius:20px}
+  .modeflag.local{background:#fcecd6;color:#9a6a1a}
+  .modeflag.cloud{background:#d9efe9;color:var(--teal-d)}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div class="brand">
+      <h1>Prelims Tracker</h1>
+      <span class="sub">SBI · IBPS PO · IBPS Clerk — practice, analyse, repeat</span>
+    </div>
+    <div class="hero">
+      <div class="stat accent">
+        <div class="lbl">Days to exam</div>
+        <div class="big" id="hCountdown">—</div>
+        <span class="exam-pill" id="hExamPill" onclick="setExam()">Set exam date ✎</span>
+      </div>
+      <div class="stat flame">
+        <div class="lbl">Streak 🔥</div>
+        <div class="big" id="hStreak">0 <small>days</small></div>
+      </div>
+      <div class="stat">
+        <div class="lbl">Mocks logged</div>
+        <div class="big" id="hMocks">0</div>
+      </div>
+      <div class="stat">
+        <div class="lbl">Best score</div>
+        <div class="big" id="hBest">— <small>/100</small></div>
+      </div>
+    </div>
+  </header>
+
+  <nav class="tabs" id="tabs">
+    <button class="on" data-t="dash">Dashboard</button>
+    <button data-t="log">Log Mock</button>
+    <button data-t="timer">Timer</button>
+    <button data-t="history">History</button>
+  </nav>
+
+  <!-- DASHBOARD -->
+  <section class="panel on" id="dash">
+    <div class="insight" id="insightBox" style="display:none">
+      <div class="ic">🎯</div><div id="insightText"></div>
+    </div>
+    <div class="card" id="dashEmpty">
+      <h2>No data yet</h2>
+      <p class="hint">Log her first mock under <b>Log Mock</b> and the charts will start filling in. The whole point: see weak topics and slow sections before the exam does.</p>
+    </div>
+    <div id="dashCharts" style="display:none">
+      <div class="card"><h2>Score trend</h2><p class="hint">Total out of 100 across mocks</p><canvas id="cScore" height="150"></canvas></div>
+      <div class="grid2">
+        <div class="card"><h2>Section accuracy</h2><p class="hint">% correct of attempted</p><canvas id="cAcc" height="180"></canvas></div>
+        <div class="card"><h2>Time per section</h2><p class="hint">Avg minutes · target 20</p><canvas id="cTime" height="180"></canvas></div>
+      </div>
+      <div class="card"><h2>Weak topics</h2><p class="hint">How often each topic gets flagged — your study priority list</p><canvas id="cWeak" height="200"></canvas></div>
+      <div class="card"><h2>Consistency</h2><p class="hint">Last 30 days · filled = practiced</p><div class="heat" id="heat"></div></div>
+    </div>
+  </section>
+
+  <!-- LOG -->
+  <section class="panel" id="log">
+    <div class="card">
+      <h2 id="logTitle">Log a mock</h2>
+      <p class="hint">Enter what she attempted and got right per section. Score auto-calculates with 0.25 negative marking.</p>
+      <div class="grid2">
+        <label class="fld"><span>Date</span><input type="date" id="fDate"></label>
+        <label class="fld"><span>Exam</span>
+          <select id="fExam">
+            <option>SBI PO</option><option>SBI Clerk</option><option>IBPS PO</option>
+            <option>IBPS Clerk</option><option>IBPS RRB PO</option><option>IBPS RRB Clerk</option><option>Other</option>
+          </select></label>
+      </div>
+      <label class="fld"><span>Mock name (optional)</span><input id="fName" placeholder="e.g. Oliveboard Mock 12 / PYP 2024"></label>
+
+      <div id="secInputs"></div>
+
+      <div class="totbar"><span>Total score</span><span class="t" id="fTotal">0 / 100</span></div>
+
+      <label class="fld"><span>Weak topics today (tap any that hurt)</span></label>
+      <div id="topicChips"></div>
+
+      <label class="fld" style="margin-top:14px"><span>Notes (optional)</span><textarea id="fNotes" rows="2" placeholder="Silly errors in DI, ran out of time in puzzles..."></textarea></label>
+      <button class="btn primary" id="saveBtn" onclick="saveMock()">Save mock</button>
+      <button class="btn ghost" id="cancelEdit" style="width:100%;margin-top:8px;display:none" onclick="resetForm()">Cancel edit</button>
+    </div>
+  </section>
+
+  <!-- TIMER -->
+  <section class="panel" id="timer">
+    <div class="card">
+      <h2>Sectional timer</h2>
+      <p class="hint">Train at exam pace. Prelims gives ~20 min per section. Pick one and go.</p>
+      <div class="tsel" id="tSel"></div>
+      <div class="timer-wrap">
+        <div class="clock" id="clock">20:00</div>
+        <div class="tctrl">
+          <button class="btn primary" style="width:auto;padding:12px 28px" id="tStart" onclick="toggleTimer()">Start</button>
+          <button class="btn ghost" onclick="resetTimer()">Reset</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- HISTORY -->
+  <section class="panel" id="history">
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+        <h2 style="margin:0">History</h2>
+        <span class="modeflag" id="modeFlag"></span>
+      </div>
+      <p class="hint">Newest first. Tap edit to fix a typo, or delete to remove.</p>
+      <div id="histList"></div>
+      <div class="cfgnote" id="cfgNote"></div>
+    </div>
+  </section>
+
+</div>
+
+<script>
+/* ============================================================
+   CONFIG  — leave blank to run on this device (localStorage).
+   Paste your Supabase project URL + anon key to sync to cloud
+   across her phone and laptop. (Run the SQL I gave you first.)
+   ============================================================ */
+const SB_URL = "";   // e.g. "https://xxxx.supabase.co"
+const SB_KEY = "";   // your anon public key
+const TABLE  = "bank_mocks";
+const NEG    = 0.25; // negative marking per wrong answer
+
+/* Sections: prelims is identical across the major bank exams */
+const SECTIONS = [
+  { key:'eng',   name:'English',   q:30, color:'#3b6ea5',
+    topics:['Reading Comprehension','Cloze Test','Error Spotting','Sentence Improvement','Para Jumbles','Fillers','Vocabulary'] },
+  { key:'quant', name:'Quant',     q:35, color:'#0f6e63',
+    topics:['Data Interpretation','Simplification/Approx','Number Series','Quadratic Eqns','Arithmetic (P&L, T&W, SI/CI...)','Data Sufficiency'] },
+  { key:'reas',  name:'Reasoning', q:35, color:'#b5651d',
+    topics:['Puzzles','Seating Arrangement','Syllogism','Inequality','Blood Relations','Direction Sense','Coding-Decoding','Order & Ranking','Alphanumeric Series'] },
+];
+
+/* ---------- storage adapter: Supabase REST OR localStorage ---------- */
+const USE_SB = !!(SB_URL && SB_KEY);
+async function sbReq(path, opts={}){
+  const res = await fetch(SB_URL+'/rest/v1/'+path,{...opts,headers:{
+    apikey:SB_KEY,Authorization:'Bearer '+SB_KEY,'Content-Type':'application/json',
+    Prefer:'return=representation',...(opts.headers||{})}});
+  if(!res.ok) throw new Error('Supabase '+res.status+': '+await res.text());
+  return res.status===204?null:res.json();
+}
+const LS='bptracker_mocks';
+const local={
+  read(){try{return JSON.parse(localStorage.getItem(LS))||[]}catch{return[]}},
+  write(a){localStorage.setItem(LS,JSON.stringify(a))}
+};
+const db={
+  async all(){
+    if(USE_SB) return await sbReq(TABLE+'?select=*&order=date.asc,id.asc');
+    return local.read().sort((a,b)=> (a.date+a.id) < (b.date+b.id) ? -1:1);
+  },
+  async add(o){
+    if(USE_SB) return (await sbReq(TABLE,{method:'POST',body:JSON.stringify(o)}))[0];
+    const a=local.read(); o.id=Date.now()+''+Math.floor(Math.random()*999); a.push(o); local.write(a); return o;
+  },
+  async update(id,o){
+    if(USE_SB) return await sbReq(TABLE+'?id=eq.'+id,{method:'PATCH',body:JSON.stringify(o)});
+    const a=local.read(); const i=a.findIndex(m=>m.id==id); if(i>-1){a[i]={...a[i],...o}; local.write(a);} return null;
+  },
+  async del(id){
+    if(USE_SB) return await sbReq(TABLE+'?id=eq.'+id,{method:'DELETE'});
+    local.write(local.read().filter(m=>m.id!=id)); return null;
+  }
+};
+/* settings (exam date) kept local — tiny single-user pref */
+function getExamDate(){return localStorage.getItem('bp_examdate')||''}
+function saveExamDate(d){localStorage.setItem('bp_examdate',d)}
+
+/* ---------- helpers ---------- */
+let MOCKS=[];
+let charts={};
+const $=id=>document.getElementById(id);
+function wrongOf(m,k){return Math.max(0,(m[k+'_att']||0)-(m[k+'_corr']||0))}
+function secScore(m,k){return (m[k+'_corr']||0) - NEG*wrongOf(m,k)}
+function totalScore(m){return SECTIONS.reduce((s,x)=>s+secScore(m,x.key),0)}
+function totalAtt(m){return SECTIONS.reduce((s,x)=>s+(m[x.key+'_att']||0),0)}
+function totalCorr(m){return SECTIONS.reduce((s,x)=>s+(m[x.key+'_corr']||0),0)}
+function fmt(n){return (Math.round(n*100)/100)}
+
+/* ---------- tabs ---------- */
+$('tabs').addEventListener('click',e=>{
+  const b=e.target.closest('button'); if(!b)return;
+  document.querySelectorAll('#tabs button').forEach(x=>x.classList.remove('on'));
+  b.classList.add('on');
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('on'));
+  $(b.dataset.t).classList.add('on');
+});
+
+/* ---------- LOG form build ---------- */
+function buildForm(){
+  $('secInputs').innerHTML = SECTIONS.map(s=>`
+    <div class="seccard">
+      <div class="sh"><b><span class="dot" style="background:${s.color}"></span>${s.name}</b>
+        <span class="meta" style="font-size:12px;color:var(--muted)">${s.q} questions</span></div>
+      <div class="row3">
+        <label class="fld" style="margin:0"><span>Attempted</span><input type="number" min="0" max="${s.q}" id="i_${s.key}_att" oninput="recalc()"></label>
+        <label class="fld" style="margin:0"><span>Correct</span><input type="number" min="0" max="${s.q}" id="i_${s.key}_corr" oninput="recalc()"></label>
+        <label class="fld" style="margin:0"><span>Time (min)</span><input type="number" min="0" step="0.5" id="i_${s.key}_time"></label>
+      </div>
+      <div class="scoreline" id="sl_${s.key}">Score: <b>0</b></div>
+    </div>`).join('');
+
+  let chipHtml='';
+  SECTIONS.forEach(s=>{
+    chipHtml+=`<div class="chip-grp-title" style="color:${s.color}">${s.name}</div><div class="chips">`;
+    chipHtml+=s.topics.map(t=>`<span class="chip" data-topic="${s.name} · ${t}" onclick="this.classList.toggle('on')">${t}</span>`).join('');
+    chipHtml+='</div>';
+  });
+  $('topicChips').innerHTML=chipHtml;
+}
+function recalc(){
+  let tot=0;
+  SECTIONS.forEach(s=>{
+    const att=+($('i_'+s.key+'_att').value||0), corr=+($('i_'+s.key+'_corr').value||0);
+    const wrong=Math.max(0,att-corr), sc=corr-NEG*wrong; tot+=sc;
+    $('sl_'+s.key).innerHTML=`Score: <b>${fmt(sc)}</b> &nbsp; <span style="color:var(--muted)">(${corr} right, ${wrong} wrong)</span>`;
+  });
+  $('fTotal').textContent=fmt(tot)+' / 100';
+}
+let editingId=null;
+function resetForm(){
+  editingId=null;
+  $('logTitle').textContent='Log a mock';
+  $('saveBtn').textContent='Save mock';
+  $('cancelEdit').style.display='none';
+  $('fDate').value=new Date().toISOString().slice(0,10);
+  $('fExam').value='SBI PO'; $('fName').value=''; $('fNotes').value='';
+  SECTIONS.forEach(s=>{['att','corr','time'].forEach(f=>$('i_'+s.key+'_'+f).value='')});
+  document.querySelectorAll('#topicChips .chip').forEach(c=>c.classList.remove('on'));
+  recalc();
+}
+async function saveMock(){
+  const o={ date:$('fDate').value||new Date().toISOString().slice(0,10),
+    exam:$('fExam').value, mock_name:$('fName').value.trim(),
+    weak_topics:[...document.querySelectorAll('#topicChips .chip.on')].map(c=>c.dataset.topic),
+    notes:$('fNotes').value.trim() };
+  SECTIONS.forEach(s=>{
+    o[s.key+'_att']=+($('i_'+s.key+'_att').value||0);
+    o[s.key+'_corr']=+($('i_'+s.key+'_corr').value||0);
+    o[s.key+'_time']=+($('i_'+s.key+'_time').value||0);
+  });
+  if(totalAtt(o)===0){alert('Enter at least one section.');return;}
+  $('saveBtn').textContent='Saving…'; $('saveBtn').disabled=true;
+  try{
+    if(editingId) await db.update(editingId,o); else await db.add(o);
+    await load(); resetForm();
+    document.querySelector('[data-t="dash"]').click();
+  }catch(e){alert('Save failed: '+e.message);}
+  $('saveBtn').disabled=false; $('saveBtn').textContent='Save mock';
+}
+function editMock(id){
+  const m=MOCKS.find(x=>x.id==id); if(!m)return;
+  editingId=id;
+  $('logTitle').textContent='Edit mock'; $('saveBtn').textContent='Update mock';
+  $('cancelEdit').style.display='block';
+  $('fDate').value=m.date; $('fExam').value=m.exam||'SBI PO'; $('fName').value=m.mock_name||''; $('fNotes').value=m.notes||'';
+  SECTIONS.forEach(s=>{['att','corr','time'].forEach(f=>$('i_'+s.key+'_'+f).value=m[s.key+'_'+f]||'')});
+  const wt=m.weak_topics||[];
+  document.querySelectorAll('#topicChips .chip').forEach(c=>c.classList.toggle('on',wt.includes(c.dataset.topic)));
+  recalc();
+  document.querySelector('[data-t="log"]').click();
+  window.scrollTo(0,0);
+}
+async function delMock(id){
+  if(!confirm('Delete this mock?'))return;
+  await db.del(id); await load();
+}
+
+/* ---------- exam date ---------- */
+function setExam(){
+  const cur=getExamDate();
+  const d=prompt('Target exam date (YYYY-MM-DD):',cur||'2026-08-01');
+  if(d){saveExamDate(d); renderHeader();}
+}
+
+/* ---------- TIMER ---------- */
+let tDur=20*60, tLeft=tDur, tInt=null, tRun=false;
+function buildTimerSel(){
+  const opts=[{l:'English 20m',v:20},{l:'Quant 20m',v:20},{l:'Reasoning 20m',v:20},{l:'Full 60m',v:60}];
+  $('tSel').innerHTML=opts.map((o,i)=>`<span class="chip ${i===0?'on':''}" data-v="${o.v}" onclick="pickTimer(this)">${o.l}</span>`).join('');
+}
+function pickTimer(el){
+  document.querySelectorAll('#tSel .chip').forEach(c=>c.classList.remove('on'));
+  el.classList.add('on'); tDur=(+el.dataset.v)*60; if(!tRun){tLeft=tDur; paintClock();}
+}
+function paintClock(){
+  const m=Math.floor(tLeft/60),s=tLeft%60;
+  const c=$('clock'); c.textContent=`${m}:${String(s).padStart(2,'0')}`;
+  c.className='clock'+(tLeft<=0?' done':(tLeft<=60?' warn':''));
+}
+function toggleTimer(){
+  if(tRun){clearInterval(tInt);tRun=false;$('tStart').textContent='Resume';return;}
+  tRun=true;$('tStart').textContent='Pause';
+  tInt=setInterval(()=>{ tLeft--; paintClock();
+    if(tLeft<=0){clearInterval(tInt);tRun=false;$('tStart').textContent='Start';
+      try{new AudioContext();}catch{} alert("Time's up! ⏰");}
+  },1000);
+}
+function resetTimer(){clearInterval(tInt);tRun=false;tLeft=tDur;$('tStart').textContent='Start';paintClock();}
+
+/* ---------- HEADER ---------- */
+function renderHeader(){
+  const ed=getExamDate();
+  if(ed){
+    const days=Math.ceil((new Date(ed)-new Date().setHours(0,0,0,0))/864e5);
+    $('hCountdown').innerHTML = days>=0? days+' <small>days</small>' : 'past';
+    $('hExamPill').textContent = new Date(ed).toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'})+' ✎';
+  } else { $('hCountdown').textContent='—'; }
+  $('hMocks').textContent=MOCKS.length;
+  $('hBest').innerHTML = MOCKS.length ? fmt(Math.max(...MOCKS.map(totalScore)))+' <small>/100</small>' : '— <small>/100</small>';
+  $('hStreak').innerHTML = streak()+' <small>days</small>';
+}
+function streak(){
+  if(!MOCKS.length)return 0;
+  const days=new Set(MOCKS.map(m=>m.date));
+  let s=0,d=new Date(); d.setHours(0,0,0,0);
+  // allow today OR yesterday to start the streak
+  if(!days.has(d.toISOString().slice(0,10))) d.setDate(d.getDate()-1);
+  while(days.has(d.toISOString().slice(0,10))){s++;d.setDate(d.getDate()-1);}
+  return s;
+}
+
+/* ---------- DASHBOARD ---------- */
+function renderDash(){
+  if(!MOCKS.length){$('dashEmpty').style.display='block';$('dashCharts').style.display='none';$('insightBox').style.display='none';return;}
+  $('dashEmpty').style.display='none';$('dashCharts').style.display='block';
+  const labels=MOCKS.map((m,i)=>m.mock_name||('Mock '+(i+1)));
+  const grid={color:'#ece3d4'}, tick={color:'#7a716a',font:{family:'Hanken Grotesk'}};
+
+  mkChart('cScore','line',{labels,datasets:[{label:'Total /100',data:MOCKS.map(totalScore),
+    borderColor:'#0f6e63',backgroundColor:'rgba(15,110,99,.12)',fill:true,tension:.3,pointRadius:3}]},
+    {scales:{y:{min:0,max:100,grid,ticks:tick},x:{grid:{display:false},ticks:tick}},plugins:{legend:{display:false}}});
+
+  mkChart('cAcc','line',{labels,datasets:SECTIONS.map(s=>({label:s.name,borderColor:s.color,tension:.3,pointRadius:2,
+    data:MOCKS.map(m=>{const a=m[s.key+'_att']||0;return a?Math.round((m[s.key+'_corr']/a)*100):null;})}))},
+    {scales:{y:{min:0,max:100,grid,ticks:tick},x:{grid:{display:false},ticks:tick}},plugins:{legend:{labels:{font:{family:'Hanken Grotesk'}}}}});
+
+  mkChart('cTime','bar',{labels:SECTIONS.map(s=>s.name),datasets:[{data:SECTIONS.map(s=>{
+    const arr=MOCKS.map(m=>m[s.key+'_time']).filter(t=>t>0);return arr.length?fmt(arr.reduce((a,b)=>a+b,0)/arr.length):0;}),
+    backgroundColor:SECTIONS.map(s=>s.color),borderRadius:6}]},
+    {scales:{y:{grid,ticks:tick,suggestedMax:25},x:{grid:{display:false},ticks:tick}},plugins:{legend:{display:false},
+    annotation:false}});
+
+  // weak topics frequency
+  const freq={};
+  MOCKS.forEach(m=>(m.weak_topics||[]).forEach(t=>freq[t]=(freq[t]||0)+1));
+  const sorted=Object.entries(freq).sort((a,b)=>b[1]-a[1]).slice(0,8);
+  mkChart('cWeak','bar',{labels:sorted.map(x=>x[0]),datasets:[{data:sorted.map(x=>x[1]),
+    backgroundColor:'#c97b1e',borderRadius:6}]},
+    {indexAxis:'y',scales:{x:{grid,ticks:{...tick,stepSize:1}},y:{grid:{display:false},ticks:{...tick,font:{size:11,family:'Hanken Grotesk'}}}},plugins:{legend:{display:false}}});
+
+  // heatmap last 30 days
+  const set=new Set(MOCKS.map(m=>m.date));
+  let h='';for(let i=29;i>=0;i--){const d=new Date();d.setDate(d.getDate()-i);
+    h+=`<div class="${set.has(d.toISOString().slice(0,10))?'h':''}" title="${d.toLocaleDateString('en-IN')}"></div>`;}
+  $('heat').innerHTML=h;
+
+  renderInsight();
+}
+function renderInsight(){
+  if(MOCKS.length<2){$('insightBox').style.display='none';return;}
+  // weakest section by avg accuracy
+  let worst=null;
+  SECTIONS.forEach(s=>{
+    const arr=MOCKS.map(m=>{const a=m[s.key+'_att']||0;return a?m[s.key+'_corr']/a:null;}).filter(x=>x!=null);
+    if(arr.length){const avg=arr.reduce((a,b)=>a+b,0)/arr.length; if(!worst||avg<worst.avg)worst={name:s.name,avg};}
+  });
+  const freq={};MOCKS.forEach(m=>(m.weak_topics||[]).forEach(t=>freq[t]=(freq[t]||0)+1));
+  const topWeak=Object.entries(freq).sort((a,b)=>b[1]-a[1])[0];
+  let msg=`Weakest section right now: <b>${worst.name}</b> (${Math.round(worst.avg*100)}% accuracy).`;
+  if(topWeak) msg+= ` Most-flagged topic: <b>${topWeak[1].split(' · ').pop?topWeak[0]:topWeak[0]}</b> — make that this week's focus.`;
+  $('insightText').innerHTML=msg; $('insightBox').style.display='flex';
+}
+function mkChart(id,type,data,opts){
+  if(charts[id])charts[id].destroy();
+  charts[id]=new Chart($(id),{type,data,options:{responsive:true,maintainAspectRatio:false,...opts}});
+}
+
+/* ---------- HISTORY ---------- */
+function renderHistory(){
+  $('modeFlag').textContent = USE_SB?'☁ Cloud synced':'• On this device';
+  $('modeFlag').className = 'modeflag '+(USE_SB?'cloud':'local');
+  if(!MOCKS.length){$('histList').innerHTML='<div class="empty">No mocks yet. Log one to begin.</div>';}
+  else{
+    $('histList').innerHTML=[...MOCKS].reverse().map(m=>`
+      <div class="mock">
+        <div class="top">
+          <div><div class="nm">${m.mock_name||m.exam}</div>
+            <div class="meta">${m.exam} · ${new Date(m.date).toLocaleDateString('en-IN',{day:'numeric',month:'short'})} · ${totalCorr(m)}/${totalAtt(m)} correct</div></div>
+          <div><div class="sc">${fmt(totalScore(m))}</div><div class="meta" style="text-align:right">/100</div></div>
+        </div>
+        <div class="mbreak">${SECTIONS.map(s=>`<span><span class="dot" style="background:${s.color}"></span>${s.name} <b>${fmt(secScore(m,s.key))}</b></span>`).join('')}</div>
+        ${m.notes?`<div class="meta" style="margin-top:8px;font-style:italic">"${m.notes}"</div>`:''}
+        <div style="display:flex;gap:14px;margin-top:10px">
+          <button class="btn ghost sm" onclick="editMock('${m.id}')">Edit</button>
+          <button class="x" onclick="delMock('${m.id}')">Delete</button>
+        </div>
+      </div>`).join('');
+  }
+  $('cfgNote').innerHTML = USE_SB
+    ? '☁ Syncing to Supabase. Data is shared across devices.'
+    : 'Running on this device only. To sync her phone + laptop: paste <code>SB_URL</code> and <code>SB_KEY</code> at the top of the file (after running the SQL setup), then redeploy.';
+}
+
+/* ---------- boot ---------- */
+async function load(){
+  try{ MOCKS=await db.all()||[]; }catch(e){ alert('Load failed: '+e.message); MOCKS=[]; }
+  renderHeader(); renderDash(); renderHistory();
+}
+buildForm(); buildTimerSel(); resetForm(); paintClock(); load();
+</script>
+</body>
+</html>
