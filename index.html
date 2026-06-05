@@ -3928,8 +3928,8 @@ function checkSetup() {
     // First ever launch — show setup
     $('setup').style.display = 'block';
   } else {
-    // Always show the picker so the user confirms who they are
-    showUserPicker();
+    // Auto-login as the first profile (Nanditha)
+    pickUser(profiles[0].name);
   }
 }
 
