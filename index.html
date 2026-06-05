@@ -278,6 +278,17 @@ tr:last-child td{border-bottom:none}
   background:var(--surface2);border-radius:8px;border:1px solid var(--border)}
 .sb-note code{background:#e2e8f0;padding:1px 4px;border-radius:4px;font-size:10px}
 
+/* pin screen */
+.pin-btn{background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.15);border-radius:14px;
+  color:#fff;font-family:'DM Sans',sans-serif;font-size:22px;font-weight:600;padding:16px;
+  cursor:pointer;transition:.15s;-webkit-tap-highlight-color:transparent}
+.pin-btn:hover{background:rgba(255,255,255,.18)}
+.pin-btn:active{background:rgba(245,158,11,.3);border-color:rgba(245,158,11,.5);transform:scale(.95)}
+.pin-dot{width:14px;height:14px;border-radius:50%;border:2px solid rgba(255,255,255,.3);transition:.2s}
+.pin-dot.filled{background:#f59e0b;border-color:#f59e0b}
+.pin-dot.shake{animation:pinShake .4s ease}
+@keyframes pinShake{0%,100%{transform:translateX(0)}20%{transform:translateX(-6px)}40%{transform:translateX(6px)}60%{transform:translateX(-4px)}80%{transform:translateX(4px)}}
+
 @media(max-width:600px){
   .clock{font-size:68px}
   .wrap{padding:16px 14px 0}
@@ -387,6 +398,61 @@ tr:last-child td{border-bottom:none}
   </div>
 </div>
 
+<!-- ══════════════ PIN SCREEN ══════════════ -->
+<div id="pin-screen" style="display:none;min-height:100vh;background:linear-gradient(155deg,#0f2340 0%,#1e3a5f 50%,#2a4d7a 100%);
+  align-items:center;justify-content:center;flex-direction:column;padding:24px">
+  <div style="text-align:center;margin-bottom:36px">
+    <div style="width:64px;height:64px;border-radius:18px;background:rgba(245,158,11,.2);
+      border:1px solid rgba(245,158,11,.3);display:flex;align-items:center;justify-content:center;
+      font-size:32px;margin:0 auto 16px">🎯</div>
+    <div style="font-family:'DM Serif Display',serif;font-size:28px;color:#fff;margin-bottom:6px">ClearCut</div>
+    <div style="font-size:13px;color:rgba(255,255,255,.5)">Enter PIN to continue</div>
+  </div>
+  <div style="background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);border-radius:20px;
+    padding:32px 36px;width:100%;max-width:320px;text-align:center">
+    <div id="pin-dots" style="display:flex;justify-content:center;gap:14px;margin-bottom:28px">
+      <div class="pin-dot"></div>
+      <div class="pin-dot"></div>
+      <div class="pin-dot"></div>
+      <div class="pin-dot"></div>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px">
+      <button class="pin-btn" onclick="pinPress('1')">1</button>
+      <button class="pin-btn" onclick="pinPress('2')">2</button>
+      <button class="pin-btn" onclick="pinPress('3')">3</button>
+      <button class="pin-btn" onclick="pinPress('4')">4</button>
+      <button class="pin-btn" onclick="pinPress('5')">5</button>
+      <button class="pin-btn" onclick="pinPress('6')">6</button>
+      <button class="pin-btn" onclick="pinPress('7')">7</button>
+      <button class="pin-btn" onclick="pinPress('8')">8</button>
+      <button class="pin-btn" onclick="pinPress('9')">9</button>
+      <button class="pin-btn" onclick="pinPress('')" style="opacity:0;pointer-events:none"></button>
+      <button class="pin-btn" onclick="pinPress('0')">0</button>
+      <button class="pin-btn" onclick="pinBack()" style="font-size:18px">⌫</button>
+    </div>
+    <div id="pin-error" style="margin-top:16px;font-size:13px;color:#f87171;min-height:20px"></div>
+  </div>
+</div>
+
+<!-- ══════════════ USER PICKER ══════════════ -->
+<div id="user-picker" style="display:none;min-height:100vh;background:linear-gradient(155deg,#0f2340 0%,#1e3a5f 50%,#2a4d7a 100%);
+  align-items:center;justify-content:center;flex-direction:column;padding:32px 24px">
+  <div style="text-align:center;margin-bottom:32px">
+    <div style="width:56px;height:56px;border-radius:16px;background:rgba(245,158,11,.2);
+      border:1px solid rgba(245,158,11,.3);display:flex;align-items:center;justify-content:center;
+      font-size:28px;margin:0 auto 14px">🎯</div>
+    <div style="font-family:'DM Serif Display',serif;font-size:26px;color:#fff;margin-bottom:6px">Who's studying today?</div>
+    <div style="font-size:13px;color:rgba(255,255,255,.45)">Select your profile to continue</div>
+  </div>
+  <div id="user-picker-grid" style="display:flex;flex-wrap:wrap;gap:12px;justify-content:center;width:100%;max-width:480px;margin-bottom:20px"></div>
+  <button onclick="addNewUser()" style="background:rgba(255,255,255,.07);border:1px dashed rgba(255,255,255,.25);
+    border-radius:16px;color:rgba(255,255,255,.65);font-family:'DM Sans',sans-serif;font-size:14px;font-weight:600;
+    padding:14px 28px;cursor:pointer;transition:.15s;letter-spacing:.2px"
+    onmouseover="this.style.background='rgba(255,255,255,.12)'" onmouseout="this.style.background='rgba(255,255,255,.07)'">
+    + Add new user
+  </button>
+</div>
+
 <!-- ══════════════ SETUP SCREEN ══════════════ -->
 <div id="setup">
   <div class="setup-split">
@@ -428,7 +494,12 @@ tr:last-child td{border-bottom:none}
           <div class="sc-optional-title" style="color:#2e7d32">☁ Cloud sync enabled</div>
           <div class="sc-hint" style="margin-top:0;color:#388e3c">Your progress syncs automatically across all devices. No setup needed.</div>
         </div>
-        <button class="sc-btn" onclick="completeSetup()">Get Started →</button>
+        <button class="sc-btn" id="su-submit-btn" onclick="completeSetup()">Get Started →</button>
+        <button id="su-back-btn" onclick="cancelEdit()" style="display:none;width:100%;margin-top:10px;
+          padding:13px;background:transparent;border:1.5px solid var(--border);border-radius:12px;
+          font-family:inherit;font-size:14px;font-weight:600;color:var(--muted);cursor:pointer">
+          ← Back to profiles
+        </button>
       </div>
     </div>
   </div>
@@ -445,7 +516,14 @@ tr:last-child td{border-bottom:none}
           <div class="ah-tag">Clear the cut-off</div>
         </div>
       </div>
-      <div class="ah-greeting" id="ahGreeting"></div>
+      <div style="display:flex;align-items:center;gap:10px">
+        <div class="ah-greeting" id="ahGreeting"></div>
+        <button id="switch-user-btn" onclick="switchUser()" style="display:none;background:rgba(255,255,255,.1);
+          border:1px solid rgba(255,255,255,.2);border-radius:20px;color:rgba(255,255,255,.8);
+          font-family:'DM Sans',sans-serif;font-size:11px;font-weight:600;padding:5px 11px;
+          cursor:pointer;letter-spacing:.2px;transition:.15s;white-space:nowrap"
+          title="Switch user">⇄ Switch</button>
+      </div>
     </div>
   </div>
 
@@ -914,7 +992,8 @@ tr:last-child td{border-bottom:none}
             <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--muted)" id="dq-meta">Loading...</div>
             <div style="font-size:11px;color:var(--muted);margin-top:2px" id="dq-difficulty-badge"></div>
           </div>
-          <button onclick="generateDQ(true)" class="btn ghost" style="padding:6px 12px;font-size:12px" id="dq-refresh-btn">🔄 New Q</button>
+          <div id="dq-progress-pill" style="font-size:12px;font-weight:700;color:var(--navy);
+            background:#e8f0fe;padding:5px 13px;border-radius:20px;white-space:nowrap">Q 1/10</div>
         </div>
 
         <!-- Question text -->
@@ -933,9 +1012,21 @@ tr:last-child td{border-bottom:none}
             <div id="dq-result-icon" style="font-size:24px;margin-bottom:6px"></div>
             <div id="dq-result-msg" style="font-size:14px;font-weight:700;margin-bottom:6px"></div>
             <div id="dq-explanation" style="font-size:13px;line-height:1.6;color:var(--text)"></div>
-            <button onclick="generateDQ(true)" class="btn primary" style="margin-top:12px">Next Question →</button>
+            <button onclick="nextDQ()" class="btn primary" style="margin-top:12px" id="dq-next-btn">Next Question →</button>
           </div>
         </div>
+      </div>
+
+      <!-- Daily complete -->
+      <div class="card" id="dq-complete-card" style="display:none;text-align:center;padding:28px 24px">
+        <div style="font-size:52px;margin-bottom:14px">🎯</div>
+        <div class="card-title" style="margin-bottom:6px">All 10 done for today!</div>
+        <div id="dq-complete-score" style="font-family:'DM Serif Display',serif;font-size:28px;color:var(--navy);margin:10px 0"></div>
+        <div style="font-size:13px;color:var(--muted);line-height:1.7;margin-bottom:18px">
+          Great work — come back tomorrow for 10 more practice questions.<br>
+          Your progress is saved.
+        </div>
+        <div id="dq-complete-breakdown" style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-bottom:8px"></div>
       </div>
 
       <!-- Recent answers -->
@@ -1025,6 +1116,12 @@ tr:last-child td{border-bottom:none}
       <div id="coach-weak"></div>
     </div>
 
+    <!-- Practice Q performance -->
+    <div style="background:#1e293b;border:1px solid #334155;border-radius:14px;padding:16px;margin-bottom:20px">
+      <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#64748b;margin-bottom:12px">🧠 Practice Q Performance</div>
+      <div id="coach-dq"></div>
+    </div>
+
     <!-- Recent activity -->
     <div style="background:#1e293b;border:1px solid #334155;border-radius:14px;padding:16px;margin-bottom:20px">
       <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#64748b;margin-bottom:12px">📋 Recent Activity (Last 7 days)</div>
@@ -1065,6 +1162,7 @@ tr:last-child td{border-bottom:none}
    CONFIG — paste your Supabase credentials here
    Leave blank to run entirely on localStorage.
    ══════════════════════════════════════════════ */
+const APP_PIN = "0226"; // change this to set a different PIN
 const SB_URL = "https://jvnhcwqtdxbpwvxbnzok.supabase.co";
 const SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp2bmhjd3F0ZHhicHd2eGJuem9rIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkzNzQ0NDYsImV4cCI6MjA5NDk1MDQ0Nn0.5zVOEAe7NR_Uz1Zz5sx6CSLWd6o29KL5R8l29HJZ7j0";
 const TABLE  = "clearcut_mocks";
@@ -1136,17 +1234,22 @@ async function sbReq(path, opts={}) {
 const LS_MOCKS    = 'cc_mocks';
 const LS_SYLLABUS = 'cc_syllabus';
 const LS_PROFILE  = 'cc_profile';
+const LS_PROFILES = 'cc_profiles';
 const LS_DATES    = 'cc_examdates';
 
 const local = {
   getMocks()   { try{return JSON.parse(localStorage.getItem(LS_MOCKS))||[]}catch{return[]} },
   setMocks(a)  { localStorage.setItem(LS_MOCKS, JSON.stringify(a)) },
-  getSyl()     { try{return JSON.parse(localStorage.getItem(LS_SYLLABUS))||{}}catch{return{}} },
-  setSyl(o)    { localStorage.setItem(LS_SYLLABUS, JSON.stringify(o)) },
+  // Syllabus is per-user when a user is active
+  getSyl()     { const k=PROFILE.name?LS_SYLLABUS+'_'+PROFILE.name:LS_SYLLABUS; try{return JSON.parse(localStorage.getItem(k))||{}}catch{return{}} },
+  setSyl(o)    { const k=PROFILE.name?LS_SYLLABUS+'_'+PROFILE.name:LS_SYLLABUS; localStorage.setItem(k, JSON.stringify(o)) },
   getProfile() { try{return JSON.parse(localStorage.getItem(LS_PROFILE))||{}}catch{return{}} },
   setProfile(o){ localStorage.setItem(LS_PROFILE, JSON.stringify(o)) },
-  getDates()   { try{return JSON.parse(localStorage.getItem(LS_DATES))||{}}catch{return{}} },
-  setDates(o)  { localStorage.setItem(LS_DATES, JSON.stringify(o)) },
+  getProfiles(){ try{return JSON.parse(localStorage.getItem(LS_PROFILES))||[]}catch{return[]} },
+  setProfiles(a){ localStorage.setItem(LS_PROFILES, JSON.stringify(a)) },
+  // Exam dates are per-user
+  getDates()   { const k=PROFILE.name?LS_DATES+'_'+PROFILE.name:LS_DATES; try{return JSON.parse(localStorage.getItem(k))||{}}catch{return{}} },
+  setDates(o)  { const k=PROFILE.name?LS_DATES+'_'+PROFILE.name:LS_DATES; localStorage.setItem(k, JSON.stringify(o)) },
   getLogs()    { try{return JSON.parse(localStorage.getItem('cc_studylogs'))||[]}catch{return[]} },
   setLogs(a)   { localStorage.setItem('cc_studylogs', JSON.stringify(a)) },
 };
@@ -1290,14 +1393,68 @@ function lowestAccSection() {
 }
 
 /* ── SETUP ── */
+let _editingUserName = null; // tracks which profile we're editing (null = new user)
+
 function completeSetup() {
   const name = $('su_name').value.trim() || 'You';
   const exam = $('su_exam').value;
-  PROFILE = {name, targetExam: exam, sburl: SB_URL, sbkey: SB_KEY};
+  PROFILE = {name, targetExam: exam};
   local.setProfile(PROFILE);
+
+  const profiles = local.getProfiles();
+  if (_editingUserName && _editingUserName !== name) {
+    // Name was changed — update the entry (keep old name's data filterable via user_name on records)
+    const idx = profiles.findIndex(p => p.name === _editingUserName);
+    if (idx > -1) profiles[idx] = PROFILE; else profiles.push(PROFILE);
+  } else {
+    const idx = profiles.findIndex(p => p.name === name);
+    if (idx > -1) profiles[idx] = PROFILE; else profiles.push(PROFILE);
+  }
+  local.setProfiles(profiles);
+  _editingUserName = null;
+
+  // Reset setup UI to default state
+  $('su-submit-btn').textContent = 'Get Started →';
+  $('su-back-btn').style.display = 'none';
+  $('setup').querySelector('.sc-title').textContent = 'Let\'s get started';
+
+  const hadProfiles = profiles.length > 1;
   $('setup').style.display = 'none';
-  $('app').style.display   = 'block';
-  bootApp();
+  if (hadProfiles) {
+    showUserPicker();
+  } else {
+    $('app').style.display = 'block';
+    bootApp();
+  }
+}
+
+function editUser(name) {
+  const profiles = local.getProfiles();
+  const profile = profiles.find(p => p.name === name);
+  if (!profile) return;
+
+  _editingUserName = name;
+
+  // Pre-fill setup form
+  $('su_name').value = profile.name;
+  $('su_exam').value = profile.targetExam || 'SBI PO';
+
+  // Update setup UI labels for edit mode
+  $('setup').querySelector('.sc-title').textContent = 'Edit profile';
+  $('su-submit-btn').textContent = 'Save changes';
+  $('su-back-btn').style.display = 'block';
+
+  $('user-picker').style.display = 'none';
+  $('setup').style.display = 'block';
+}
+
+function cancelEdit() {
+  _editingUserName = null;
+  $('su-submit-btn').textContent = 'Get Started →';
+  $('su-back-btn').style.display = 'none';
+  $('setup').querySelector('.sc-title').textContent = 'Let\'s get started';
+  $('setup').style.display = 'none';
+  showUserPicker();
 }
 
 /* ── TABS ── */
@@ -1315,7 +1472,7 @@ $('tabs').addEventListener('click', e=>{
   if (b.dataset.t === 'goals') { renderGoals(); initNotifUI(); }
   if (b.dataset.t === 'studylog') renderStudyLog();
   if (b.dataset.t === 'report')   renderReport();
-  if (b.dataset.t === 'dqtab') { updateDQStats(); if (!currentDQ || getTodayDQ()?.date !== todayStr()) generateDQ(false); }
+  if (b.dataset.t === 'dqtab') { updateDQStats(); generateDQ(); }
 });
 
 /* ── EXAM DATE MODAL ── */
@@ -2677,6 +2834,7 @@ async function initCoachView() {
   renderCoachMood();
   renderCoachScores();
   renderCoachWeak();
+  renderCoachDQ();
   renderCoachActivity();
   await renderCoachAI();
   initCoachNoteUI();
@@ -2706,6 +2864,14 @@ function renderCoachStats() {
     if (diff > 0) daysLeft = diff;
   });
 
+  const dqLog = getDQLog();
+  const dqTotal = dqLog.length;
+  const dqCorrect = dqLog.filter(q=>q.correct).length;
+  const dqAcc = dqTotal ? Math.round((dqCorrect/dqTotal)*100) : 0;
+  const todayDQ = getDailyQueue();
+  const todayAnswered = (todayDQ?.date === todayStr()) ? (todayDQ.answeredCount||0) : 0;
+  const todayCorrect = (todayDQ?.date === todayStr()) ? todayDQ.questions.filter(q=>q.answered && q.userAnswer===q.correct).length : 0;
+
   const stats = [
     { label: 'Total Mocks', val: MOCKS.length, col: '#60a5fa' },
     { label: 'Avg Score', val: avg+'/100', col: '#94a3b8' },
@@ -2715,6 +2881,10 @@ function renderCoachStats() {
     { label: 'Days Studied (Week)', val: daysThisWeek+'/7', col: daysThisWeek >= 5 ? '#4ade80' : daysThisWeek >= 3 ? '#fbbf24' : '#f87171' },
     { label: 'Study Logs', val: STUDY_LOGS.length, col: '#94a3b8' },
     { label: 'Days to Exam', val: daysLeft, col: '#f59e0b' },
+    { label: 'Practice Qs (All)', val: dqTotal+' done', col: '#a5b4fc' },
+    { label: 'Practice Accuracy', val: dqTotal ? dqAcc+'%' : '—', col: dqAcc>=70?'#4ade80':dqAcc>=50?'#fbbf24':'#f87171' },
+    { label: 'Today\'s Qs', val: todayAnswered+'/10', col: todayAnswered>=10?'#4ade80':todayAnswered>=5?'#fbbf24':'#94a3b8' },
+    { label: 'Today Correct', val: todayAnswered ? todayCorrect+'/'+todayAnswered : '—', col: '#a5b4fc' },
   ];
 
   $('coach-stats').innerHTML = stats.map(s => `
@@ -2809,12 +2979,127 @@ function renderCoachWeak() {
   ).join('');
 }
 
+function renderCoachDQ() {
+  const el = $('coach-dq');
+  if (!el) return;
+  const log = getDQLog();
+  if (!log.length) {
+    el.innerHTML = '<div style="color:#475569;font-size:13px">No practice questions answered yet.</div>';
+    return;
+  }
+
+  // All-time summary
+  const total = log.length;
+  const correct = log.filter(q=>q.correct).length;
+  const acc = Math.round((correct/total)*100);
+  const accCol = acc>=70?'#4ade80':acc>=50?'#fbbf24':'#f87171';
+
+  // Today
+  const queue = getDailyQueue();
+  const isToday = queue?.date === todayStr();
+  const todayAnswered = isToday ? (queue.answeredCount||0) : 0;
+  const todayCorrect = isToday ? queue.questions.filter(q=>q.answered && q.userAnswer===q.correct).length : 0;
+  const todayPill = isToday
+    ? `<span style="background:${todayAnswered>=10?'#065f46':'#1e3a5f'};color:${todayAnswered>=10?'#4ade80':'#60a5fa'};padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700">${todayAnswered>=10?'✓ All 10 done':todayAnswered+'/10 today'} · ${todayCorrect} correct</span>`
+    : '<span style="color:#475569;font-size:12px">Not started today</span>';
+
+  // Section breakdown (all time)
+  const secBreak = {};
+  log.forEach(q => {
+    if (!secBreak[q.section]) secBreak[q.section] = {total:0, correct:0};
+    secBreak[q.section].total++;
+    if (q.correct) secBreak[q.section].correct++;
+  });
+
+  // Topics she's getting wrong most (last 30 answers)
+  const recent30 = log.slice(-30);
+  const wrongFreq = {};
+  recent30.filter(q=>!q.correct).forEach(q => { wrongFreq[q.topic] = (wrongFreq[q.topic]||0)+1; });
+  const topWrong = Object.entries(wrongFreq).sort((a,b)=>b[1]-a[1]).slice(0,4);
+
+  // Last 7 days daily scores
+  const last7 = [];
+  for (let i=6; i>=0; i--) {
+    const d = new Date(); d.setDate(d.getDate()-i);
+    const ds = d.toISOString().slice(0,10);
+    const dayLog = log.filter(q=>q.date===ds);
+    const dayCorrect = dayLog.filter(q=>q.correct).length;
+    last7.push({ date: ds, total: dayLog.length, correct: dayCorrect,
+      label: d.toLocaleDateString('en-IN',{weekday:'short'}) });
+  }
+
+  el.innerHTML = `
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap">
+      <div style="font-size:22px;font-family:'DM Serif Display',serif;color:${accCol}">${acc}%</div>
+      <div style="font-size:13px;color:#94a3b8">${correct}/${total} correct all-time</div>
+      <div style="margin-left:auto">${todayPill}</div>
+    </div>
+
+    <!-- Section accuracy -->
+    <div style="margin-bottom:14px">
+      ${Object.entries(secBreak).map(([sec, s]) => {
+        const pct = Math.round((s.correct/s.total)*100);
+        const col = pct>=70?'#4ade80':pct>=50?'#fbbf24':'#f87171';
+        return `<div style="margin-bottom:8px">
+          <div style="display:flex;justify-content:space-between;margin-bottom:3px">
+            <span style="color:#e2e8f0;font-size:12px">${sec}</span>
+            <span style="color:${col};font-size:12px;font-weight:700">${pct}% (${s.correct}/${s.total})</span>
+          </div>
+          <div style="background:#334155;border-radius:4px;height:6px">
+            <div style="background:${col};width:${pct}%;height:100%;border-radius:4px"></div>
+          </div>
+        </div>`;
+      }).join('')}
+    </div>
+
+    <!-- Topics getting wrong -->
+    ${topWrong.length ? `
+    <div style="margin-bottom:14px">
+      <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#64748b;margin-bottom:8px">❌ Topics she's getting wrong (last 30 Qs)</div>
+      ${topWrong.map(([topic, count]) =>
+        `<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid #1e293b">
+          <span style="color:#e2e8f0;font-size:13px">${topic}</span>
+          <span style="background:#7f1d1d;color:#fca5a5;padding:2px 9px;border-radius:20px;font-size:11px;font-weight:700">wrong ${count}×</span>
+        </div>`
+      ).join('')}
+    </div>` : ''}
+
+    <!-- Last 7 days bar -->
+    <div>
+      <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#64748b;margin-bottom:8px">Last 7 days</div>
+      <div style="display:flex;align-items:flex-end;gap:6px;height:48px">
+        ${last7.map(d => {
+          const pct = d.total ? Math.round((d.correct/d.total)*100) : 0;
+          const col = d.total===0?'#1e293b':pct>=70?'#4ade80':pct>=50?'#fbbf24':'#f87171';
+          const h = d.total ? Math.max(6, Math.round((d.total/10)*44)) : 4;
+          return `<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:2px">
+            <div style="font-size:9px;color:${col};font-weight:700">${d.total||''}</div>
+            <div style="width:100%;background:${col};border-radius:3px 3px 0 0;height:${h}px" title="${d.date}: ${d.correct}/${d.total} correct"></div>
+          </div>`;
+        }).join('')}
+      </div>
+      <div style="display:flex;gap:6px;margin-top:4px">
+        ${last7.map(d=>`<div style="flex:1;text-align:center;font-size:9px;color:#475569">${d.label}</div>`).join('')}
+      </div>
+    </div>
+  `;
+}
+
 function renderCoachActivity() {
   const sevenDaysAgo = new Date(); sevenDaysAgo.setDate(sevenDaysAgo.getDate()-7);
   const recentMocks = MOCKS.filter(m=>new Date(m.date)>=sevenDaysAgo);
   const recentLogs = STUDY_LOGS.filter(l=>new Date(l.date)>=sevenDaysAgo);
 
-  if (!recentMocks.length && !recentLogs.length) {
+  // Group today's practice Qs into a single activity row
+  const dqLog = getDQLog();
+  const recentDQ = {}; // date → {total, correct}
+  dqLog.filter(q=>new Date(q.date)>=sevenDaysAgo).forEach(q => {
+    if (!recentDQ[q.date]) recentDQ[q.date] = {total:0, correct:0};
+    recentDQ[q.date].total++;
+    if (q.correct) recentDQ[q.date].correct++;
+  });
+
+  if (!recentMocks.length && !recentLogs.length && !Object.keys(recentDQ).length) {
     $('coach-activity').innerHTML = '<div style="color:#475569;font-size:13px">No activity in the last 7 days — she needs a nudge!</div>';
     return;
   }
@@ -2833,7 +3118,15 @@ function renderCoachActivity() {
       <div style="text-align:right"><span style="font-size:12px;color:${confCol}">${l.confidence}</span> <span style="font-size:11px;color:#64748b;display:block">${l.duration}min · ${l.date}</span></div>
     </div>`;
   });
-  $('coach-activity').innerHTML = html;
+  Object.entries(recentDQ).sort((a,b)=>b[0].localeCompare(a[0])).forEach(([date, s]) => {
+    const acc = Math.round((s.correct/s.total)*100);
+    const col = acc>=70?'#4ade80':acc>=50?'#fbbf24':'#f87171';
+    html += `<div style="padding:8px 0;border-bottom:1px solid #334155;display:flex;justify-content:space-between;align-items:center">
+      <div><span style="color:#a5b4fc;font-size:12px;font-weight:700">PRACTICE Q</span> <span style="color:#e2e8f0;font-size:13px">${s.total} question${s.total!==1?'s':''} answered</span></div>
+      <div style="text-align:right"><span style="font-size:13px;font-weight:700;color:${col}">${s.correct}/${s.total} correct</span> <span style="font-size:11px;color:#64748b;display:block">${date}</span></div>
+    </div>`;
+  });
+  $('coach-activity').innerHTML = html || '<div style="color:#475569;font-size:13px">No activity yet.</div>';
 }
 
 async function renderCoachAI() {
@@ -2967,6 +3260,7 @@ function initCoachNoteUI() {
 
 /* ── MILESTONES & CELEBRATIONS ── */
 const MILESTONES = [
+  // ── Mock milestones ──
   { id:'first_mock',  label:'🎯 First Mock!',     desc:'You started — that\'s the hardest step. Most people never begin.',            type:'gentle',   emoji:'🎯', check:(m)=>m.length>=1 },
   { id:'score_30',    label:'🌟 Score 30+',        desc:'You\'re off the board! Your first real score on the board.',                   type:'gentle',   emoji:'🌟', check:(m)=>m.some(x=>totalScore(x)>=30) },
   { id:'score_50',    label:'🚀 Score 50+',        desc:'Halfway to the cutoff! You\'re building serious momentum.',                    type:'gentle',   emoji:'🚀', check:(m)=>m.some(x=>totalScore(x)>=50) },
@@ -2975,6 +3269,19 @@ const MILESTONES = [
   { id:'streak_7',    label:'🔥 7-Day Streak!',    desc:'7 days straight. Consistency is what separates toppers from the rest.',       type:'gentle',   emoji:'🔥', check:(m,l)=>calcStreakFromData(m,l)>=7 },
   { id:'mocks_10',    label:'📚 10 Mocks Done!',   desc:'10 mocks logged. You\'re not just preparing — you\'re serious.',             type:'confetti', emoji:'📚', check:(m)=>m.length>=10 },
   { id:'mocks_25',    label:'🏆 25 Mocks Done!',   desc:'25 mocks! You\'re in the top tier of bank exam aspirants.',                  type:'confetti', emoji:'🏆', check:(m)=>m.length>=25 },
+  // ── Practice Q milestones ──
+  { id:'dq_first',    label:'🧠 First Practice Q!', desc:'You answered your first practice question. The daily habit starts here.',    type:'gentle',   emoji:'🧠',
+    check:()=>getDQLog().length>=1 },
+  { id:'dq_7of10',    label:'🎯 7/10 Today!',       desc:'7 or more correct in one day\'s practice. That\'s a seriously strong session!', type:'gentle', emoji:'🎯',
+    check:()=>{ const q=getDailyQueue(); if(!q||q.date!==todayStr()) return false;
+      const ans=q.questions.filter(x=>x.answered); return ans.filter(x=>x.userAnswer===x.correct).length>=7; } },
+  { id:'dq_perfect',  label:'💯 Perfect 10/10!',    desc:'10 out of 10 correct. Flawless. That\'s exam-day focus right there.',        type:'confetti', emoji:'💯',
+    check:()=>{ const q=getDailyQueue(); if(!q||q.date!==todayStr()) return false;
+      const ans=q.questions.filter(x=>x.answered); return ans.length>=10 && ans.every(x=>x.userAnswer===x.correct); } },
+  { id:'dq_50',       label:'📖 50 Practice Qs!',   desc:'50 questions answered. Every one of those built your exam brain.',           type:'gentle',   emoji:'📖',
+    check:()=>getDQLog().length>=50 },
+  { id:'dq_100',      label:'🏅 100 Practice Qs!',  desc:'100 questions done! You\'ve done more practice than most aspirants.',        type:'confetti', emoji:'🏅',
+    check:()=>getDQLog().length>=100 },
 ];
 
 const MILESTONE_NOTES = {
@@ -2986,6 +3293,11 @@ const MILESTONE_NOTES = {
   streak_7:    "7 days straight, Nanditha! Do you know how rare that is? Most people quit. You didn't. I'm so proud of you. 🔥",
   mocks_10:    "10 mocks done! You're not a beginner anymore — you're a serious bank exam aspirant. And I get to watch you win. 📚",
   mocks_25:    "25 mocks!! Nanditha, you've put in more work than 95% of people preparing for this exam. The results will show. 🏆",
+  dq_first:    "You answered your first practice question! That daily habit is going to add up to something huge. I built this for moments like this. 🧠💙",
+  dq_7of10:    "7 out of 10 correct in practice today! Nanditha, that's not luck — that's preparation paying off. I'm so proud of you. 🎯",
+  dq_perfect:  "10 out of 10!!! PERFECT!! Nanditha I screamed when I saw this. Literally zero mistakes. You're ready. 💯💙🎉",
+  dq_50:       "50 practice questions answered! Every single one made you sharper. The exam won't know what hit it. 📖",
+  dq_100:      "100 practice questions done, Nanditha. 100. I don't even have words. You're incredible. The bank job is yours. 🏅💙",
 };
 
 function getMilestonesAchieved() {
@@ -3128,14 +3440,26 @@ function renderCoachMilestones() {
   }).join('');
 }
 
-/* ── DAILY QUESTION ── */
+/* ── DAILY QUESTION (10/day) ── */
+const DQ_DAILY_LIMIT = 10;
 let currentDQ = null;
 let selectedOption = null;
 
+// All-time log (for stats)
 function getDQLog() { try { return JSON.parse(localStorage.getItem('cc_dq_log'))||[]; } catch { return []; } }
 function setDQLog(a) { localStorage.setItem('cc_dq_log', JSON.stringify(a)); }
-function getTodayDQ() { try { return JSON.parse(localStorage.getItem('cc_today_dq'))||null; } catch { return null; } }
-function setTodayDQ(q) { localStorage.setItem('cc_today_dq', JSON.stringify({...q, date: todayStr()})); }
+
+// Today's queue: { date, questions: [...], answeredCount }
+function getDailyQueue() { try { return JSON.parse(localStorage.getItem('cc_dq_daily'))||null; } catch { return null; } }
+function setDailyQueue(q) { localStorage.setItem('cc_dq_daily', JSON.stringify(q)); }
+
+// Legacy compat (old single-question key)
+function getTodayDQ() {
+  const q = getDailyQueue();
+  if (!q || q.date !== todayStr()) return null;
+  // Return the last unanswered question, or the last answered one
+  return q.questions[q.questions.length - 1] || null;
+}
 
 function getDifficulty() {
   if (!MOCKS.length) return 'Easy';
@@ -3143,46 +3467,63 @@ function getDifficulty() {
   return avg >= 65 ? 'Hard' : avg >= 40 ? 'Medium' : 'Easy';
 }
 
-function getWeakTopic() {
+function getWeakTopicForQ(usedTopics) {
+  // Rotate through weak topics so 10 questions per day cover different areas
   const freq = weakTopicFreq();
-  const sorted = Object.entries(freq).sort((a,b)=>b[1]-a[1]);
-  if (sorted.length) return sorted[0][0];
-  // Fall back to weakest section
-  let worst = null;
-  SECTIONS_FULL.forEach(s => {
-    const accs = MOCKS.map(m=>{const a=m[s.key+'_att']||0;return a?(m[s.key+'_corr']||0)/a:null;}).filter(x=>x!==null);
-    if (accs.length) {
-      const avg = accs.reduce((a,b)=>a+b,0)/accs.length;
-      if (!worst || avg < worst.avg) worst = {name: s.name, avg};
-    }
-  });
-  return worst ? worst.name : 'Reasoning';
+  const sorted = Object.entries(freq).sort((a,b)=>b[1]-a[1]).map(e=>e[0]);
+  // Pick the first one not already used today, else cycle
+  const fresh = sorted.find(t => !usedTopics.includes(t));
+  if (fresh) return fresh;
+  if (sorted.length) return sorted[usedTopics.length % sorted.length];
+  // Fallback: rotate through section topics
+  const allTopics = SECTIONS_FULL.flatMap(s => s.topics);
+  return allTopics[usedTopics.length % allTopics.length] || 'Reasoning';
 }
 
-async function generateDQ(force=false) {
-  // Use cached today's question unless forced
-  if (!force) {
-    const cached = getTodayDQ();
-    if (cached && cached.date === todayStr() && !cached.answered) {
-      currentDQ = cached;
-      renderDQ(cached);
-      updateDQStats();
-      updateDQTeaser();
-      return;
-    }
+function getSectionForTopic(topic) {
+  return SECTIONS_FULL.find(s =>
+    topic.toLowerCase().includes(s.name.toLowerCase()) ||
+    s.topics.some(t => t.toLowerCase() === topic.toLowerCase())
+  )?.name || (topic.includes('·') ? topic.split('·')[0].trim() : 'Reasoning');
+}
+
+async function generateDQ() {
+  // Get or create today's queue
+  let queue = getDailyQueue();
+  if (!queue || queue.date !== todayStr()) {
+    queue = { date: todayStr(), questions: [], answeredCount: 0 };
+    setDailyQueue(queue);
   }
 
-  // Show loading
+  // Already hit the limit?
+  if (queue.answeredCount >= DQ_DAILY_LIMIT) {
+    showDQComplete(queue);
+    return;
+  }
+
+  // Is there an unanswered question already in the queue? Show it.
+  const last = queue.questions[queue.questions.length - 1];
+  if (last && !last.answered) {
+    currentDQ = last;
+    renderDQ(last, queue);
+    updateDQStats();
+    updateDQTeaser();
+    return;
+  }
+
+  // Generate next question
+  $('dq-complete-card').style.display = 'none';
+  $('dq-card').style.display = 'block';
   $('dq-loading').style.display = 'block';
   $('dq-question').style.display = 'none';
   $('dq-teaser').style.display = 'block';
-  $('dq-teaser-text').textContent = 'Generating today\'s question...';
+  $('dq-teaser-text').textContent = 'Generating question ' + (queue.answeredCount + 1) + ' of ' + DQ_DAILY_LIMIT + '...';
   $('dq-teaser-status').textContent = '⏳';
 
-  const topic = getWeakTopic();
+  const usedTopics = queue.questions.map(q => q.topic);
+  const topic = getWeakTopicForQ(usedTopics);
   const difficulty = getDifficulty();
-  const section = SECTIONS_FULL.find(s => topic.toLowerCase().includes(s.name.toLowerCase()))?.name ||
-                  (topic.includes('·') ? topic.split('·')[0].trim() : 'Reasoning');
+  const section = getSectionForTopic(topic);
 
   const system = `You are a bank exam question setter for Indian bank exams (SBI PO, IBPS PO). Generate ONE multiple choice question.
 
@@ -3197,19 +3538,20 @@ RESPOND IN THIS EXACT JSON FORMAT — nothing else, no markdown, no explanation 
   "explanation": "Clear explanation of why A is correct and why others are wrong. 2-3 sentences."
 }`;
 
-  const user = `Generate a ${difficulty} difficulty ${section} question about "${topic}" suitable for SBI PO / IBPS PO prelims exam.`;
+  const user = `Generate a ${difficulty} difficulty ${section} question about "${topic}" suitable for SBI PO / IBPS PO prelims. Make it different from questions about: ${usedTopics.join(', ') || 'none yet'}.`;
 
   try {
     const raw = await askGroq(system, user);
-    // Parse JSON from response
     const jsonMatch = raw.match(/\{[\s\S]*\}/);
     if (!jsonMatch) throw new Error('Invalid response format');
     const q = JSON.parse(jsonMatch[0]);
     q.date = todayStr();
     q.answered = false;
+    q.qIndex = queue.questions.length; // 0-based
     currentDQ = q;
-    setTodayDQ(q);
-    renderDQ(q);
+    queue.questions.push(q);
+    setDailyQueue(queue);
+    renderDQ(q, queue);
     updateDQTeaser();
   } catch(e) {
     $('dq-loading').style.display = 'none';
@@ -3220,17 +3562,43 @@ RESPOND IN THIS EXACT JSON FORMAT — nothing else, no markdown, no explanation 
   updateDQStats();
 }
 
-function renderDQ(q) {
+function nextDQ() {
+  const queue = getDailyQueue();
+  if (!queue) return;
+  if (queue.answeredCount >= DQ_DAILY_LIMIT) {
+    showDQComplete(queue);
+    return;
+  }
+  generateDQ();
+}
+
+function renderDQ(q, queue) {
   $('dq-loading').style.display = 'none';
   $('dq-question').style.display = 'block';
   $('dq-result').style.display = 'none';
   $('dq-submit-btn').style.display = 'none';
   selectedOption = null;
 
+  // Progress pill: "Q 3/10"
+  const qNum = (q.qIndex ?? 0) + 1;
+  const pill = $('dq-progress-pill');
+  if (pill) {
+    pill.textContent = `Q ${qNum}/${DQ_DAILY_LIMIT}`;
+    pill.style.background = queue?.answeredCount >= DQ_DAILY_LIMIT - 1 ? '#d1fae5' : '#e8f0fe';
+    pill.style.color = queue?.answeredCount >= DQ_DAILY_LIMIT - 1 ? '#065f46' : 'var(--navy)';
+  }
+
   $('dq-meta').textContent = `${q.section} · ${q.topic}`;
   const diffColor = q.difficulty==='Easy'?'#10b981':q.difficulty==='Hard'?'#ef4444':'#f59e0b';
   $('dq-difficulty-badge').innerHTML = `<span style="background:${diffColor}22;color:${diffColor};padding:2px 8px;border-radius:10px;font-size:11px;font-weight:700">${q.difficulty}</span>`;
   $('dq-qtext').textContent = q.question;
+
+  // Update "Next Question" button label
+  const nextBtn = $('dq-next-btn');
+  if (nextBtn) {
+    const answered = queue?.answeredCount ?? 0;
+    nextBtn.textContent = answered + 1 >= DQ_DAILY_LIMIT ? 'See Today\'s Results →' : 'Next Question →';
+  }
 
   $('dq-options').innerHTML = (q.options||[]).map((opt, i) => {
     const letter = ['A','B','C','D'][i];
@@ -3239,10 +3607,7 @@ function renderDQ(q) {
       font-size:14px;color:var(--text);transition:.15s;background:var(--surface)">${opt}</div>`;
   }).join('');
 
-  // If already answered today, show result
-  if (q.answered) {
-    showDQResult(q.userAnswer, q);
-  }
+  if (q.answered) showDQResult(q.userAnswer, q);
 }
 
 function selectOption(letter, el) {
@@ -3263,16 +3628,22 @@ async function submitDQ() {
   if (!selectedOption || !currentDQ) return;
   const correct = selectedOption === currentDQ.correct;
 
-  // Save to log
+  // Save to all-time log
   const log = getDQLog();
   log.push({ date: todayStr(), topic: currentDQ.topic, section: currentDQ.section,
     difficulty: currentDQ.difficulty, correct, userAnswer: selectedOption, correctAnswer: currentDQ.correct });
   setDQLog(log);
 
-  // Mark as answered
+  // Mark question as answered in daily queue
   currentDQ.answered = true;
   currentDQ.userAnswer = selectedOption;
-  setTodayDQ(currentDQ);
+  const queue = getDailyQueue();
+  if (queue) {
+    const idx = queue.questions.findIndex(q => q.qIndex === currentDQ.qIndex);
+    if (idx > -1) queue.questions[idx] = currentDQ;
+    queue.answeredCount = queue.questions.filter(q => q.answered).length;
+    setDailyQueue(queue);
+  }
 
   showDQResult(selectedOption, currentDQ);
   updateDQStats();
@@ -3287,11 +3658,13 @@ function showDQResult(userAnswer, q) {
   $('dq-result').style.background = correct ? '#f0fdf4' : '#fef2f2';
   $('dq-result').style.border = correct ? '1px solid #86efac' : '1px solid #fca5a5';
   $('dq-result-icon').textContent = correct ? '✅' : '❌';
-  $('dq-result-msg').textContent = correct ? 'Correct! Well done, Nanditha!' : `Wrong. Correct answer: ${q.correct}`;
+
+  // Personalise result message using active user's name
+  const userName = PROFILE.name || 'You';
+  $('dq-result-msg').textContent = correct ? `Correct! Well done, ${userName}!` : `Wrong. Correct answer: ${q.correct}`;
   $('dq-result-msg').style.color = correct ? '#15803d' : '#dc2626';
   $('dq-explanation').textContent = q.explanation || '';
 
-  // Color the options
   document.querySelectorAll('.dq-option').forEach(o => {
     const letter = o.dataset.letter;
     if (letter === q.correct) { o.style.borderColor='#10b981'; o.style.background='#f0fdf4'; o.style.fontWeight='700'; }
@@ -3300,13 +3673,36 @@ function showDQResult(userAnswer, q) {
   });
 }
 
+function showDQComplete(queue) {
+  $('dq-card').style.display = 'none';
+  $('dq-complete-card').style.display = 'block';
+  const answered = queue.questions.filter(q => q.answered);
+  const correct = answered.filter(q => q.userAnswer === q.correct).length;
+  $('dq-complete-score').textContent = `${correct} / ${DQ_DAILY_LIMIT} correct`;
+  $('dq-complete-score').style.color = correct >= 7 ? '#10b981' : correct >= 4 ? '#f59e0b' : '#ef4444';
+  // Section breakdown
+  const breakdown = {};
+  answered.forEach(q => {
+    if (!breakdown[q.section]) breakdown[q.section] = {total:0, correct:0};
+    breakdown[q.section].total++;
+    if (q.userAnswer === q.correct) breakdown[q.section].correct++;
+  });
+  $('dq-complete-breakdown').innerHTML = Object.entries(breakdown).map(([sec, s]) =>
+    `<div style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:8px 14px;text-align:center">
+      <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin-bottom:3px">${sec}</div>
+      <div style="font-size:17px;font-weight:700;color:var(--navy)">${s.correct}/${s.total}</div>
+    </div>`
+  ).join('');
+  updateDQTeaser();
+}
+
 function updateDQStats() {
   const log = getDQLog();
   const total = log.length;
   const correct = log.filter(q=>q.correct).length;
   const acc = total ? Math.round((correct/total)*100) : 0;
 
-  // Streak — consecutive days with a correct answer
+  // Streak — consecutive days with at least one correct answer
   const correctDays = new Set(log.filter(q=>q.correct).map(q=>q.date));
   let streak = 0; const d = new Date(); d.setHours(0,0,0,0);
   if (!correctDays.has(d.toISOString().slice(0,10))) d.setDate(d.getDate()-1);
@@ -3317,7 +3713,7 @@ function updateDQStats() {
   if ($('dq-accuracy')) $('dq-accuracy').textContent = total ? acc+'%' : '—';
   if ($('dq-streak')) $('dq-streak').textContent = streak;
 
-  // History
+  // History — last 10 answers
   if (log.length && $('dq-history-card')) {
     $('dq-history-card').style.display = 'block';
     $('dq-history-list').innerHTML = [...log].reverse().slice(0,10).map(q =>
@@ -3333,15 +3729,21 @@ function updateDQStats() {
 }
 
 function updateDQTeaser() {
-  const cached = getTodayDQ();
-  if (!cached) return;
+  const queue = getDailyQueue();
+  if (!queue || queue.date !== todayStr()) return;
+  const answered = queue.answeredCount || 0;
+  const correct = queue.questions.filter(q => q.answered && q.userAnswer === q.correct).length;
   $('dq-teaser').style.display = 'block';
-  if (cached.answered) {
-    const correct = cached.userAnswer === cached.correct;
-    $('dq-teaser-text').textContent = `${cached.section} · ${cached.topic} — ${correct ? 'Answered correctly!' : 'Answered (review explanation)'}`;
-    $('dq-teaser-status').textContent = correct ? '✅' : '❌';
+  if (answered >= DQ_DAILY_LIMIT) {
+    $('dq-teaser-text').textContent = `Today complete — ${correct}/${DQ_DAILY_LIMIT} correct! Come back tomorrow.`;
+    $('dq-teaser-status').textContent = '🎯';
+  } else if (answered > 0) {
+    const last = queue.questions.filter(q=>q.answered).pop();
+    $('dq-teaser-text').textContent = `${answered}/${DQ_DAILY_LIMIT} done · last: ${last?.topic} — Tap for more!`;
+    $('dq-teaser-status').textContent = '→';
   } else {
-    $('dq-teaser-text').textContent = `${cached.section} · ${cached.topic} — Tap to answer!`;
+    const last = queue.questions[queue.questions.length-1];
+    $('dq-teaser-text').textContent = last ? `${last.section} · ${last.topic} — Tap to answer!` : 'Start today\'s 10 questions!';
     $('dq-teaser-status').textContent = '→';
   }
 }
@@ -3352,7 +3754,7 @@ function goToDQTab() {
 
 function initDQ() {
   updateDQStats();
-  generateDQ(false);
+  generateDQ();
 }
 
 /* ── BOOT ── */
@@ -3371,6 +3773,9 @@ async function bootApp() {
   EXAM_DATES = {...EXAM_DATES_DEFAULT, ...local.getDates()};
 
   $('ahGreeting').textContent = PROFILE.name ? 'Hey, '+PROFILE.name+' 👋' : '';
+  // Show switch button only when there are multiple users
+  const btn = $('switch-user-btn');
+  if (btn) btn.style.display = local.getProfiles().length > 1 ? 'inline-block' : 'none';
 
   await load();
   renderCutoffProgress();
@@ -3393,17 +3798,153 @@ async function bootApp() {
   initDQ();
 }
 
-function checkSetup() {
-  if (IS_COACH) { initCoachView(); return; }
-  PROFILE = local.getProfile();
-  if (PROFILE.name) {
-    $('setup').style.display = 'none';
-    $('app').style.display   = 'block';
-    bootApp();
+/* ── PIN ── */
+let _pin = '';
+function pinPress(d) {
+  if (_pin.length >= 4) return;
+  _pin += d;
+  updatePinDots();
+  if (_pin.length === 4) setTimeout(checkPin, 120);
+}
+function pinBack() {
+  _pin = _pin.slice(0, -1);
+  updatePinDots();
+  $('pin-error').textContent = '';
+}
+function updatePinDots() {
+  document.querySelectorAll('.pin-dot').forEach((dot, i) => {
+    dot.classList.toggle('filled', i < _pin.length);
+  });
+}
+function checkPin() {
+  if (_pin === APP_PIN) {
+    sessionStorage.setItem('cc_pin_ok', '1'); // expires when browser/tab is closed
+    localStorage.removeItem('cc_pin_ok');      // clean up old never-expiring key
+    $('pin-screen').style.display = 'none';
+    checkSetup();
+  } else {
+    $('pin-error').textContent = 'Wrong PIN. Try again.';
+    document.querySelectorAll('.pin-dot').forEach(d => {
+      d.classList.add('shake');
+      setTimeout(() => d.classList.remove('shake'), 400);
+    });
+    _pin = '';
+    setTimeout(updatePinDots, 400);
   }
 }
 
-checkSetup();
+/* ── MULTI-USER ── */
+
+// One-time migration: if old single-profile exists but profiles list doesn't, seed it.
+function migrateProfiles() {
+  const profiles = local.getProfiles();
+  if (profiles.length === 0) {
+    const old = local.getProfile();
+    if (old && old.name) {
+      local.setProfiles([old]);
+    }
+  }
+}
+
+// Render and show the user-picker screen
+function showUserPicker() {
+  const profiles = local.getProfiles();
+  const grid = $('user-picker-grid');
+  const avatarColors = ['#1e3a5f','#0f6b61','#7c3aed','#b91c1c','#d97706','#0369a1','#4f46e5'];
+  grid.innerHTML = profiles.map((p, i) => {
+    const color = avatarColors[i % avatarColors.length];
+    const initials = p.name.split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2);
+    return `<div onclick="pickUser('${p.name.replace(/'/g,"\\'")}')"
+      style="display:flex;flex-direction:column;align-items:center;gap:10px;
+        background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.15);
+        border-radius:18px;padding:20px 24px;cursor:pointer;min-width:130px;
+        transition:.15s;-webkit-tap-highlight-color:transparent;position:relative"
+      onmouseover="this.style.background='rgba(255,255,255,.14)';this.style.borderColor='rgba(245,158,11,.5)'"
+      onmouseout="this.style.background='rgba(255,255,255,.07)';this.style.borderColor='rgba(255,255,255,.15)'">
+      <div style="width:56px;height:56px;border-radius:50%;background:${color};
+        display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:700;
+        color:#fff;font-family:'DM Serif Display',serif;flex-shrink:0">${initials}</div>
+      <div style="text-align:center">
+        <div style="color:#fff;font-weight:700;font-size:15px;margin-bottom:3px">${p.name}</div>
+        <div style="color:rgba(255,255,255,.45);font-size:11px">${p.targetExam||'Bank exam'}</div>
+      </div>
+      <div style="position:absolute;top:8px;right:8px;display:flex;gap:4px">
+        <button onclick="event.stopPropagation();editUser('${p.name.replace(/'/g,"\\'")}')"
+          style="background:none;border:none;color:rgba(255,255,255,.25);font-size:13px;
+            cursor:pointer;line-height:1;padding:3px 5px;border-radius:4px;transition:.12s"
+          onmouseover="this.style.color='#fbbf24'" onmouseout="this.style.color='rgba(255,255,255,.25)'"
+          title="Edit profile">✎</button>
+        <button onclick="event.stopPropagation();deleteUser('${p.name.replace(/'/g,"\\'")}')"
+          style="background:none;border:none;color:rgba(255,255,255,.25);font-size:15px;
+            cursor:pointer;line-height:1;padding:2px 4px;border-radius:4px;transition:.12s"
+          onmouseover="this.style.color='#f87171'" onmouseout="this.style.color='rgba(255,255,255,.25)'"
+          title="Remove user">×</button>
+      </div>
+    </div>`;
+  }).join('');
+  $('user-picker').style.display = 'flex';
+}
+
+// Select a user and boot the app
+function pickUser(name) {
+  const profiles = local.getProfiles();
+  PROFILE = profiles.find(p => p.name === name) || {name};
+  local.setProfile(PROFILE); // keep cc_profile in sync
+  $('user-picker').style.display = 'none';
+  $('app').style.display = 'block';
+  bootApp();
+}
+
+// Show the setup screen to add a new user
+function addNewUser() {
+  $('user-picker').style.display = 'none';
+  $('su_name').value = '';
+  $('setup').style.display = 'block';
+}
+
+// Switch user from within the app
+function switchUser() {
+  $('app').style.display = 'none';
+  showUserPicker();
+}
+
+// Delete a user profile (with confirmation)
+function deleteUser(name) {
+  if (!confirm(`Remove "${name}"? Their data stays saved — you can add them back anytime.`)) return;
+  const profiles = local.getProfiles().filter(p => p.name !== name);
+  local.setProfiles(profiles);
+  // If they deleted the active user, pick another or go to setup
+  if (PROFILE.name === name) {
+    if (profiles.length > 0) {
+      pickUser(profiles[0].name);
+    } else {
+      $('user-picker').style.display = 'none';
+      $('setup').style.display = 'block';
+    }
+  } else {
+    showUserPicker(); // re-render the picker without that user
+  }
+}
+
+function checkSetup() {
+  if (IS_COACH) { initCoachView(); return; }
+  migrateProfiles();
+  const profiles = local.getProfiles();
+  if (profiles.length === 0) {
+    // First ever launch — show setup
+    $('setup').style.display = 'block';
+  } else {
+    // Always show the picker so the user confirms who they are
+    showUserPicker();
+  }
+}
+
+// Entry point — show PIN unless already unlocked in this browser session
+if (IS_COACH || sessionStorage.getItem('cc_pin_ok') === '1') {
+  checkSetup();
+} else {
+  $('pin-screen').style.display = 'flex';
+}
 </script>
 </body>
 </html>
