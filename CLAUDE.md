@@ -20,15 +20,18 @@ Then open `http://localhost:3000`. Opening `index.html` directly as a `file://` 
 
 ## Deploying
 
-Deploy only the three essential files — do NOT deploy the `screenshots/` folder or `.ps1` script as they cause Cloudflare upload failures:
+Deploy only the essential files — do NOT deploy the `screenshots/` folder or `.ps1` script as they cause Cloudflare upload failures:
 
 ```bash
-mkdir -p /tmp/clearcut-dist
+mkdir -p /tmp/clearcut-dist/functions/api
 cp index.html manifest.json sw.js /tmp/clearcut-dist/
+cp functions/api/groq.js /tmp/clearcut-dist/functions/api/
 
 CLOUDFLARE_API_TOKEN=<token> npx wrangler pages deploy /tmp/clearcut-dist \
   --project-name clearcut-prep --branch main --commit-dirty=true
 ```
+
+The `GROQ_KEY` secret must be set in Cloudflare Pages → Settings → Environment variables (Production). It is **not** in the codebase.
 
 Live URL: `https://clearcut-prep.pages.dev`
 
@@ -44,7 +47,7 @@ Everything is in `index.html`. The JS is one `<script>` block starting around li
 | `APP_PIN` | `"0226"` — 4-digit PIN, checked via `sessionStorage` (expires on browser close) |
 | `SB_URL` / `SB_KEY` | Supabase project credentials (anon key, hardcoded) |
 | `TABLE` / `SYLLABUS_TABLE` / `STUDY_LOG_TABLE` | Supabase table names |
-| `GROQ_KEY` / `GROQ_MODEL` | Groq API key + `llama-3.1-8b-instant` for all AI features |
+| `GROQ_MODEL` | `llama-3.1-8b-instant` — model used for all AI features (key stored as Cloudflare secret `GROQ_KEY`) |
 | `NEG` | `0.25` — negative marking per wrong answer |
 | `DQ_DAILY_LIMIT` | `10` — practice questions per day cap |
 
@@ -62,7 +65,7 @@ Profiles stored as array in `cc_profiles`. Each user's syllabus/exam dates are k
 
 ### AI features
 
-All AI calls go through `askGroq(system, user)` → `https://api.groq.com/openai/v1/chat/completions`. Used for: daily practice question generation (`generateDQ`), AI coach chat (`sendChat`), dashboard insights (`askAI`), weekly report (`generateReportAI`), prediction sentence (`renderPrediction`), coach portal assessment (`renderCoachAI`).
+All AI calls go through `askGroq(system, user)` → `/api/groq` (Cloudflare Pages Function at `functions/api/groq.js`), which proxies to Groq using the `GROQ_KEY` environment secret. Used for: daily practice question generation (`generateDQ`), AI coach chat (`sendChat`), dashboard insights (`askAI`), weekly report (`generateReportAI`), prediction sentence (`renderPrediction`), coach portal assessment (`renderCoachAI`).
 
 ### JS sections
 
@@ -100,7 +103,8 @@ All AI calls go through `askGroq(system, user)` → `https://api.groq.com/openai
 
 ## Known Issues / Gotchas
 
-- `SB_KEY` and `GROQ_KEY` are hardcoded in the HTML — visible in DevTools. Acceptable for this private personal app.
+- `SB_KEY` is hardcoded in the HTML — visible in DevTools. Acceptable for this private personal app (Supabase anon key).
+- `GROQ_KEY` is stored as a Cloudflare Pages secret and proxied via `functions/api/groq.js` — not exposed to the browser.
 - Service worker notifications only fire while the browser/PWA is open — no real push server.
 - `prelims-tracker.html` is a dead v1 file — safe to delete.
 - Do NOT include `screenshots/` or `screenshot_dashboard.png` in Cloudflare deploys — causes 502 upload failures.

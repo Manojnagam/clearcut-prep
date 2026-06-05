@@ -1164,7 +1164,6 @@ const APP_PIN = "0226"; // change this to set a different PIN
 const SB_URL = "https://jvnhcwqtdxbpwvxbnzok.supabase.co";
 const SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp2bmhjd3F0ZHhicHd2eGJuem9rIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkzNzQ0NDYsImV4cCI6MjA5NDk1MDQ0Nn0.5zVOEAe7NR_Uz1Zz5sx6CSLWd6o29KL5R8l29HJZ7j0";
 const TABLE  = "clearcut_mocks";
-const GROQ_KEY = "GROQ_KEY_REMOVED";
 const GROQ_MODEL = "llama-3.1-8b-instant";
 const SYLLABUS_TABLE = "clearcut_syllabus";
 const STUDY_LOG_TABLE = "clearcut_study_log";
@@ -2386,9 +2385,9 @@ RULES:
   const messages = [{role:'system',content:sysPrompt}, ...chatHistory.slice(-10)];
 
   try {
-    const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+    const res = await fetch('/api/groq', {
       method:'POST',
-      headers:{'Authorization':'Bearer '+GROQ_KEY,'Content-Type':'application/json'},
+      headers:{'Content-Type':'application/json'},
       body: JSON.stringify({model:GROQ_MODEL, max_tokens:600, temperature:0.8, messages})
     });
     const d = await res.json();
@@ -2413,9 +2412,9 @@ function initChat() {
 
 /* ── AI ── */
 async function askGroq(system, user) {
-  const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+  const res = await fetch('/api/groq', {
     method: 'POST',
-    headers: { 'Authorization': 'Bearer '+GROQ_KEY, 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ model: GROQ_MODEL, max_tokens: 600, temperature: 0.85,
       messages: [{ role:'system', content:system }, { role:'user', content:user }] })
   });
