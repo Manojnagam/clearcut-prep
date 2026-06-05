@@ -1042,7 +1042,10 @@ tr:last-child td{border-bottom:none}
       <div style="font-family:'DM Serif Display',serif;font-size:22px;color:#f1f5f9">Manoj's Dashboard</div>
       <div style="font-size:12px;color:#64748b;margin-top:2px">Nanditha's prep — private view</div>
     </div>
-    <div style="font-size:11px;color:#64748b" id="coach-last-updated"></div>
+    <div style="display:flex;align-items:center;gap:12px">
+      <div style="font-size:11px;color:#64748b" id="coach-last-updated"></div>
+      <button onclick="coachResetData()" style="background:#7f1d1d;border:1px solid #991b1b;border-radius:8px;color:#fca5a5;font-family:'DM Sans',sans-serif;font-size:11px;font-weight:600;padding:5px 10px;cursor:pointer">Reset data</button>
+    </div>
   </div>
 
   <div style="max-width:900px;margin:0 auto;padding:24px 20px">
@@ -2808,6 +2811,20 @@ function initNotifUI() {
 
 /* ── COACH VIEW ── */
 const IS_COACH = new URLSearchParams(window.location.search).get('coach') === 'manoj';
+
+async function coachResetData() {
+  if (!confirm('Delete ALL of Nanditha\'s data? This cannot be undone.')) return;
+  // Clear Supabase
+  try {
+    await fetch(`${SB_URL}/rest/v1/${TABLE}?user_name=eq.Nanditha`, { method:'DELETE', headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY} });
+    await fetch(`${SB_URL}/rest/v1/${STUDY_LOG_TABLE}?user_name=eq.Nanditha`, { method:'DELETE', headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY} });
+  } catch(e) {}
+  // Clear localStorage
+  ['cc_dq_log','cc_dq_daily','cc_milestones','cc_profiles',
+   'cc_syllabus_Nanditha','cc_examdates_Nanditha','cc_coach_notes'].forEach(k => localStorage.removeItem(k));
+  alert('All data cleared.');
+  location.reload();
+}
 
 async function initCoachView() {
   // Hide normal app completely
