@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What This Is
 
-ClearCut is a single-file PWA for Indian bank exam prep (SBI PO, IBPS PO, RRB etc.), built by Manoj for his girlfriend Nanditha. All app logic — HTML, CSS, and JS — lives in `index.html` (~3600 lines, ~184KB). There is no build step, no package.json, no bundler.
+ClearCut is a single-file PWA for Indian bank exam prep (SBI PO, IBPS PO, RRB etc.), built by Manoj for his girlfriend Nanditha. All app logic — HTML, CSS, and JS — lives in `index.html` (~3960 lines). There is no build step, no package.json, no bundler.
 
 ## Running Locally
 
