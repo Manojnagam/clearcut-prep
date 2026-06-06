@@ -610,6 +610,12 @@ tr:last-child td{border-bottom:none}
         <div id="ai-loading" style="display:none;font-size:13px;color:var(--muted)">🤖 Analysing her prep data...</div>
       </div>
 
+      <!-- Attempt Strategy card -->
+      <div id="strategy-card" style="display:none;background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:14px 16px;margin-bottom:10px">
+        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin-bottom:10px">🎯 Attempt Strategy</div>
+        <div id="strategy-content"></div>
+      </div>
+
       <div id="dash-note-card" style="display:none;background:linear-gradient(135deg,#fdf2f8,#fce7f3);
         border:1px solid #f9a8d4;border-radius:14px;padding:14px 16px;margin-bottom:10px;
         position:relative">
@@ -1676,11 +1682,60 @@ async function renderPrediction() {
   }
 }
 
+/* ── ATTEMPT STRATEGY ── */
+function renderStrategyCard() {
+  const card = $('strategy-card');
+  if (!card || MOCKS.length < 2) { if (card) card.style.display='none'; return; }
+
+  const secs = getSections(MOCKS[MOCKS.length-1].exam);
+  // Aggregate across all mocks
+  const stats = secs.map(s => {
+    const rows = MOCKS.filter(m=>m[s.key+'_att']>0);
+    if (!rows.length) return null;
+    const avgAtt = rows.reduce((a,m)=>a+(m[s.key+'_att']||0),0)/rows.length;
+    const avgCorr = rows.reduce((a,m)=>a+(m[s.key+'_corr']||0),0)/rows.length;
+    const avgAttRate = Math.round(avgAtt/s.q*100);
+    const avgAccOnAtt = Math.round(avgCorr/avgAtt*100);
+    return { name:s.name, color:s.color, avgAttRate, avgAccOnAtt, avgAtt:Math.round(avgAtt), total:s.q };
+  }).filter(Boolean);
+
+  if (!stats.length) { card.style.display='none'; return; }
+  card.style.display = 'block';
+
+  // Recommendation logic
+  const overAttempting = stats.filter(s=>s.avgAccOnAtt<55 && s.avgAttRate>70);
+  const underAttempting = stats.filter(s=>s.avgAttRate<50);
+  let tip = '';
+  if (overAttempting.length) {
+    tip = `⚠️ <b>${overAttempting.map(s=>s.name).join(', ')}</b>: accuracy below 55% on attempted — you're losing marks to negatives. Attempt fewer, answer more carefully.`;
+  } else if (underAttempting.length) {
+    tip = `💡 <b>${underAttempting.map(s=>s.name).join(', ')}</b>: only attempting ~${underAttempting[0].avgAttRate}% of questions. You have room to attempt a few more.`;
+  } else {
+    tip = `✅ Good balance — attempting well and maintaining solid accuracy.`;
+  }
+
+  $('strategy-content').innerHTML = `
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px">
+      ${stats.map(s=>`
+        <div style="flex:1;min-width:80px;background:var(--surface2);border-radius:10px;padding:10px;text-align:center">
+          <div style="font-size:11px;font-weight:700;color:${s.color};margin-bottom:4px">${s.name}</div>
+          <div style="font-size:18px;font-weight:800;color:var(--navy)">${s.avgAttRate}%</div>
+          <div style="font-size:10px;color:var(--muted)">attempt rate</div>
+          <div style="font-size:14px;font-weight:700;margin-top:4px;color:${s.avgAccOnAtt>=70?'#15803d':s.avgAccOnAtt>=50?'#b45309':'#dc2626'}">${s.avgAccOnAtt}%</div>
+          <div style="font-size:10px;color:var(--muted)">accuracy</div>
+        </div>
+      `).join('')}
+    </div>
+    <div style="font-size:12px;line-height:1.6;color:var(--text)">${tip}</div>
+  `;
+}
+
 /* ── DASHBOARD ── */
 function renderDash() {
   renderCountdowns();
   renderCutoffProgress();
   renderPrediction();
+  renderStrategyCard();
 
   const streak = calcStreak();
   $('d-streak').innerHTML = streak+' <small>days</small>';
@@ -2229,6 +2284,18 @@ function renderHistory() {
             <span style="width:8px;height:8px;border-radius:50%;background:${s.color};display:inline-block"></span>
             ${s.name}: <b>${fmt(secScore(m,s.key))}</b>/${s.q}
           </span>`).join('')}
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:6px">
+        ${secs.map(s=>{
+          const att=m[s.key+'_att']||0, corr=m[s.key+'_corr']||0;
+          if (!att) return '';
+          const attPct=Math.round(att/s.q*100);
+          const accPct=Math.round(corr/att*100);
+          const accColor=accPct>=70?'#15803d':accPct>=50?'#b45309':'#dc2626';
+          return `<span style="font-size:11px;background:var(--surface2);border-radius:6px;padding:3px 7px;color:var(--muted)">
+            ${s.name.slice(0,3)}: <b style="color:var(--text)">${att}/${s.q}</b> attempted · <b style="color:${accColor}">${accPct}%</b> accurate
+          </span>`;
+        }).join('')}
       </div>
       ${m.weak_topics&&m.weak_topics.length?`<div style="margin-top:8px;font-size:12px;color:var(--muted)">Weak: ${m.weak_topics.map(t=>t.includes('·')?t.split('·').pop().trim():t).join(', ')}</div>`:''}
       ${m.notes?`<div style="margin-top:6px;font-size:12px;color:var(--muted);font-style:italic">"${m.notes}"</div>`:''}
