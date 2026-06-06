@@ -593,6 +593,17 @@ tr:last-child td{border-bottom:none}
         <div id="today-activity-list" style="font-size:13px;color:var(--text)"></div>
       </div>
 
+      <!-- Coach quiz notification -->
+      <div id="coach-quiz-banner" style="display:none;background:linear-gradient(135deg,#fdf2f8,#fce7f3);border:1px solid #f9a8d4;border-radius:14px;padding:14px 16px;margin-bottom:10px;cursor:pointer" onclick="openCoachQuiz()">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <div>
+            <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#be185d;margin-bottom:4px">📝 Quiz from Manoj 💙</div>
+            <div id="coach-quiz-banner-text" style="font-size:13px;color:#831843;line-height:1.4"></div>
+          </div>
+          <div style="font-size:20px;margin-left:12px">→</div>
+        </div>
+      </div>
+
       <div class="insight" id="dash-insight" style="display:none">
         <div class="insight-icon">🎯</div>
         <div class="insight-text" id="dash-insight-text"></div>
@@ -1242,6 +1253,39 @@ tr:last-child td{border-bottom:none}
       <div style="margin-top:10px;font-size:11px;color:#475569" id="coach-note-preview"></div>
     </div>
 
+    <!-- Assign Quiz -->
+    <div style="background:#1e293b;border:1px solid #334155;border-radius:14px;padding:16px;margin-bottom:20px">
+      <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#64748b;margin-bottom:10px">🧪 Assign a Quiz to Nanditha</div>
+      <div style="font-size:12px;color:#475569;margin-bottom:12px">Pick topics manually or let AI choose her weakest areas. She'll see it on her dashboard.</div>
+
+      <!-- Topic picker -->
+      <div id="cq-topic-picker" style="margin-bottom:12px">
+        <div style="font-size:11px;color:#64748b;margin-bottom:8px;font-weight:600">SELECT TOPICS</div>
+        <div id="cq-all-topics" style="display:flex;gap:6px;flex-wrap:wrap"></div>
+      </div>
+
+      <div style="display:flex;gap:8px;margin-bottom:12px">
+        <button onclick="coachAIPick()" id="cq-ai-pick-btn"
+          style="flex:1;background:#0f172a;border:1px solid #6366f1;color:#a5b4fc;border-radius:10px;
+          padding:9px;font-family:'DM Sans',sans-serif;font-weight:600;font-size:12px;cursor:pointer">
+          🤖 AI Pick Weak Topics
+        </button>
+        <button onclick="coachAssignQuiz()"
+          style="flex:2;background:#6366f1;color:#fff;border:none;border-radius:10px;padding:9px 16px;
+          font-family:'DM Sans',sans-serif;font-weight:600;font-size:13px;cursor:pointer" id="cq-assign-btn">
+          📝 Generate &amp; Assign Quiz
+        </button>
+      </div>
+
+      <div id="cq-assign-status" style="font-size:12px;color:#64748b;min-height:18px"></div>
+
+      <!-- Previous quiz results -->
+      <div id="cq-prev-results" style="margin-top:14px;display:none">
+        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#64748b;margin-bottom:8px;padding-top:12px;border-top:1px solid #334155">📊 Last Quiz Results</div>
+        <div id="cq-prev-results-content" style="font-size:13px;color:#94a3b8;line-height:1.8"></div>
+      </div>
+    </div>
+
     <!-- Should I be worried? AI card -->
     <div id="coach-ai-card" style="background:linear-gradient(135deg,#1e1b4b,#312e81);border:1px solid #4338ca;border-radius:16px;padding:20px 24px;margin-bottom:20px">
       <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#a5b4fc;margin-bottom:8px">🤖 AI Assessment — Should You Be Worried?</div>
@@ -1303,6 +1347,49 @@ tr:last-child td{border-bottom:none}
       <div id="coach-action" style="font-size:13px;color:#94a3b8;line-height:1.8">Loading...</div>
     </div>
 
+  </div>
+</div>
+
+<!-- Coach Quiz Modal -->
+<div id="coach-quiz-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:1000;overflow-y:auto">
+  <div style="max-width:540px;margin:20px auto;background:var(--surface);border-radius:16px;padding:20px;min-height:80vh;position:relative">
+    <button onclick="closeCoachQuiz()" style="position:absolute;top:12px;right:14px;background:none;border:none;font-size:20px;color:var(--muted);cursor:pointer">✕</button>
+
+    <!-- Loading -->
+    <div id="cq-loading" style="text-align:center;padding:40px 20px">
+      <div style="font-size:32px;margin-bottom:12px">🤖</div>
+      <div style="font-size:14px;color:var(--muted)">Generating your quiz from Manoj…</div>
+    </div>
+
+    <!-- Active quiz -->
+    <div id="cq-active" style="display:none">
+      <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#be185d;margin-bottom:4px">📝 Quiz from Manoj 💙</div>
+      <div id="cq-subtitle" style="font-size:12px;color:var(--muted);margin-bottom:14px"></div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+        <div id="cq-meta" style="font-size:11px;color:var(--muted)"></div>
+        <div id="cq-progress" style="font-size:12px;font-weight:700;color:var(--navy);background:#e8f0fe;padding:4px 12px;border-radius:20px"></div>
+      </div>
+      <div id="cq-dots" style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:12px"></div>
+      <div id="cq-qtext" style="font-size:15px;line-height:1.7;color:var(--text);margin-bottom:14px;font-weight:500"></div>
+      <div id="cq-options" style="display:flex;flex-direction:column;gap:8px;margin-bottom:14px"></div>
+      <div id="cq-result" style="display:none;border-radius:12px;padding:12px 14px;margin-bottom:12px">
+        <div id="cq-result-icon" style="font-size:22px;margin-bottom:4px"></div>
+        <div id="cq-result-msg" style="font-size:13px;font-weight:700;margin-bottom:4px"></div>
+        <div id="cq-explanation" style="font-size:12px;line-height:1.5;color:var(--text)"></div>
+      </div>
+      <button class="btn primary" id="cq-submit-btn" onclick="submitCQ()" style="display:none">Submit Answer</button>
+      <button class="btn primary" id="cq-next-btn" onclick="nextCQ()" style="display:none">Next Question →</button>
+    </div>
+
+    <!-- Results -->
+    <div id="cq-results" style="display:none;text-align:center">
+      <div style="font-size:40px;margin-bottom:10px" id="cq-result-emoji">🎯</div>
+      <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#be185d;margin-bottom:6px">Quiz Complete!</div>
+      <div id="cq-final-score" style="font-family:'DM Serif Display',serif;font-size:32px;color:var(--navy);margin:8px 0"></div>
+      <div id="cq-result-detail" style="font-size:13px;color:var(--muted);margin-bottom:20px;line-height:1.6"></div>
+      <div id="cq-per-topic" style="text-align:left;margin-bottom:16px"></div>
+      <button class="btn ghost" onclick="closeCoachQuiz()" style="width:100%">Close</button>
+    </div>
   </div>
 </div>
 
@@ -1956,6 +2043,7 @@ function renderDash() {
   renderPrediction();
   renderStrategyCard();
   renderTopicAccuracy();
+  checkCoachQuizBanner();
 
   const streak = calcStreak();
   $('d-streak').innerHTML = streak+' <small>days</small>';
@@ -3397,6 +3485,8 @@ async function initCoachView() {
   await renderCoachAI();
   initCoachNoteUI();
   renderCoachMilestones();
+  coachBuildTopicPicker();
+  renderCoachQuizResults();
 }
 
 function renderCoachStats() {
@@ -4415,6 +4505,262 @@ function goToDQTab() {
 function initDQ() {
   updateDQStats();
   generateDQ();
+}
+
+/* ── COACH QUIZ ── */
+const CQ_KEY = 'cc_coach_quiz';
+let cqState = null; // { questions, current, answers, topics }
+
+// ── Storage helpers ──
+function getCQ()    { try { return JSON.parse(localStorage.getItem(CQ_KEY)||'null'); } catch { return null; } }
+function setCQ(obj) { localStorage.setItem(CQ_KEY, JSON.stringify(obj)); }
+function clearCQ()  { localStorage.removeItem(CQ_KEY); }
+
+// ── Coach portal: build topic chips ──
+function coachBuildTopicPicker() {
+  const el = $('cq-all-topics');
+  if (!el) return;
+  const weakFreq = weakTopicFreq();
+  el.innerHTML = SECTIONS_FULL.map(sec =>
+    sec.topics.map(t => {
+      const isWeak = weakFreq[t] > 0;
+      return `<span class="chip ${isWeak ? 'on' : ''}" data-topic="${t}" data-section="${sec.name}"
+        onclick="this.classList.toggle('on')"
+        style="font-size:11px;${isWeak?'background:#fee2e2;color:#dc2626;border-color:#fca5a5':''}"
+        title="${sec.name}">${t}${isWeak?` (${weakFreq[t]}×)`:''}</span>`;
+    }).join('')
+  ).join('');
+}
+
+// ── Coach: AI auto-picks weak topics ──
+async function coachAIPick() {
+  const btn = $('cq-ai-pick-btn');
+  btn.textContent = '⏳ Picking…'; btn.disabled = true;
+  const weakTopics = topWeakTopics(5);
+  // Select those chips
+  document.querySelectorAll('#cq-all-topics .chip').forEach(c => {
+    c.classList.toggle('on', weakTopics.includes(c.dataset.topic));
+  });
+  btn.textContent = '🤖 AI Pick Weak Topics'; btn.disabled = false;
+  $('cq-assign-status').textContent = `✅ Selected: ${weakTopics.join(', ')}`;
+}
+
+// ── Coach: Generate & assign quiz ──
+async function coachAssignQuiz() {
+  const selected = [...document.querySelectorAll('#cq-all-topics .chip.on')].map(c => ({ topic: c.dataset.topic, section: c.dataset.section }));
+  if (!selected.length) { $('cq-assign-status').textContent = '⚠️ Pick at least one topic first.'; return; }
+
+  const btn = $('cq-assign-btn');
+  btn.textContent = '⏳ Generating…'; btn.disabled = true;
+  $('cq-assign-status').textContent = 'Generating questions via AI…';
+
+  const topicList = selected.map(t => `${t.topic} (${t.section})`).join(', ');
+  const system = `You are a bank exam question setter. Generate exactly 5 MCQs covering these topics: ${topicList}.
+Return ONLY a valid JSON array of 5 objects, no markdown:
+[{"topic":"...","section":"...","difficulty":"Easy|Medium|Hard","question":"...","options":["A) ...","B) ...","C) ...","D) ..."],"correct":"A","explanation":"..."}]
+FORMATTING: Para Jumbles — sentences on separate lines (\\n). Fillers — use _______.`;
+  const user = `Generate 5 MCQs: ${topicList}. Mix Easy/Medium/Hard. Each question must be different.`;
+
+  try {
+    const raw = await askGroq(system, user);
+    const match = raw.match(/\[[\s\S]*\]/);
+    if (!match) throw new Error('Bad format');
+    const questions = JSON.parse(match[0]);
+
+    const quiz = {
+      topics: selected.map(t => t.topic),
+      topicStr: topicList,
+      questions,
+      assignedAt: new Date().toISOString(),
+      status: 'pending',
+      results: null
+    };
+    setCQ(quiz);
+    $('cq-assign-status').innerHTML = `✅ Quiz assigned! She'll see it when she opens the app. Topics: <b>${selected.map(t=>t.topic).join(', ')}</b>`;
+    renderCoachQuizResults();
+  } catch(e) {
+    $('cq-assign-status').textContent = '❌ Failed: ' + e.message;
+  }
+  btn.textContent = '📝 Generate & Assign Quiz'; btn.disabled = false;
+}
+
+// ── Coach: show previous results ──
+function renderCoachQuizResults() {
+  const quiz = getCQ();
+  const el = $('cq-prev-results');
+  if (!el || !quiz) { if(el) el.style.display='none'; return; }
+  el.style.display = 'block';
+  const content = $('cq-prev-results-content');
+  if (quiz.status === 'pending') {
+    content.innerHTML = `<span style="color:#f59e0b">⏳ Pending — she hasn't taken it yet.</span><br><span style="font-size:11px;color:#475569">Topics: ${quiz.topics.join(', ')}</span>`;
+  } else if (quiz.status === 'completed' && quiz.results) {
+    const r = quiz.results;
+    const pct = Math.round(r.correct / r.total * 100);
+    const perTopic = Object.entries(r.byTopic).map(([t, s]) =>
+      `<span style="color:${s.correct===s.total?'#4ade80':s.correct===0?'#f87171':'#fbbf24'}">${t}: ${s.correct}/${s.total}</span>`
+    ).join(' · ');
+    content.innerHTML = `
+      <div style="color:${pct>=70?'#4ade80':pct>=50?'#fbbf24':'#f87171'};font-size:16px;font-weight:700;margin-bottom:6px">${r.correct}/${r.total} correct (${pct}%)</div>
+      <div style="font-size:12px;margin-bottom:4px">${perTopic}</div>
+      <div style="font-size:11px;color:#475569">Completed ${new Date(r.completedAt).toLocaleString('en-IN',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})}</div>
+      <button onclick="clearCQ();renderCoachQuizResults();$('cq-assign-status').textContent=''"
+        style="margin-top:8px;background:none;border:1px solid #334155;color:#94a3b8;border-radius:6px;padding:4px 10px;font-size:11px;cursor:pointer;font-family:inherit">
+        Clear &amp; Assign New Quiz
+      </button>`;
+  }
+}
+
+// ── Nanditha: check for pending quiz on dashboard ──
+function checkCoachQuizBanner() {
+  const quiz = getCQ();
+  const banner = $('coach-quiz-banner');
+  if (!banner) return;
+  if (quiz && quiz.status === 'pending') {
+    banner.style.display = 'block';
+    $('coach-quiz-banner-text').textContent = `Manoj assigned you a quiz on: ${quiz.topics.join(', ')}. Tap to start! 💙`;
+  } else {
+    banner.style.display = 'none';
+  }
+}
+
+// ── Nanditha: open and take quiz ──
+function openCoachQuiz() {
+  const quiz = getCQ();
+  if (!quiz || quiz.status !== 'pending') return;
+  cqState = { questions: quiz.questions, current: 0, answers: {}, topics: quiz.topics };
+  $('coach-quiz-modal').style.display = 'block';
+  document.body.style.overflow = 'hidden';
+  $('cq-loading').style.display = 'none';
+  $('cq-active').style.display = 'block';
+  $('cq-results').style.display = 'none';
+  $('cq-subtitle').textContent = `${quiz.questions.length} questions on: ${quiz.topics.join(', ')}`;
+  renderCQQuestion(0);
+}
+
+function closeCoachQuiz() {
+  $('coach-quiz-modal').style.display = 'none';
+  document.body.style.overflow = '';
+}
+
+function renderCQQuestion(idx) {
+  cqState.current = idx;
+  const q = cqState.questions[idx];
+  const ans = cqState.answers[idx];
+  $('cq-meta').textContent = `${q.topic} · ${q.section} · ${q.difficulty}`;
+  $('cq-progress').textContent = `Q ${idx+1} / ${cqState.questions.length}`;
+  $('cq-qtext').innerHTML = q.question.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>');
+  $('cq-options').innerHTML = (q.options||[]).map((opt,i) => {
+    const letter = String.fromCharCode(65+i);
+    const selected = ans === letter;
+    return `<div onclick="selectCQOption('${letter}',${idx})"
+      style="border:2px solid ${selected?'var(--navy)':'var(--border)'};border-radius:10px;padding:11px 13px;
+      cursor:pointer;background:${selected?'rgba(30,58,95,.08)':'var(--surface)'};font-size:14px;
+      color:var(--text);font-weight:${selected?'600':'400'};transition:.15s;line-height:1.5">${opt}</div>`;
+  }).join('');
+  $('cq-result').style.display = 'none';
+  $('cq-submit-btn').style.display = ans ? 'none' : 'block';
+  $('cq-next-btn').style.display = 'none';
+  // Render dots
+  $('cq-dots').innerHTML = cqState.questions.map((_,i) => {
+    const a = cqState.answers[i];
+    return `<div onclick="renderCQQuestion(${i})" style="width:26px;height:26px;border-radius:50%;
+      background:${a?'var(--navy)':'var(--border)'};border:2px solid ${i===idx?'var(--navy)':'transparent'};
+      cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;
+      color:${a?'#fff':'var(--muted)'}">${i+1}</div>`;
+  }).join('');
+  if (ans) showCQResult(ans, idx);
+}
+
+function selectCQOption(letter, idx) {
+  if (cqState.answers[idx]) return; // already answered
+  cqState.answers[idx] = letter;
+  $('cq-submit-btn').style.display = 'block';
+  renderCQQuestion(idx);
+}
+
+function submitCQ() {
+  const idx = cqState.current;
+  if (!cqState.answers[idx]) return;
+  showCQResult(cqState.answers[idx], idx);
+}
+
+function showCQResult(ans, idx) {
+  const q = cqState.questions[idx];
+  const correct = ans === q.correct;
+  $('cq-result').style.display = 'block';
+  $('cq-result').style.background = correct ? '#f0fdf4' : '#fef2f2';
+  $('cq-result').style.border = `1px solid ${correct?'#86efac':'#fca5a5'}`;
+  $('cq-result-icon').textContent = correct ? '✅' : '❌';
+  $('cq-result-msg').textContent = correct ? 'Correct!' : `Wrong — correct answer: ${q.correct}`;
+  $('cq-result-msg').style.color = correct ? '#15803d' : '#dc2626';
+  $('cq-explanation').textContent = q.explanation || '';
+  $('cq-submit-btn').style.display = 'none';
+  // Highlight options
+  document.querySelectorAll('#cq-options div').forEach((el, i) => {
+    const letter = String.fromCharCode(65+i);
+    if (letter === q.correct) { el.style.borderColor='#10b981'; el.style.background='#f0fdf4'; el.style.fontWeight='700'; }
+    else if (letter === ans && !correct) { el.style.borderColor='#ef4444'; el.style.background='#fef2f2'; }
+    else { el.style.opacity='0.5'; }
+    el.style.cursor = 'default';
+    el.onclick = null;
+  });
+  const isLast = idx === cqState.questions.length - 1;
+  $('cq-next-btn').style.display = 'block';
+  $('cq-next-btn').textContent = isLast ? 'See Results →' : 'Next Question →';
+}
+
+function nextCQ() {
+  const next = cqState.current + 1;
+  if (next < cqState.questions.length) {
+    renderCQQuestion(next);
+  } else {
+    finishCQ();
+  }
+}
+
+function finishCQ() {
+  // Calculate results
+  let correct = 0;
+  const byTopic = {};
+  cqState.questions.forEach((q, i) => {
+    const ans = cqState.answers[i];
+    const isCorrect = ans === q.correct;
+    if (isCorrect) correct++;
+    if (!byTopic[q.topic]) byTopic[q.topic] = { correct: 0, total: 0 };
+    byTopic[q.topic].total++;
+    if (isCorrect) byTopic[q.topic].correct++;
+  });
+  const total = cqState.questions.length;
+  const pct = Math.round(correct / total * 100);
+  const results = { correct, total, pct, byTopic, completedAt: new Date().toISOString() };
+
+  // Save results
+  const quiz = getCQ();
+  quiz.status = 'completed';
+  quiz.results = results;
+  setCQ(quiz);
+
+  // Show results screen
+  $('cq-active').style.display = 'none';
+  $('cq-results').style.display = 'block';
+  $('cq-result-emoji').textContent = pct >= 80 ? '🏆' : pct >= 60 ? '💪' : '📚';
+  $('cq-final-score').textContent = `${correct} / ${total}`;
+  $('cq-result-detail').textContent = pct >= 80 ? "Excellent! Manoj's gonna be so proud 💙" : pct >= 60 ? "Good effort! Keep practising these topics." : "Room to grow — revisit these topics and try again.";
+  $('cq-per-topic').innerHTML = Object.entries(byTopic).map(([t, s]) => {
+    const tPct = Math.round(s.correct / s.total * 100);
+    return `<div style="margin-bottom:8px">
+      <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:3px">
+        <span style="color:var(--text)">${t}</span>
+        <span style="font-weight:700;color:${tPct>=70?'#15803d':tPct>=50?'#b45309':'#dc2626'}">${s.correct}/${s.total}</span>
+      </div>
+      <div style="height:5px;background:var(--border);border-radius:3px">
+        <div style="width:${tPct}%;height:100%;background:${tPct>=70?'#10b981':tPct>=50?'#f59e0b':'#ef4444'};border-radius:3px"></div>
+      </div>
+    </div>`;
+  }).join('');
+
+  // Hide banner
+  checkCoachQuizBanner();
 }
 
 /* ── MOCK SIMULATOR ── */
