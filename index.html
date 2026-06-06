@@ -1394,6 +1394,7 @@ tr:last-child td{border-bottom:none}
       <div id="cq-final-score" style="font-family:'DM Serif Display',serif;font-size:32px;color:var(--navy);margin:8px 0"></div>
       <div id="cq-result-detail" style="font-size:13px;color:var(--muted);margin-bottom:20px;line-height:1.6"></div>
       <div id="cq-per-topic" style="text-align:left;margin-bottom:16px"></div>
+      <div id="cq-wrong-review" style="text-align:left;margin-bottom:16px"></div>
       <button class="btn ghost" onclick="closeCoachQuiz()" style="width:100%">Close</button>
     </div>
   </div>
@@ -4887,6 +4888,23 @@ function finishCQ() {
       </div>
     </div>`;
   }).join('');
+
+  // Show wrong answers review
+  const wrongQs = perQuestion.filter(q => !q.isCorrect);
+  $('cq-wrong-review').innerHTML = wrongQs.length ? `
+    <div style="border-top:1px solid var(--border);padding-top:12px;margin-top:4px">
+      <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#dc2626;margin-bottom:10px">❌ Review — ${wrongQs.length} wrong</div>
+      ${wrongQs.map((q, i) => {
+        const correctOpt = q.options?.find(o => o.startsWith(q.correct + ')')) || q.correct;
+        const wrongOpt   = q.options?.find(o => o.startsWith(q.answered + ')')) || q.answered || 'Skipped';
+        return `<div style="background:var(--surface);border:1px solid var(--border);border-left:3px solid #ef4444;border-radius:10px;padding:10px 12px;margin-bottom:8px;text-align:left">
+          <div style="font-size:12px;color:var(--text);line-height:1.5;margin-bottom:6px">${i+1}. ${q.question}</div>
+          <div style="font-size:11px;color:#ef4444;margin-bottom:2px">✗ You answered: ${wrongOpt}</div>
+          <div style="font-size:11px;color:#16a34a;margin-bottom:${q.explanation?'4px':'0'}">✓ Correct: ${correctOpt}</div>
+          ${q.explanation ? `<div style="font-size:11px;color:var(--muted);margin-top:4px;font-style:italic">${q.explanation}</div>` : ''}
+        </div>`;
+      }).join('')}
+    </div>` : `<div style="color:#16a34a;font-size:13px;font-weight:600;margin-bottom:12px">🎉 Perfect score! All correct!</div>`;
 
   // Hide banner
   checkCoachQuizBanner();
