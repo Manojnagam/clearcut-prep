@@ -2360,6 +2360,11 @@ async function sendChat() {
   const sysPrompt = chatMode==='her'
     ? `You are Nanditha's personal AI bank exam coach. She is preparing for Indian bank exams (SBI PO, IBPS PO, IBPS Clerk). Her boyfriend Manoj built this entire app just for her because he believes in her.
 
+EXAM KNOWLEDGE:
+- SBI PO / IBPS PO prelims: English (30q, cutoff ~8), Quant (35q, cutoff ~8), Reasoning (35q, cutoff ~8) — sectional cutoffs are mandatory, total score alone is not enough
+- Negative marking: 0.25 per wrong answer — accuracy matters more than attempts
+- Weak section = danger zone even if total score looks okay
+
 Her current prep data: ${summary}
 
 RULES:
@@ -2367,10 +2372,15 @@ RULES:
 - MAX 80 words per reply unless she asks for practice questions
 - NO bullet points ever — write in natural flowing sentences
 - Be warm, direct, personal — use her name occasionally
-- If she asks for practice questions, give 3 focused ones with answers
+- If she asks for practice questions, give 3 focused ones with answers and brief explanations
 - If she's feeling low or struggling, be genuinely human and encouraging
+- If a section is below cutoff, flag it clearly — that's the priority, not the total score
 - Always connect advice back to her actual data when relevant`
     : `You are helping Manoj support his girlfriend Nanditha who is preparing for Indian bank exams. He built a custom tracking app for her.
+
+EXAM KNOWLEDGE:
+- SBI PO / IBPS PO prelims has sectional cutoffs (~8 marks each) — she must clear all three sections, not just total
+- Negative marking: 0.25 per wrong — tell him to encourage accuracy over speed
 
 Nanditha's current prep data: ${summary}
 
@@ -2380,6 +2390,7 @@ RULES:
 - NO bullet points — natural sentences only
 - Be honest about her progress but always constructive
 - Give him specific, actionable things he can do TODAY
+- If a section is below cutoff, make that the focus
 - Remind him his support is a real factor in her success`;
 
   const messages = [{role:'system',content:sysPrompt}, ...chatHistory.slice(-10)];
@@ -2541,7 +2552,7 @@ async function generateReportAI(weekData) {
 
   const [aiText, manojText] = await Promise.all([
     askGroq(
-      "You are Nanditha's bank exam coach writing her weekly performance summary. Be honest but encouraging. Max 60 words. No bullet points. 2 short sentences only.",
+      "You are Nanditha's bank exam coach writing her weekly performance summary. Be honest but encouraging. Max 90 words. No bullet points. Tell her what went well, where she needs to push harder, and ONE specific thing to focus on next week.",
       `Nanditha's weekly data: ${dataStr}. Write her weekly analysis now.`
     ),
     askGroq(
@@ -3539,9 +3550,13 @@ async function generateDQ() {
   const system = `You are a bank exam question setter for Indian bank exams (SBI PO, IBPS PO). Generate ONE multiple choice question.
 
 FORMATTING RULES:
-- For Para Jumbles: list each sentence on its own line, e.g. "Arrange the sentences in order:\nP) ...\nQ) ...\nR) ...\nS) ...\nT) ..."
-- For Fillers / Cloze Test: show the sentence with a clear blank, e.g. "She was _______ by the sudden news."
-- For all others: write the question as a single clear sentence or short paragraph.
+- Para Jumbles: "Arrange the sentences in correct order:\nP) ...\nQ) ...\nR) ...\nS) ...\nT) ...\nWhich is the correct sequence?"
+- Fillers / Cloze Test: show the sentence with a clear blank — e.g. "She was _______ by the sudden news."
+- Data Interpretation: include a small self-contained data set (table or values) in the question field, then ask ONE calculation question about it.
+- Reading Comprehension: include a short 4-6 line passage, then ask ONE question about it.
+- Puzzles / Seating Arrangement: keep the arrangement solvable in under 2 minutes — max 4-5 people/items.
+- Quant (non-DI): show the full problem in one sentence; include working steps in the explanation.
+- All others: single clear sentence or short paragraph.
 
 RESPOND IN THIS EXACT JSON FORMAT — nothing else, no markdown, no explanation outside the JSON:
 {
@@ -3551,7 +3566,7 @@ RESPOND IN THIS EXACT JSON FORMAT — nothing else, no markdown, no explanation 
   "question": "The full question text here",
   "options": ["A) option1", "B) option2", "C) option3", "D) option4"],
   "correct": "A",
-  "explanation": "Clear explanation of why A is correct and why others are wrong. 2-3 sentences."
+  "explanation": "Clear explanation of why A is correct and why others are wrong. For Quant, show the calculation steps."
 }`;
 
   const user = `Generate a ${difficulty} difficulty ${section} question about "${topic}" suitable for SBI PO / IBPS PO prelims. Make it different from questions about: ${usedTopics.join(', ') || 'none yet'}.`;
