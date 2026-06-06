@@ -820,14 +820,17 @@ tr:last-child td{border-bottom:none}
       </div>
 
       <div class="card">
-        <div class="card-title">Previous Year Cutoffs vs Your Best</div>
-        <div class="card-sub">2024 general category cutoffs. Gap = cutoff − your best score.</div>
-        <table id="cutoff-table">
-          <thead>
-            <tr><th>Exam</th><th>2024 Cutoff (Gen)</th><th>Your Best</th><th>Gap</th></tr>
-          </thead>
-          <tbody id="cutoff-tbody"></tbody>
-        </table>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+          <div class="card-title" style="margin:0">Cutoff Tracker</div>
+          <select id="cutoff-cat" onchange="renderGoals()" style="font-size:12px;padding:4px 8px;border-radius:8px;border:1px solid var(--border);background:var(--surface);color:var(--text);font-family:inherit">
+            <option value="gen">General</option>
+            <option value="obc">OBC</option>
+            <option value="sc">SC</option>
+            <option value="st">ST</option>
+          </select>
+        </div>
+        <div class="card-sub">Official cutoffs + year-on-year trend. Sectional cutoffs are mandatory.</div>
+        <div id="cutoff-tracker-list"></div>
       </div>
 
       <div class="card" style="margin-top:0">
@@ -1212,13 +1215,52 @@ const NEG    = 0.25;
 
 /* ── CONSTANTS ── */
 const CUTOFFS = [
-  {exam:"SBI PO",      cutoff:62},
-  {exam:"IBPS PO",     cutoff:56},
-  {exam:"IBPS Clerk",  cutoff:68},
-  {exam:"SBI Clerk",   cutoff:70},
-  {exam:"IBPS RRB PO", cutoff:63},
+  {exam:"SBI PO",        cutoff:62},
+  {exam:"IBPS PO",       cutoff:56},
+  {exam:"IBPS Clerk",    cutoff:68},
+  {exam:"SBI Clerk",     cutoff:70},
+  {exam:"IBPS RRB PO",   cutoff:63},
   {exam:"IBPS RRB Clerk",cutoff:67},
 ];
+
+// Multi-year historical cutoff data (General category unless noted)
+const CUTOFF_HISTORY = {
+  "SBI PO": {
+    years:    [2021, 2022, 2023, 2024],
+    overall:  { gen:55, obc:50, sc:44, st:39 },
+    trend:    { 2021:55.00, 2022:57.50, 2023:59.75, 2024:62.00 },
+    sectional:{ English:7.75, Quant:7.75, Reasoning:7.75 },
+    note: "Sectional cutoffs are mandatory — clearing total alone is not enough."
+  },
+  "IBPS PO": {
+    years:    [2021, 2022, 2023, 2024],
+    overall:  { gen:56, obc:51, sc:43, st:38 },
+    trend:    { 2021:51.75, 2022:53.50, 2023:55.00, 2024:56.25 },
+    sectional:{ English:6.75, Quant:6.75, Reasoning:7.25 },
+    note: "IBPS PO cutoffs have risen ~1.5 marks/year — aim for 60+ to be safe."
+  },
+  "IBPS Clerk": {
+    years:    [2021, 2022, 2023, 2024],
+    overall:  { gen:68, obc:63, sc:55, st:48 },
+    trend:    { 2021:65.00, 2022:66.50, 2023:67.75, 2024:68.00 },
+    sectional:{ English:8.75, Quant:8.75, Reasoning:9.00 },
+    note: "Clerk has higher sectional thresholds than PO — accuracy is critical."
+  },
+  "IBPS RRB PO": {
+    years:    [2021, 2022, 2023, 2024],
+    overall:  { gen:63, obc:58, sc:50, st:45 },
+    trend:    { 2021:58.00, 2022:60.00, 2023:61.50, 2024:63.00 },
+    sectional:{ Quant:8.00, Reasoning:8.00 },
+    note: "No English section — Quant and Reasoning are 40 questions each."
+  },
+  "SBI Clerk": {
+    years:    [2021, 2022, 2023, 2024],
+    overall:  { gen:70, obc:65, sc:57, st:50 },
+    trend:    { 2021:66.00, 2022:68.00, 2023:69.25, 2024:70.00 },
+    sectional:{ English:9.00, Quant:9.00, Reasoning:9.25 },
+    note: "Highest cutoffs among all — volume of attempts is very high."
+  },
+};
 
 const EXAM_DATES_DEFAULT = {
   "SBI PO":         "",
@@ -2319,20 +2361,47 @@ function renderGoals() {
       </div>`).join('')}
   </div>`;
 
-  // Cutoffs table
-  $('cutoff-tbody').innerHTML = CUTOFFS.map(row=>{
-    const myBest = bestScore(row.exam);
-    const gap = myBest!=null ? fmt(row.cutoff - myBest) : null;
-    const gapHtml = gap==null ? '<span class="gap-zero">—</span>'
-      : gap>0  ? `<span class="gap-neg">−${gap}</span>`
-      : gap===0? `<span class="gap-zero">On cutoff</span>`
-      : `<span class="gap-ok">+${Math.abs(gap)}</span>`;
-    return `<tr>
-      <td><b>${row.exam}</b></td>
-      <td>${row.cutoff}</td>
-      <td>${myBest!=null?fmt(myBest):'—'}</td>
-      <td>${gapHtml}</td>
-    </tr>`;
+  // Cutoff tracker
+  const cat = ($('cutoff-cat')?.value) || 'gen';
+  $('cutoff-tracker-list').innerHTML = Object.entries(CUTOFF_HISTORY).map(([exam, data]) => {
+    const target = data.overall[cat] || data.overall.gen;
+    const myBest = bestScore(exam);
+    const gap = myBest != null ? fmt(target - myBest) : null;
+    const gapHtml = gap == null ? '<span style="color:var(--muted)">—</span>'
+      : gap > 0  ? `<span style="color:#dc2626;font-weight:700">−${gap} to go</span>`
+      : gap === 0? `<span style="color:#f59e0b;font-weight:700">On cutoff</span>`
+      : `<span style="color:#15803d;font-weight:700">+${Math.abs(gap)} above ✓</span>`;
+
+    // Trend mini chart
+    const trendVals = Object.values(data.trend);
+    const trendMax = Math.max(...trendVals);
+    const trendBars = Object.entries(data.trend).map(([yr, val]) => {
+      const h = Math.round((val / trendMax) * 32);
+      const isLatest = +yr === Math.max(...Object.keys(data.trend).map(Number));
+      return `<div style="display:flex;flex-direction:column;align-items:center;gap:2px">
+        <div style="font-size:9px;font-weight:${isLatest?'700':'400'};color:${isLatest?'var(--navy)':'var(--muted)'}">${val}</div>
+        <div style="width:20px;height:${h}px;background:${isLatest?'var(--navy)':'#cbd5e1'};border-radius:3px 3px 0 0"></div>
+        <div style="font-size:9px;color:var(--muted)">${String(yr).slice(2)}</div>
+      </div>`;
+    }).join('');
+
+    // Sectional cutoffs
+    const secRows = Object.entries(data.sectional).map(([sec, val]) =>
+      `<span style="font-size:11px;background:var(--surface2);border-radius:5px;padding:2px 7px;color:var(--text)">${sec}: <b>${val}</b></span>`
+    ).join('');
+
+    return `<div style="border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:10px">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px">
+        <div>
+          <div style="font-size:14px;font-weight:700;color:var(--navy)">${exam}</div>
+          <div style="font-size:12px;color:var(--muted);margin-top:2px">${cat.toUpperCase()} cutoff: <b style="color:var(--text)">${target}</b> &nbsp;|&nbsp; Your best: <b style="color:var(--text)">${myBest!=null?fmt(myBest):'—'}</b> &nbsp;|&nbsp; ${gapHtml}</div>
+        </div>
+      </div>
+      <div style="display:flex;gap:4px;align-items:flex-end;margin-bottom:10px">${trendBars}</div>
+      <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin-bottom:5px">Sectional minimums</div>
+      <div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:8px">${secRows}</div>
+      <div style="font-size:11px;color:var(--muted);font-style:italic">${data.note}</div>
+    </div>`;
   }).join('');
 }
 
