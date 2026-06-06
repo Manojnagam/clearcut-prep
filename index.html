@@ -5296,12 +5296,12 @@ function checkSetup() {
   migrateProfiles();
   const profiles = local.getProfiles();
   if (profiles.length === 0) {
-    // First ever launch — show setup
-    $('setup').style.display = 'block';
-  } else {
-    // Auto-login as the first profile (Nanditha)
-    pickUser(profiles[0].name);
+    // First launch on this device — auto-create Nanditha's profile
+    const profile = { name: 'Nanditha', targetExam: 'SBI PO' };
+    local.setProfiles([profile]);
+    local.setProfile(profile);
   }
+  pickUser(local.getProfiles()[0].name);
 }
 
 // Entry point — show PIN unless already unlocked in this browser session
