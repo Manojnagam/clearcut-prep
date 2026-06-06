@@ -4630,38 +4630,36 @@ async function coachAssignQuiz() {
   $('cq-assign-status').textContent = 'Generating questions via AI…';
 
   const topicList = selected.map(t => `${t.topic} (${t.section})`).join(', ');
-  const system = `You are a bank exam question setter. Generate exactly 5 MCQs covering these topics: ${topicList}.
-Return ONLY a valid JSON array of 5 objects. No markdown, no code fences, no extra text — pure JSON only:
-[{"topic":"...","section":"...","difficulty":"Easy|Medium|Hard","question":"...","options":["A) ...","B) ...","C) ...","D) ..."],"correct":"A","explanation":"..."}]
-Rules: use double quotes only, escape apostrophes as \\u0027, no newlines inside string values (use space instead), Fillers use _______.`;
-  const user = `Generate 5 MCQs: ${topicList}. Mix Easy/Medium/Hard. Each question must be different. Return pure JSON array only.`;
+  const system = `You are a bank exam question setter for Indian bank exams (SBI PO, IBPS PO).
+Generate exactly 5 MCQs covering: ${topicList}.
+
+Output each question on its OWN LINE using this EXACT pipe-delimited format (no other text):
+TOPIC|SECTION|DIFFICULTY|QUESTION|OPTION_A|OPTION_B|OPTION_C|OPTION_D|CORRECT_LETTER|EXPLANATION
+
+Rules:
+- CORRECT_LETTER is just the letter: A, B, C, or D
+- No pipe characters inside any field (use comma instead)
+- Difficulty: Easy Medium or Hard
+- Fillers: use _______ for the blank
+- 5 lines total, nothing else`;
+  const user = `Generate 5 MCQs for: ${topicList}. Mix difficulties. Output 5 pipe-delimited lines only.`;
 
   try {
     const raw = await askGroq(system, user);
-    // Strip markdown fences if present
-    let jsonStr = raw.replace(/```json\s*/gi, '').replace(/```\s*/g, '').trim();
-    // Extract the JSON array
-    const match = jsonStr.match(/\[[\s\S]*\]/);
-    if (!match) throw new Error('No JSON array found in response');
-    // Repair: escape raw newlines/tabs inside string values (common LLM mistake)
-    const repaired = (() => {
-      const s = match[0];
-      let out = '', inStr = false, esc = false;
-      for (let i = 0; i < s.length; i++) {
-        const c = s[i];
-        if (esc) { out += c; esc = false; continue; }
-        if (c === '\\') { esc = true; out += c; continue; }
-        if (c === '"') { inStr = !inStr; out += c; continue; }
-        if (inStr) {
-          if (c === '\n') { out += '\\n'; continue; }
-          if (c === '\r') { out += '\\r'; continue; }
-          if (c === '\t') { out += '\\t'; continue; }
-        }
-        out += c;
-      }
-      return out;
-    })();
-    const questions = JSON.parse(repaired);
+    const lines = raw.trim().split('\n').map(l => l.trim()).filter(l => l.includes('|') && l.split('|').length >= 9);
+    if (!lines.length) throw new Error('No questions parsed from response');
+    const questions = lines.slice(0, 5).map(line => {
+      const p = line.split('|');
+      return {
+        topic: p[0]?.trim() || '',
+        section: p[1]?.trim() || '',
+        difficulty: p[2]?.trim() || 'Medium',
+        question: p[3]?.trim() || '',
+        options: [`A) ${p[4]?.trim()}`, `B) ${p[5]?.trim()}`, `C) ${p[6]?.trim()}`, `D) ${p[7]?.trim()}`],
+        correct: (p[8]?.trim() || 'A').toUpperCase().charAt(0),
+        explanation: p[9]?.trim() || ''
+      };
+    }).filter(q => q.question);
 
     const quiz = {
       topics: selected.map(t => t.topic),
