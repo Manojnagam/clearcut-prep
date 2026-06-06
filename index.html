@@ -4605,8 +4605,14 @@ function coachBuildTopicPicker() {
 async function coachAIPick() {
   const btn = $('cq-ai-pick-btn');
   btn.textContent = '⏳ Picking…'; btn.disabled = true;
-  const weakTopics = topWeakTopics(5);
-  // Select those chips
+
+  let weakTopics = topWeakTopics(5);
+
+  // Fallback: no mock weak-topic data — pick universally hard bank exam topics
+  if (!weakTopics.length) {
+    weakTopics = ['Data Interpretation', 'Puzzles', 'Reading Comprehension', 'Seating Arrangement (Linear)', 'Number Series'];
+  }
+
   document.querySelectorAll('#cq-all-topics .chip').forEach(c => {
     c.classList.toggle('on', weakTopics.includes(c.dataset.topic));
   });
