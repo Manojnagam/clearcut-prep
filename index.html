@@ -531,6 +531,7 @@ tr:last-child td{border-bottom:none}
       <button data-t="timer">Timer</button>
       <button data-t="history">History</button>
       <button data-t="goals">Goals &amp; Cutoffs</button>
+      <button data-t="mocksim">🎯 Mock Sim</button>
       <button data-t="dqtab">🧠 Practice Q</button>
       <button data-t="aichat">🤖 AI Coach</button>
       <button data-t="studylog">📖 Study Log</button>
@@ -1001,6 +1002,108 @@ tr:last-child td{border-bottom:none}
     </section>
 
     <!-- ── PRACTICE Q ── -->
+    <!-- ── MOCK SIMULATOR ── -->
+    <section class="panel" id="mocksim" style="padding-bottom:40px">
+
+      <!-- Setup -->
+      <div id="ms-setup">
+        <div class="card" style="text-align:center;padding:24px 20px">
+          <div style="font-size:40px;margin-bottom:10px">🎯</div>
+          <div class="card-title">Mock Simulator</div>
+          <div class="card-sub" style="margin-bottom:20px">AI-generated full mock with sectional timers and cutoff analysis. 10 questions per section.</div>
+          <div style="margin-bottom:16px">
+            <label class="fld" style="max-width:240px;margin:0 auto"><span>Exam type</span>
+              <select id="ms-exam">
+                <option>SBI PO</option>
+                <option>IBPS PO</option>
+                <option>IBPS Clerk</option>
+                <option>IBPS RRB PO</option>
+              </select>
+            </label>
+          </div>
+          <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-bottom:20px">
+            <div style="background:var(--surface2);border-radius:10px;padding:10px 14px;font-size:12px;text-align:center">
+              <div style="font-weight:700;color:var(--navy)">30</div><div style="color:var(--muted)">questions</div>
+            </div>
+            <div style="background:var(--surface2);border-radius:10px;padding:10px 14px;font-size:12px;text-align:center">
+              <div style="font-weight:700;color:var(--navy)">3</div><div style="color:var(--muted)">sections</div>
+            </div>
+            <div style="background:var(--surface2);border-radius:10px;padding:10px 14px;font-size:12px;text-align:center">
+              <div style="font-weight:700;color:var(--navy)">15 min</div><div style="color:var(--muted)">per section</div>
+            </div>
+            <div style="background:var(--surface2);border-radius:10px;padding:10px 14px;font-size:12px;text-align:center">
+              <div style="font-weight:700;color:var(--navy)">−0.25</div><div style="color:var(--muted)">negative</div>
+            </div>
+          </div>
+          <button class="btn primary" style="padding:14px 40px;font-size:15px" onclick="startMockSim()">Generate &amp; Start Mock →</button>
+        </div>
+      </div>
+
+      <!-- Loading -->
+      <div id="ms-loading" style="display:none">
+        <div class="card" style="text-align:center;padding:40px 20px">
+          <div style="font-size:36px;margin-bottom:16px">🤖</div>
+          <div class="card-title">Generating your mock…</div>
+          <div id="ms-load-status" style="font-size:13px;color:var(--muted);margin-top:8px">Loading English questions…</div>
+          <div style="margin-top:20px;display:flex;gap:8px;justify-content:center" id="ms-load-dots">
+            <div id="ms-dot-0" style="width:10px;height:10px;border-radius:50%;background:var(--border)"></div>
+            <div id="ms-dot-1" style="width:10px;height:10px;border-radius:50%;background:var(--border)"></div>
+            <div id="ms-dot-2" style="width:10px;height:10px;border-radius:50%;background:var(--border)"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Active Mock -->
+      <div id="ms-active" style="display:none">
+        <!-- Section header -->
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+          <div>
+            <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--muted)" id="ms-sec-label">English</div>
+            <div style="font-size:11px;color:var(--muted)" id="ms-sec-sub">Section 1 of 3</div>
+          </div>
+          <div style="text-align:right">
+            <div id="ms-clock" style="font-size:24px;font-weight:800;color:var(--navy);font-family:'DM Serif Display',serif">15:00</div>
+            <div style="font-size:10px;color:var(--muted)">remaining</div>
+          </div>
+        </div>
+
+        <!-- Question dots -->
+        <div id="ms-q-dots" style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:12px"></div>
+
+        <!-- Question card -->
+        <div class="card" id="ms-q-card">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+            <div style="font-size:11px;font-weight:700;color:var(--muted)" id="ms-q-meta"></div>
+            <button id="ms-review-btn" onclick="toggleMSReview()" style="font-size:11px;padding:4px 10px;border-radius:8px;border:1px solid var(--border);background:none;cursor:pointer;font-family:inherit;color:var(--muted)">🚩 Mark for review</button>
+          </div>
+          <div id="ms-q-text" style="font-size:15px;line-height:1.7;color:var(--text);margin-bottom:14px;font-weight:500"></div>
+          <div id="ms-q-options" style="display:flex;flex-direction:column;gap:8px"></div>
+        </div>
+
+        <!-- Navigation -->
+        <div style="display:flex;gap:8px;margin-top:12px">
+          <button class="btn ghost" onclick="navMS(-1)" id="ms-prev-btn" style="flex:1">← Prev</button>
+          <button class="btn ghost" onclick="navMS(1)" id="ms-next-btn" style="flex:1">Next →</button>
+        </div>
+        <button class="btn primary" onclick="confirmSubmitSection()" style="margin-top:8px;background:#059669" id="ms-submit-sec">Submit Section →</button>
+      </div>
+
+      <!-- Results -->
+      <div id="ms-results" style="display:none">
+        <div class="card" style="text-align:center;padding:20px">
+          <div style="font-size:40px;margin-bottom:10px" id="ms-result-emoji">🎯</div>
+          <div class="card-title" id="ms-result-title">Mock Complete!</div>
+          <div id="ms-total-score" style="font-family:'DM Serif Display',serif;font-size:36px;color:var(--navy);margin:10px 0"></div>
+        </div>
+        <div id="ms-sec-results"></div>
+        <div class="card" style="padding:14px 16px">
+          <button class="btn primary" onclick="saveMSToLog()" id="ms-save-btn" style="margin-bottom:8px">💾 Save to Mock Log</button>
+          <button class="btn ghost" onclick="resetMockSim()">Start New Mock</button>
+        </div>
+      </div>
+
+    </section>
+
     <section class="panel" id="dqtab" style="padding-bottom:40px">
 
       <!-- Stats strip -->
@@ -1561,6 +1664,7 @@ $('tabs').addEventListener('click', e=>{
   if (b.dataset.t === 'studylog') renderStudyLog();
   if (b.dataset.t === 'report')   renderReport();
   if (b.dataset.t === 'dqtab') { updateDQStats(); generateDQ(); }
+  if (b.dataset.t === 'mocksim') { initMockSim(); }
 });
 
 /* ── EXAM DATE MODAL ── */
@@ -4211,6 +4315,271 @@ function goToDQTab() {
 function initDQ() {
   updateDQStats();
   generateDQ();
+}
+
+/* ── MOCK SIMULATOR ── */
+const MS_SECTIONS_FULL = [
+  { key:'eng', name:'English',   q:10, color:'#3b82f6', topics:['Reading Comprehension','Cloze Test','Error Spotting','Sentence Improvement','Para Jumbles','Fillers','Vocabulary'] },
+  { key:'qnt', name:'Quant',     q:10, color:'#10b981', topics:['Number Series','Simplification','Data Interpretation','Profit & Loss','Time & Work','Time Speed Distance','SI & CI','Percentages'] },
+  { key:'rsn', name:'Reasoning', q:10, color:'#f97316', topics:['Puzzles','Seating Arrangement','Syllogism','Coding-Decoding','Inequality','Blood Relations','Direction Sense'] },
+];
+const MS_TIME = 15 * 60; // 15 min per section
+let msState = null;
+
+function initMockSim() {
+  if (!msState) showMS('setup');
+}
+
+function showMS(phase) {
+  ['ms-setup','ms-loading','ms-active','ms-results'].forEach(id => {
+    const el = $(id); if (el) el.style.display = 'none';
+  });
+  const el = $('ms-'+phase);
+  if (el) el.style.display = 'block';
+}
+
+async function startMockSim() {
+  const exam = $('ms-exam').value;
+  const isRRBExam = isRRB(exam);
+  const sections = isRRBExam
+    ? MS_SECTIONS_FULL.filter(s => s.key !== 'eng')
+    : MS_SECTIONS_FULL;
+
+  showMS('loading');
+  msState = { exam, sections, secIdx: 0, answers: {}, reviews: {}, questions: {}, timer: null, timeLeft: MS_TIME, done: false };
+
+  // Generate questions for all sections in parallel
+  try {
+    const results = await Promise.all(sections.map((sec, i) => generateMSSection(sec, i)));
+    results.forEach((qs, i) => { msState.questions[sections[i].key] = qs; });
+    beginMSSection(0);
+  } catch(e) {
+    showMS('setup');
+    alert('Failed to generate questions: ' + e.message);
+  }
+}
+
+async function generateMSSection(sec, idx) {
+  const dot = $('ms-dot-'+idx);
+  if (dot) dot.style.background = '#f59e0b';
+  $('ms-load-status').textContent = `Generating ${sec.name} questions…`;
+
+  const system = `You are a bank exam question setter. Generate exactly 10 MCQs for the ${sec.name} section of SBI PO / IBPS PO prelims covering diverse topics.
+
+FORMATTING:
+- Para Jumbles: list sentences P)/Q)/R)/S)/T) each on a new line
+- Fillers: show blank as _______
+- DI: include a small self-contained data set in the question
+- Quant: show calculation steps in the explanation
+
+Return ONLY a valid JSON array of 10 objects, no markdown:
+[{"topic":"...","difficulty":"Easy|Medium|Hard","question":"...","options":["A) ...","B) ...","C) ...","D) ..."],"correct":"A","explanation":"..."}]`;
+
+  const user = `Generate 10 diverse ${sec.name} questions (mix of Easy/Medium/Hard) covering these topics: ${sec.topics.join(', ')}. Make each question different from the others.`;
+
+  const raw = await askGroq(system, user);
+  const match = raw.match(/\[[\s\S]*\]/);
+  if (!match) throw new Error(`Invalid response for ${sec.name}`);
+  const qs = JSON.parse(match[0]);
+  if (!Array.isArray(qs) || qs.length < 5) throw new Error(`Too few questions for ${sec.name}`);
+
+  if (dot) dot.style.background = '#10b981';
+  return qs.slice(0, 10);
+}
+
+function beginMSSection(idx) {
+  msState.secIdx = idx;
+  msState.timeLeft = MS_TIME;
+  clearInterval(msState.timer);
+
+  const sec = msState.sections[idx];
+  $('ms-sec-label').textContent = sec.name;
+  $('ms-sec-sub').textContent = `Section ${idx + 1} of ${msState.sections.length}`;
+  $('ms-submit-sec').textContent = idx < msState.sections.length - 1 ? 'Submit Section →' : 'Submit Mock →';
+
+  showMS('active');
+  renderMSQuestion(0);
+  renderMSDots();
+  paintMSClock();
+
+  msState.timer = setInterval(() => {
+    msState.timeLeft--;
+    paintMSClock();
+    if (msState.timeLeft <= 300 && msState.timeLeft > 299) beep(440, 0.5);
+    if (msState.timeLeft <= 0) {
+      clearInterval(msState.timer);
+      advanceMSSection();
+    }
+  }, 1000);
+}
+
+function paintMSClock() {
+  const m = Math.floor(msState.timeLeft / 60), s = msState.timeLeft % 60;
+  const el = $('ms-clock');
+  el.textContent = `${m}:${String(s).padStart(2,'0')}`;
+  el.style.color = msState.timeLeft <= 60 ? '#ef4444' : msState.timeLeft <= 300 ? '#f59e0b' : 'var(--navy)';
+}
+
+function renderMSQuestion(qIdx) {
+  msState.currentQ = qIdx;
+  const sec = msState.sections[msState.secIdx];
+  const qs = msState.questions[sec.key];
+  const q = qs[qIdx];
+  const ans = (msState.answers[sec.key] || {})[qIdx];
+
+  $('ms-q-meta').textContent = `Q${qIdx + 1} / ${qs.length} · ${q.topic} · ${q.difficulty}`;
+  $('ms-q-text').innerHTML = q.question.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>');
+
+  const reviewed = (msState.reviews[sec.key] || {})[qIdx];
+  const reviewBtn = $('ms-review-btn');
+  reviewBtn.textContent = reviewed ? '🚩 Marked' : '🚩 Mark for review';
+  reviewBtn.style.color = reviewed ? '#f59e0b' : 'var(--muted)';
+
+  $('ms-q-options').innerHTML = (q.options || []).map((opt, i) => {
+    const letter = String.fromCharCode(65 + i);
+    const selected = ans === letter;
+    return `<div onclick="selectMSOption('${letter}', ${qIdx})"
+      style="border:2px solid ${selected?'var(--navy)':'var(--border)'};border-radius:10px;padding:12px 14px;cursor:pointer;
+      background:${selected?'rgba(30,58,95,.08)':'var(--surface)'};font-size:14px;color:var(--text);
+      font-weight:${selected?'600':'400'};transition:.15s;line-height:1.5">${opt}</div>`;
+  }).join('');
+
+  $('ms-prev-btn').style.opacity = qIdx === 0 ? '0.3' : '1';
+  $('ms-next-btn').style.opacity = qIdx === qs.length - 1 ? '0.3' : '1';
+}
+
+function selectMSOption(letter, qIdx) {
+  const secKey = msState.sections[msState.secIdx].key;
+  if (!msState.answers[secKey]) msState.answers[secKey] = {};
+  msState.answers[secKey][qIdx] = letter;
+  renderMSQuestion(qIdx);
+  renderMSDots();
+}
+
+function toggleMSReview() {
+  const secKey = msState.sections[msState.secIdx].key;
+  const qIdx = msState.currentQ;
+  if (!msState.reviews[secKey]) msState.reviews[secKey] = {};
+  msState.reviews[secKey][qIdx] = !msState.reviews[secKey][qIdx];
+  renderMSQuestion(qIdx);
+  renderMSDots();
+}
+
+function navMS(delta) {
+  const sec = msState.sections[msState.secIdx];
+  const qs = msState.questions[sec.key];
+  const next = Math.max(0, Math.min(qs.length - 1, msState.currentQ + delta));
+  renderMSQuestion(next);
+}
+
+function renderMSDots() {
+  const sec = msState.sections[msState.secIdx];
+  const qs = msState.questions[sec.key];
+  $('ms-q-dots').innerHTML = qs.map((_, i) => {
+    const ans = (msState.answers[sec.key] || {})[i];
+    const rev = (msState.reviews[sec.key] || {})[i];
+    const isCurrent = i === msState.currentQ;
+    const bg = rev ? '#f59e0b' : ans ? sec.color : 'var(--border)';
+    return `<div onclick="renderMSQuestion(${i})" style="width:28px;height:28px;border-radius:50%;background:${bg};
+      border:2px solid ${isCurrent?'var(--navy)':'transparent'};cursor:pointer;display:flex;align-items:center;
+      justify-content:center;font-size:11px;font-weight:700;color:${ans||rev?'#fff':'var(--muted)'};">${i+1}</div>`;
+  }).join('');
+}
+
+function confirmSubmitSection() {
+  const sec = msState.sections[msState.secIdx];
+  const qs = msState.questions[sec.key];
+  const answered = Object.keys(msState.answers[sec.key] || {}).length;
+  const unanswered = qs.length - answered;
+  const isLast = msState.secIdx === msState.sections.length - 1;
+  const msg = unanswered > 0
+    ? `You have ${unanswered} unanswered question${unanswered>1?'s':''} in ${sec.name}. ${isLast?'Submit mock anyway?':'Proceed to next section?'}`
+    : `Submit ${sec.name} and ${isLast?'finish mock':'move to next section'}?`;
+  if (confirm(msg)) advanceMSSection();
+}
+
+function advanceMSSection() {
+  clearInterval(msState.timer);
+  if (msState.secIdx < msState.sections.length - 1) {
+    beginMSSection(msState.secIdx + 1);
+  } else {
+    showMSResults();
+  }
+}
+
+function showMSResults() {
+  clearInterval(msState.timer);
+  showMS('results');
+
+  let totalScore = 0, totalMax = 0;
+  const secHTML = msState.sections.map(sec => {
+    const qs = msState.questions[sec.key];
+    const ans = msState.answers[sec.key] || {};
+    let corr = 0, wrong = 0;
+    qs.forEach((q, i) => {
+      const a = ans[i];
+      if (!a) return;
+      if (a === q.correct) corr++;
+      else wrong++;
+    });
+    const attempted = corr + wrong;
+    const score = corr - 0.25 * wrong;
+    const cutoffData = CUTOFF_HISTORY[msState.exam];
+    const secCutoff = cutoffData ? (cutoffData.sectional[sec.name] || 0) : 0;
+    const passedCutoff = score >= secCutoff;
+    totalScore += score; totalMax += qs.length;
+
+    return `<div class="card" style="padding:14px 16px;margin-bottom:8px;border-left:4px solid ${passedCutoff?'#10b981':'#ef4444'}">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+        <div style="font-size:14px;font-weight:700;color:${sec.color}">${sec.name}</div>
+        <div style="font-size:20px;font-weight:800;color:var(--navy)">${score.toFixed(2)} <span style="font-size:12px;font-weight:400;color:var(--muted)">/ ${qs.length}</span></div>
+      </div>
+      <div style="display:flex;gap:12px;font-size:12px;color:var(--muted);flex-wrap:wrap">
+        <span>✅ Correct: <b style="color:#15803d">${corr}</b></span>
+        <span>❌ Wrong: <b style="color:#dc2626">${wrong}</b></span>
+        <span>⬜ Skipped: <b>${qs.length - attempted}</b></span>
+        ${secCutoff ? `<span style="color:${passedCutoff?'#15803d':'#dc2626'};font-weight:700">${passedCutoff?'✓':'✗'} Sectional cutoff: ${secCutoff}</span>` : ''}
+      </div>
+    </div>`;
+  }).join('');
+
+  $('ms-sec-results').innerHTML = secHTML;
+  const pct = Math.round(totalScore / totalMax * 100);
+  $('ms-total-score').textContent = `${totalScore.toFixed(2)} / ${totalMax}`;
+  const allSectionsPassed = msState.sections.every(sec => {
+    const qs = msState.questions[sec.key]; const ans = msState.answers[sec.key] || {};
+    let corr=0, wrong=0;
+    qs.forEach((q,i)=>{ const a=ans[i]; if(!a)return; if(a===q.correct)corr++; else wrong++; });
+    const score = corr - 0.25*wrong;
+    const cd = CUTOFF_HISTORY[msState.exam];
+    return cd ? score >= (cd.sectional[sec.name]||0) : true;
+  });
+  $('ms-result-emoji').textContent = allSectionsPassed && pct >= 60 ? '🏆' : pct >= 50 ? '💪' : '📚';
+  $('ms-result-title').textContent = allSectionsPassed ? 'All sectional cutoffs cleared!' : 'Check sectional cutoffs';
+  $('ms-save-btn').dataset.score = totalScore.toFixed(2);
+}
+
+function saveMSToLog() {
+  const secs = msState.sections;
+  const o = {
+    date: todayStr(), exam: msState.exam,
+    mock_name: `Mock Sim — ${new Date().toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'})}`,
+    weak_topics: [], notes: 'Generated by Mock Simulator'
+  };
+  secs.forEach(sec => {
+    const qs = msState.questions[sec.key]; const ans = msState.answers[sec.key] || {};
+    let corr = 0, att = 0;
+    qs.forEach((q,i) => { const a = ans[i]; if(!a)return; att++; if(a===q.correct)corr++; });
+    o[sec.key+'_att'] = att; o[sec.key+'_corr'] = corr; o[sec.key+'_time'] = MS_TIME/60 - Math.floor(msState.timeLeft/60);
+  });
+  db.add(o).then(() => {
+    load().then(() => { $('ms-save-btn').textContent = '✅ Saved!'; $('ms-save-btn').disabled = true; });
+  }).catch(e => alert('Save failed: ' + e.message));
+}
+
+function resetMockSim() {
+  msState = null;
+  showMS('setup');
 }
 
 /* ── BOOT ── */
