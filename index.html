@@ -732,9 +732,17 @@ tr:last-child td{border-bottom:none}
       <div id="plan-focus"></div>
 
       <div class="card">
-        <div class="card-title">This Week's Plan</div>
-        <div class="card-sub">Auto-generated from your weak areas</div>
-        <div class="week-plan" id="week-plan"></div>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+          <div>
+            <div class="card-title" style="margin:0">Smart Revision Schedule</div>
+            <div class="card-sub" style="margin:2px 0 0">AI-generated based on your exam date &amp; weak areas</div>
+          </div>
+          <button onclick="generateSmartPlan(true)" class="btn ghost" style="font-size:11px;padding:5px 10px;border-radius:8px;white-space:nowrap" id="plan-regen-btn">🔄 Regenerate</button>
+        </div>
+        <div id="plan-exam-info" style="margin-bottom:12px"></div>
+        <div id="smart-plan-content">
+          <div id="week-plan"></div>
+        </div>
       </div>
 
       <div class="moti-card">
@@ -2269,21 +2277,113 @@ function renderPlan() {
   }
   $('plan-focus').innerHTML = focusHtml;
 
-  // Weekly plan
-  const allWeakTopics = topWeakTopics(12);
-  const sectionNames  = SECTIONS_FULL.map(s=>s.name);
-  const pool = allWeakTopics.length >= 6 ? allWeakTopics : [...allWeakTopics, ...sectionNames].slice(0,12);
-  const weekHtml = DAY_NAMES.map((day,i)=>{
-    const topics = pool.slice(i*2, i*2+2);
-    if (!topics.length) topics.push('Revision & Mock');
-    return `<div class="week-day">
-      <div class="week-day-name">${day}</div>
-      <div class="week-day-topics">${topics.join('<br>')}</div>
-    </div>`;
-  }).join('');
-  $('week-plan').innerHTML = weekHtml;
+  // Exam date info
+  const exam = PROFILE.targetExam || 'SBI PO';
+  const examDate = EXAM_DATES[exam];
+  const daysLeft = examDate ? daysUntil(examDate) : null;
+  const phase = daysLeft == null ? null : daysLeft > 60 ? 'learning' : daysLeft > 21 ? 'revision' : daysLeft > 7 ? 'intensive' : 'final';
+  const phaseLabel = { learning:'📘 Learning Phase', revision:'📝 Revision Phase', intensive:'🔥 Intensive Phase', final:'⚡ Final Sprint' };
+  $('plan-exam-info').innerHTML = daysLeft != null
+    ? `<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+        <span style="background:${phase==='final'?'#fee2e2':phase==='intensive'?'#fef3c7':'#eff6ff'};color:${phase==='final'?'#dc2626':phase==='intensive'?'#b45309':'#1d4ed8'};
+          border-radius:8px;padding:4px 10px;font-size:12px;font-weight:700">${phaseLabel[phase]}</span>
+        <span style="font-size:13px;color:var(--muted)"><b style="color:var(--text)">${daysLeft}</b> days to ${exam}</span>
+      </div>`
+    : `<div style="font-size:12px;color:var(--muted)">Set your exam date in Goals &amp; Cutoffs to get a deadline-aware plan.</div>`;
 
+  // Load cached plan or generate
+  generateSmartPlan(false);
   showQuote();
+}
+
+async function generateSmartPlan(force) {
+  const cacheKey = 'cc_smart_plan';
+  const todayKey = todayStr();
+
+  if (!force) {
+    try {
+      const c = JSON.parse(localStorage.getItem(cacheKey)||'null');
+      if (c && c.date === todayKey) { renderSmartPlanHTML(c.plan); return; }
+    } catch(e){}
+  }
+
+  $('smart-plan-content').innerHTML = `<div style="text-align:center;padding:24px;color:var(--muted);font-size:13px">🤖 Generating your personalised plan…</div>`;
+  $('plan-regen-btn').disabled = true;
+
+  const exam = PROFILE.targetExam || 'SBI PO';
+  const examDate = EXAM_DATES[exam];
+  const daysLeft = examDate ? daysUntil(examDate) : null;
+  const weakTopics = topWeakTopics(8);
+  const worstSec = lowestAccSection();
+  const avgScore = MOCKS.length ? fmt(MOCKS.map(totalScore).reduce((a,b)=>a+b,0)/MOCKS.length) : null;
+  const target = (CUTOFFS.find(c=>c.exam===exam)||{}).cutoff || 62;
+
+  const system = `You are a bank exam study planner creating a personalised 7-day study schedule for Nanditha preparing for ${exam}.
+
+Return ONLY a valid JSON array of exactly 7 objects (one per day), no markdown:
+[
+  {
+    "day": "Monday",
+    "date": "Day 1",
+    "focus": "Section name",
+    "topics": ["Topic 1", "Topic 2"],
+    "task": "Specific 1-sentence task for the day",
+    "duration": "2 hrs",
+    "type": "study|revision|mock|rest"
+  }
+]
+
+RULES:
+- type "mock" means take a full mock that day — use this once or twice in the week
+- type "rest" means light revision only — use at most once
+- Prioritise the weakest topics first
+- If < 21 days to exam: heavy on mocks and revision, minimal new learning
+- If < 7 days: mocks every other day, only revision of flagged weak topics
+- Vary sections across days — don't put all English on same day`;
+
+  const user = `Nanditha's data:
+- Target exam: ${exam} (cutoff: ${target})
+- Days to exam: ${daysLeft != null ? daysLeft : 'not set — assume 45 days'}
+- Average mock score: ${avgScore || 'no mocks yet'}
+- Weak topics flagged in mocks: ${weakTopics.join(', ') || 'none yet'}
+- Weakest section: ${worstSec ? worstSec.name+' ('+Math.round(worstSec.avg*100)+'% accuracy)' : 'not enough data'}
+- Today: ${new Date().toLocaleDateString('en-IN',{weekday:'long',day:'numeric',month:'long'})}
+
+Generate her 7-day plan starting from today.`;
+
+  try {
+    const raw = await askGroq(system, user);
+    const match = raw.match(/\[[\s\S]*\]/);
+    if (!match) throw new Error('Invalid plan format');
+    const plan = JSON.parse(match[0]);
+    localStorage.setItem(cacheKey, JSON.stringify({ date: todayKey, plan }));
+    renderSmartPlanHTML(plan);
+  } catch(e) {
+    $('smart-plan-content').innerHTML = `<div style="font-size:13px;color:var(--danger);padding:12px">Could not generate plan: ${e.message}. <button onclick="generateSmartPlan(true)" class="btn ghost" style="font-size:11px;padding:4px 8px">Retry</button></div>`;
+  }
+  $('plan-regen-btn').disabled = false;
+}
+
+function renderSmartPlanHTML(plan) {
+  const typeColor = { study:'#3b82f6', revision:'#8b5cf6', mock:'#ef4444', rest:'#10b981' };
+  const typeLabel = { study:'Study', revision:'Revision', mock:'Mock Day', rest:'Light Day' };
+  $('smart-plan-content').innerHTML = plan.map((day, i) => `
+    <div style="display:flex;gap:10px;padding:10px 0;border-bottom:1px solid var(--border)">
+      <div style="min-width:36px;height:36px;border-radius:50%;background:${typeColor[day.type]||'var(--navy)'};
+        display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;color:#fff;flex-shrink:0">${i+1}</div>
+      <div style="flex:1">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:2px">
+          <div style="font-size:13px;font-weight:700;color:var(--text)">${day.day}</div>
+          <div style="display:flex;gap:5px;align-items:center">
+            <span style="font-size:10px;font-weight:700;background:${typeColor[day.type]||'var(--navy)'}22;color:${typeColor[day.type]||'var(--navy)'};border-radius:5px;padding:2px 6px">${typeLabel[day.type]||day.type}</span>
+            <span style="font-size:11px;color:var(--muted)">${day.duration}</span>
+          </div>
+        </div>
+        <div style="font-size:12px;color:var(--muted);margin-bottom:3px">${day.focus} · ${(day.topics||[]).join(', ')}</div>
+        <div style="font-size:12px;color:var(--text);line-height:1.5">${day.task}</div>
+      </div>
+    </div>
+  `).join('');
 }
 
 let quoteInterval = null;
