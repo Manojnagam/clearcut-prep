@@ -4690,15 +4690,40 @@ function renderCoachQuizResults() {
   } else if (quiz.status === 'completed' && quiz.results) {
     const r = quiz.results;
     const pct = Math.round(r.correct / r.total * 100);
+    const col = pct >= 70 ? '#4ade80' : pct >= 50 ? '#fbbf24' : '#f87171';
+
     const perTopic = Object.entries(r.byTopic).map(([t, s]) =>
-      `<span style="color:${s.correct===s.total?'#4ade80':s.correct===0?'#f87171':'#fbbf24'}">${t}: ${s.correct}/${s.total}</span>`
-    ).join(' · ');
+      `<span style="color:${s.correct===s.total?'#4ade80':s.correct===0?'#f87171':'#fbbf24'};background:#1e293b;padding:2px 8px;border-radius:20px;font-size:11px">${t}: ${s.correct}/${s.total}</span>`
+    ).join(' ');
+
+    const wrongQs = (r.perQuestion || []).filter(q => !q.isCorrect);
+    const wrongHtml = wrongQs.length ? `
+      <div style="margin-top:12px;border-top:1px solid #1e293b;padding-top:12px">
+        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#f87171;margin-bottom:8px">❌ Questions She Got Wrong (${wrongQs.length})</div>
+        ${wrongQs.map((q, i) => {
+          const correctOpt = q.options?.find(o => o.startsWith(q.correct + ')')) || q.correct;
+          const wrongOpt  = q.options?.find(o => o.startsWith(q.answered + ')')) || q.answered || '(skipped)';
+          return `<div style="background:#1e293b;border-radius:10px;padding:10px 12px;margin-bottom:8px;border-left:3px solid #f87171">
+            <div style="font-size:12px;color:#e2e8f0;margin-bottom:6px;line-height:1.5">${i+1}. ${q.question}</div>
+            <div style="font-size:11px;color:#f87171;margin-bottom:2px">Her answer: ${wrongOpt}</div>
+            <div style="font-size:11px;color:#4ade80;margin-bottom:${q.explanation?'4px':'0'}">Correct: ${correctOpt}</div>
+            ${q.explanation ? `<div style="font-size:11px;color:#64748b;font-style:italic">${q.explanation}</div>` : ''}
+          </div>`;
+        }).join('')}
+      </div>` : `<div style="color:#4ade80;font-size:12px;margin-top:8px">🎉 She got everything right!</div>`;
+
     content.innerHTML = `
-      <div style="color:${pct>=70?'#4ade80':pct>=50?'#fbbf24':'#f87171'};font-size:16px;font-weight:700;margin-bottom:6px">${r.correct}/${r.total} correct (${pct}%)</div>
-      <div style="font-size:12px;margin-bottom:4px">${perTopic}</div>
-      <div style="font-size:11px;color:#475569">Completed ${new Date(r.completedAt).toLocaleString('en-IN',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})}</div>
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:10px">
+        <div style="color:${col};font-size:28px;font-family:'DM Serif Display',serif;font-weight:700">${r.correct}/${r.total}</div>
+        <div>
+          <div style="color:${col};font-size:14px;font-weight:700">${pct}% correct</div>
+          <div style="font-size:11px;color:#475569">Completed ${new Date(r.completedAt).toLocaleString('en-IN',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})}</div>
+        </div>
+      </div>
+      <div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:6px">${perTopic}</div>
+      ${wrongHtml}
       <button onclick="clearCQ();renderCoachQuizResults();$('cq-assign-status').textContent=''"
-        style="margin-top:8px;background:none;border:1px solid #334155;color:#94a3b8;border-radius:6px;padding:4px 10px;font-size:11px;cursor:pointer;font-family:inherit">
+        style="margin-top:12px;background:none;border:1px solid #334155;color:#94a3b8;border-radius:6px;padding:4px 10px;font-size:11px;cursor:pointer;font-family:inherit">
         Clear &amp; Assign New Quiz
       </button>`;
   }
@@ -4816,6 +4841,7 @@ function finishCQ() {
   // Calculate results
   let correct = 0;
   const byTopic = {};
+  const perQuestion = [];
   cqState.questions.forEach((q, i) => {
     const ans = cqState.answers[i];
     const isCorrect = ans === q.correct;
@@ -4823,10 +4849,19 @@ function finishCQ() {
     if (!byTopic[q.topic]) byTopic[q.topic] = { correct: 0, total: 0 };
     byTopic[q.topic].total++;
     if (isCorrect) byTopic[q.topic].correct++;
+    perQuestion.push({
+      topic: q.topic,
+      question: q.question,
+      options: q.options,
+      correct: q.correct,
+      answered: ans,
+      isCorrect,
+      explanation: q.explanation || ''
+    });
   });
   const total = cqState.questions.length;
   const pct = Math.round(correct / total * 100);
-  const results = { correct, total, pct, byTopic, completedAt: new Date().toISOString() };
+  const results = { correct, total, pct, byTopic, perQuestion, completedAt: new Date().toISOString() };
 
   // Save results
   const quiz = getCQ();
