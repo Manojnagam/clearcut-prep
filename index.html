@@ -593,6 +593,12 @@ tr:last-child td{border-bottom:none}
         <div id="today-activity-list" style="font-size:13px;color:var(--text)"></div>
       </div>
 
+      <!-- Daily AI motivation -->
+      <div id="dash-motivation" style="display:none;background:linear-gradient(135deg,#f0f9ff,#e0f2fe);border:1px solid #7dd3fc;border-radius:14px;padding:14px 16px;margin-bottom:10px">
+        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#0369a1;margin-bottom:6px">💬 Manoj says…</div>
+        <div id="dash-motivation-text" style="font-size:13px;color:#075985;line-height:1.6;font-style:italic"></div>
+      </div>
+
       <!-- Coach quiz notification -->
       <div id="coach-quiz-banner" style="display:none;background:linear-gradient(135deg,#fdf2f8,#fce7f3);border:1px solid #f9a8d4;border-radius:14px;padding:14px 16px;margin-bottom:10px;cursor:pointer" onclick="openCoachQuiz()">
         <div style="display:flex;justify-content:space-between;align-items:center">
@@ -2036,6 +2042,68 @@ function renderStrategyCard() {
   `;
 }
 
+/* ── DAILY MOTIVATION ── */
+async function renderDailyMotivation() {
+  const el = $('dash-motivation');
+  const txt = $('dash-motivation-text');
+  if (!el || !txt) return;
+
+  const KEY = 'cc_daily_motivation';
+  const today = todayStr();
+  try {
+    const cached = JSON.parse(localStorage.getItem(KEY) || 'null');
+    if (cached && cached.date === today) {
+      txt.textContent = cached.msg;
+      el.style.display = 'block';
+      return;
+    }
+  } catch(e) {}
+
+  // Gather stats for context
+  const activeDays = (() => {
+    const mockDays = new Set(MOCKS.map(m => m.date));
+    const logDays  = new Set(STUDY_LOGS.map(l => l.date));
+    const all = new Set([...mockDays, ...logDays]);
+    const cutoff = new Date(); cutoff.setDate(cutoff.getDate() - 14); cutoff.setHours(0,0,0,0);
+    return [...all].filter(d => new Date(d) >= cutoff).length;
+  })();
+  const pct = Math.round((activeDays / 14) * 100);
+  const scores = MOCKS.map(totalScore);
+  const latest = scores.length ? fmt(scores[scores.length - 1]) : null;
+  const best   = scores.length ? fmt(Math.max(...scores)) : null;
+  const streak = calcStreak();
+  let daysLeft = null;
+  Object.values(local.getDates() || {}).forEach(d => {
+    if (!d) return;
+    const diff = Math.ceil((new Date(d) - new Date()) / 864e5);
+    if (diff > 0 && (daysLeft === null || diff < daysLeft)) daysLeft = diff;
+  });
+
+  const tone = pct >= 70 ? 'celebratory and proud'
+             : pct >= 40 ? 'warm and encouraging'
+             : 'gentle, caring, and motivating without being harsh';
+
+  const system = `You are Manoj, a loving and supportive boyfriend writing a short personal message to Nanditha who is preparing for bank exams. Your tone should be ${tone}. Write exactly 2 sentences. Be specific to her numbers — don't be generic. Sign off naturally as Manoj. No quotes around the message.`;
+
+  const user = `Nanditha's stats today:
+- Study consistency last 14 days: ${activeDays}/14 days (${pct}%)
+- Current streak: ${streak} days
+- Total mocks attempted: ${scores.length}
+- Latest mock score: ${latest || 'none yet'}
+- Best mock score: ${best || 'none yet'}
+- Days left to exam: ${daysLeft || 'unknown'}
+Write a personal motivational message from me (Manoj) to her.`;
+
+  try {
+    const msg = await askGroq(system, user);
+    if (msg && msg.length > 10) {
+      localStorage.setItem(KEY, JSON.stringify({ date: today, msg }));
+      txt.textContent = msg;
+      el.style.display = 'block';
+    }
+  } catch(e) {}
+}
+
 /* ── DASHBOARD ── */
 function renderDash() {
   renderCountdowns();
@@ -2044,6 +2112,7 @@ function renderDash() {
   renderStrategyCard();
   renderTopicAccuracy();
   checkCoachQuizBanner();
+  renderDailyMotivation();
 
   const streak = calcStreak();
   $('d-streak').innerHTML = streak+' <small>days</small>';
