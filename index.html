@@ -738,6 +738,16 @@ tr:last-child td{border-bottom:none}
         <div class="card-title">Sectional timer</div>
         <div class="card-sub">Train at exam pace. Prelims gives ~20 min per section.</div>
         <div class="timer-chips" id="timer-chips"></div>
+
+        <!-- Full mock section flow indicator -->
+        <div id="mock-flow" style="display:none;justify-content:center;gap:6px;margin-bottom:12px;flex-wrap:wrap">
+          <div id="mock-flow-eng" class="chip">English</div>
+          <div style="color:var(--muted);align-self:center;font-size:12px">→</div>
+          <div id="mock-flow-qnt" class="chip">Quant</div>
+          <div style="color:var(--muted);align-self:center;font-size:12px">→</div>
+          <div id="mock-flow-rsn" class="chip">Reasoning</div>
+        </div>
+
         <div class="timer-wrap">
           <div class="clock" id="clock">20:00</div>
           <div class="timer-label" id="timer-label">English · 20 minutes</div>
@@ -746,6 +756,22 @@ tr:last-child td{border-bottom:none}
             <button class="btn ghost" onclick="resetTimer()">Reset</button>
           </div>
         </div>
+
+        <!-- Attempt counter -->
+        <div id="attempt-row" style="display:none;margin-top:16px;text-align:center">
+          <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin-bottom:8px">Questions Attempted</div>
+          <div style="display:flex;align-items:center;justify-content:center;gap:16px">
+            <button onclick="changeAttempts(-1)" class="btn ghost" style="width:40px;height:40px;padding:0;font-size:20px;border-radius:50%">−</button>
+            <div id="attempt-count" style="font-size:32px;font-weight:800;color:var(--navy);min-width:48px">0</div>
+            <button onclick="changeAttempts(1)" class="btn primary" style="width:40px;height:40px;padding:0;font-size:20px;border-radius:50%">+</button>
+          </div>
+        </div>
+
+        <!-- Section summary (shown at end) -->
+        <div id="timer-summary" style="display:none;margin-top:16px;background:#f0fdf4;border:1px solid #86efac;border-radius:12px;padding:14px 16px;text-align:center">
+          <div id="timer-summary-text" style="font-size:14px;color:#15803d;font-weight:600;line-height:1.6"></div>
+        </div>
+
         <div id="custom-timer-row" style="display:none;margin-top:16px">
           <label class="fld" style="margin-bottom:0"><span>Custom minutes</span>
             <input type="number" id="custom-min" min="1" max="300" placeholder="Enter minutes" oninput="setCustomTimer()">
@@ -2002,28 +2028,67 @@ function prevQuote() { quoteIdx = (quoteIdx-1+QUOTES.length)%QUOTES.length; show
 
 /* ── TIMER ── */
 const TIMER_OPTS = [
-  {l:'English 20m', v:20, label:'English · 20 minutes'},
-  {l:'Quant 20m',   v:20, label:'Quant · 20 minutes'},
-  {l:'Reasoning 20m',v:20, label:'Reasoning · 20 minutes'},
-  {l:'Full Mock 60m',v:60, label:'Full Mock · 60 minutes'},
-  {l:'Custom',       v:0,  label:'Custom'},
+  {l:'English 20m',   v:20, label:'English · 20 min',    key:'eng'},
+  {l:'Quant 20m',     v:20, label:'Quant · 20 min',      key:'qnt'},
+  {l:'Reasoning 20m', v:20, label:'Reasoning · 20 min',  key:'rsn'},
+  {l:'Full Mock',     v:-1, label:'Full Mock · 3 sections', key:'mock'},
+  {l:'Custom',        v:0,  label:'Custom',               key:'custom'},
 ];
-let tDur=20*60, tLeft=20*60, tRun=false, tInt=null, curTimerLabel='English · 20 minutes';
+const MOCK_SECTIONS = [
+  {label:'English · 20 min',   key:'eng', dur:20*60},
+  {label:'Quant · 20 min',     key:'qnt', dur:20*60},
+  {label:'Reasoning · 20 min', key:'rsn', dur:20*60},
+];
+let tDur=20*60, tLeft=20*60, tRun=false, tInt=null, curTimerLabel='English · 20 min';
+let tKey='eng', tAttempts=0, tMockIdx=0, tIsMock=false;
+let warned5=false;
 
 function buildTimerChips() {
   $('timer-chips').innerHTML = TIMER_OPTS.map((o,i)=>
-    `<span class="chip ${i===0?'on':''}" data-v="${o.v}" data-label="${o.label}" onclick="pickTimer(this)">${o.l}</span>`
+    `<span class="chip ${i===0?'on':''}" data-v="${o.v}" data-label="${o.label}" data-key="${o.key}" onclick="pickTimer(this)">${o.l}</span>`
   ).join('');
 }
 
 function pickTimer(el) {
+  if (tRun) return; // don't switch while running
   document.querySelectorAll('#timer-chips .chip').forEach(c=>c.classList.remove('on'));
   el.classList.add('on');
   const v = +el.dataset.v;
+  tKey = el.dataset.key;
   curTimerLabel = el.dataset.label;
-  $('custom-timer-row').style.display = v===0 ? 'block' : 'none';
-  if (v>0) { tDur = v*60; if (!tRun){tLeft=tDur; paintClock();} }
-  $('timer-label').textContent = curTimerLabel;
+  tIsMock = tKey === 'mock';
+  $('custom-timer-row').style.display = tKey==='custom' ? 'block' : 'none';
+  $('mock-flow').style.display = tIsMock ? 'flex' : 'none';
+  $('timer-summary').style.display = 'none';
+  tAttempts = 0; updateAttemptDisplay();
+  if (tIsMock) {
+    tMockIdx = 0;
+    startMockSection(0);
+  } else if (v > 0) {
+    tDur = v*60; tLeft = tDur; warned5 = false; paintClock();
+    $('timer-label').textContent = curTimerLabel;
+  }
+  $('attempt-row').style.display = 'block';
+}
+
+function startMockSection(idx) {
+  const sec = MOCK_SECTIONS[idx];
+  tDur = sec.dur; tLeft = tDur; warned5 = false;
+  curTimerLabel = sec.label;
+  $('timer-label').textContent = sec.label;
+  paintClock();
+  updateMockFlow(idx);
+  tAttempts = 0; updateAttemptDisplay();
+  $('timer-summary').style.display = 'none';
+}
+
+function updateMockFlow(idx) {
+  ['eng','qnt','rsn'].forEach((k,i) => {
+    const el = $('mock-flow-'+k);
+    el.style.background = i === idx ? 'var(--navy)' : '';
+    el.style.color = i === idx ? '#fff' : '';
+    el.style.opacity = i > idx ? '0.4' : '1';
+  });
 }
 
 function setCustomTimer() {
@@ -2035,19 +2100,22 @@ function paintClock() {
   const m=Math.floor(tLeft/60), s=tLeft%60;
   const c=$('clock');
   c.textContent=`${m}:${String(s).padStart(2,'0')}`;
-  c.className='clock'+(tLeft<=0?' done':tLeft<=60?' warn':'');
+  c.className='clock'+(tLeft<=0?' done':tLeft<=60?' warn':tLeft<=300?' warn':'');
+  if (tLeft<=300 && tLeft>299) c.style.color='#f59e0b';
+  if (tLeft<=60) c.style.color='#ef4444';
+  if (tLeft>300) c.style.color='';
 }
 
-function beep() {
+function beep(freq=880, dur=1.5) {
   try {
     const ctx = new (window.AudioContext||window.webkitAudioContext)();
     const osc = ctx.createOscillator();
     const gain = ctx.createGain();
     osc.connect(gain); gain.connect(ctx.destination);
-    osc.frequency.value = 880; osc.type = 'sine';
-    gain.gain.setValueAtTime(0.5, ctx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime+1.5);
-    osc.start(ctx.currentTime); osc.stop(ctx.currentTime+1.5);
+    osc.frequency.value = freq; osc.type = 'sine';
+    gain.gain.setValueAtTime(0.4, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime+dur);
+    osc.start(ctx.currentTime); osc.stop(ctx.currentTime+dur);
   } catch(e){}
 }
 
@@ -2055,19 +2123,72 @@ function toggleTimer() {
   if (tRun) {
     clearInterval(tInt); tRun=false; $('t-start').textContent='Resume'; return;
   }
+  $('attempt-row').style.display = 'block';
   tRun=true; $('t-start').textContent='Pause';
   tInt = setInterval(()=>{
     tLeft--; paintClock();
-    if (tLeft<=0) {
-      clearInterval(tInt); tRun=false; $('t-start').textContent='Start';
-      beep();
+    // 5-minute warning
+    if (tLeft === 300 && !warned5) {
+      warned5 = true;
+      beep(440, 0.5);
+      $('timer-label').textContent = '⚠️ 5 minutes left — ' + curTimerLabel;
+    }
+    if (tLeft <= 0) {
+      clearInterval(tInt); tRun=false;
+      beep(880, 2);
+      onSectionEnd();
     }
   },1000);
 }
 
+function onSectionEnd() {
+  if (tIsMock && tMockIdx < MOCK_SECTIONS.length - 1) {
+    // Show brief summary then advance
+    showSectionSummary(MOCK_SECTIONS[tMockIdx].label, tAttempts, true);
+    $('t-start').textContent = 'Next Section →';
+    $('t-start').onclick = () => {
+      tMockIdx++;
+      startMockSection(tMockIdx);
+      $('t-start').textContent = 'Start';
+      $('t-start').onclick = toggleTimer;
+      $('timer-summary').style.display = 'none';
+    };
+  } else {
+    showSectionSummary(tIsMock ? 'Full Mock' : curTimerLabel, tAttempts, false);
+    $('t-start').textContent = 'Start';
+    $('t-start').onclick = toggleTimer;
+    if (tIsMock) updateMockFlow(-1);
+  }
+}
+
+function showSectionSummary(label, attempts, hasNext) {
+  const msg = hasNext
+    ? `✅ ${label} done! You attempted ${attempts} question${attempts!==1?'s':''}. Tap "Next Section →" when ready.`
+    : `🎯 ${label} complete! You attempted ${attempts} question${attempts!==1?'s':''} in total.`;
+  $('timer-summary-text').textContent = msg;
+  $('timer-summary').style.display = 'block';
+  $('timer-summary').style.background = hasNext ? '#eff6ff' : '#f0fdf4';
+  $('timer-summary').style.borderColor = hasNext ? '#93c5fd' : '#86efac';
+  $('timer-summary-text').style.color = hasNext ? '#1d4ed8' : '#15803d';
+}
+
+function changeAttempts(delta) {
+  tAttempts = Math.max(0, tAttempts + delta);
+  updateAttemptDisplay();
+}
+
+function updateAttemptDisplay() {
+  if ($('attempt-count')) $('attempt-count').textContent = tAttempts;
+}
+
 function resetTimer() {
-  clearInterval(tInt); tRun=false; tLeft=tDur;
-  $('t-start').textContent='Start'; paintClock();
+  clearInterval(tInt); tRun=false;
+  warned5 = false; tAttempts = 0; updateAttemptDisplay();
+  $('timer-summary').style.display = 'none';
+  $('t-start').textContent = 'Start';
+  $('t-start').onclick = toggleTimer;
+  if (tIsMock) { tMockIdx=0; startMockSection(0); }
+  else { tLeft=tDur; paintClock(); $('timer-label').textContent = curTimerLabel; }
 }
 
 /* ── HISTORY ── */
