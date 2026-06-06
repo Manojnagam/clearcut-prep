@@ -100,6 +100,7 @@ All AI calls go through `askGroq(system, user)` → `/api/groq` (Cloudflare Page
 - **Adding a milestone**: add entry to `MILESTONES` array + note in `MILESTONE_NOTES`; `checkMilestones()` is called automatically after mock save and DQ submit
 - **Per-user storage**: `local.getSyl()` and `local.getDates()` already apply the `_<name>` suffix via `PROFILE.name` — no need to key manually
 - **Supabase user filter**: `db._uq()` returns `&user_name=eq.<name>` — already included in all db queries
+- **DQ question rendering**: use `innerHTML` with newlines converted to `<br>` (not `textContent`) so para jumble sentences and multi-line questions display correctly
 
 ## Known Issues / Gotchas
 
