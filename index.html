@@ -666,7 +666,15 @@ tr:last-child td{border-bottom:none}
           </div>
         </div>
 
+      <!-- Topic Accuracy chart -->
+      <div id="topic-acc-card" style="display:none;background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:14px 16px;margin-bottom:10px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+          <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--muted)">📊 Topic Accuracy</div>
+          <div style="font-size:11px;color:var(--muted)">from practice questions</div>
+        </div>
+        <div id="topic-acc-content"></div>
       </div>
+
     </section>
 
     <!-- ── LOG MOCK ── -->
@@ -1724,6 +1732,63 @@ async function renderPrediction() {
   }
 }
 
+/* ── TOPIC ACCURACY ── */
+function renderTopicAccuracy() {
+  const card = $('topic-acc-card');
+  if (!card) return;
+
+  const log = getDQLog();
+  if (log.length < 5) { card.style.display = 'none'; return; }
+
+  // Aggregate per topic
+  const byTopic = {};
+  log.forEach(q => {
+    if (!byTopic[q.topic]) byTopic[q.topic] = { topic: q.topic, section: q.section, total: 0, correct: 0 };
+    byTopic[q.topic].total++;
+    if (q.correct) byTopic[q.topic].correct++;
+  });
+
+  // Merge with mock weak-topic flags
+  const weakFreq = weakTopicFreq();
+
+  // Group by section
+  const sections = {};
+  Object.values(byTopic).forEach(t => {
+    if (!sections[t.section]) sections[t.section] = [];
+    sections[t.section].push({ ...t, acc: Math.round(t.correct / t.total * 100), weakCount: weakFreq[t.topic] || 0 });
+  });
+
+  // Sort each section: worst first
+  Object.values(sections).forEach(arr => arr.sort((a, b) => a.acc - b.acc));
+
+  const secColors = { English: '#3b82f6', Quant: '#10b981', Reasoning: '#f97316' };
+
+  card.style.display = 'block';
+  $('topic-acc-content').innerHTML = Object.entries(sections).map(([sec, topics]) => `
+    <div style="margin-bottom:14px">
+      <div style="font-size:12px;font-weight:700;color:${secColors[sec]||'var(--navy)'};margin-bottom:8px;display:flex;align-items:center;gap:6px">
+        <span style="width:8px;height:8px;border-radius:50%;background:${secColors[sec]||'var(--navy)'};display:inline-block"></span>${sec}
+      </div>
+      ${topics.map(t => {
+        const color = t.acc >= 70 ? '#15803d' : t.acc >= 50 ? '#b45309' : '#dc2626';
+        const bg    = t.acc >= 70 ? '#f0fdf4' : t.acc >= 50 ? '#fffbeb' : '#fef2f2';
+        return `<div style="margin-bottom:6px">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:3px">
+            <div style="font-size:12px;color:var(--text);display:flex;align-items:center;gap:5px">
+              ${t.topic}
+              ${t.weakCount ? `<span style="font-size:10px;background:#fee2e2;color:#dc2626;border-radius:4px;padding:1px 5px">flagged ${t.weakCount}×</span>` : ''}
+            </div>
+            <div style="font-size:12px;font-weight:700;color:${color}">${t.acc}% <span style="font-weight:400;color:var(--muted)">(${t.correct}/${t.total})</span></div>
+          </div>
+          <div style="height:6px;background:var(--border);border-radius:3px;overflow:hidden">
+            <div style="width:${t.acc}%;height:100%;background:${color};border-radius:3px;transition:width .6s ease"></div>
+          </div>
+        </div>`;
+      }).join('')}
+    </div>
+  `).join('');
+}
+
 /* ── ATTEMPT STRATEGY ── */
 function renderStrategyCard() {
   const card = $('strategy-card');
@@ -1778,6 +1843,7 @@ function renderDash() {
   renderCutoffProgress();
   renderPrediction();
   renderStrategyCard();
+  renderTopicAccuracy();
 
   const streak = calcStreak();
   $('d-streak').innerHTML = streak+' <small>days</small>';
@@ -4030,6 +4096,7 @@ function updateDQStats() {
   if ($('dq-streak')) $('dq-streak').textContent = streak;
 
   renderMistakeBook();
+  renderTopicAccuracy();
 
   // History — last 10 answers
   if (log.length && $('dq-history-card')) {
