@@ -3538,6 +3538,11 @@ async function generateDQ() {
 
   const system = `You are a bank exam question setter for Indian bank exams (SBI PO, IBPS PO). Generate ONE multiple choice question.
 
+FORMATTING RULES:
+- For Para Jumbles: list each sentence on its own line, e.g. "Arrange the sentences in order:\nP) ...\nQ) ...\nR) ...\nS) ...\nT) ..."
+- For Fillers / Cloze Test: show the sentence with a clear blank, e.g. "She was _______ by the sudden news."
+- For all others: write the question as a single clear sentence or short paragraph.
+
 RESPOND IN THIS EXACT JSON FORMAT — nothing else, no markdown, no explanation outside the JSON:
 {
   "section": "Reasoning",
@@ -3602,7 +3607,7 @@ function renderDQ(q, queue) {
   $('dq-meta').textContent = `${q.section} · ${q.topic}`;
   const diffColor = q.difficulty==='Easy'?'#10b981':q.difficulty==='Hard'?'#ef4444':'#f59e0b';
   $('dq-difficulty-badge').innerHTML = `<span style="background:${diffColor}22;color:${diffColor};padding:2px 8px;border-radius:10px;font-size:11px;font-weight:700">${q.difficulty}</span>`;
-  $('dq-qtext').textContent = q.question;
+  $('dq-qtext').innerHTML = q.question.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>');
 
   // Update "Next Question" button label
   const nextBtn = $('dq-next-btn');
