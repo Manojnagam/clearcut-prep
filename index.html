@@ -3300,14 +3300,26 @@ function initChat() {
 
 /* ── AI ── */
 async function askGroq(system, user) {
-  const res = await fetch('/api/groq', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ model: GROQ_MODEL, max_tokens: 600, temperature: 0.85,
-      messages: [{ role:'system', content:system }, { role:'user', content:user }] })
-  });
-  const d = await res.json();
-  return d.choices?.[0]?.message?.content || 'Could not get response.';
+  try {
+    const res = await fetch('/api/groq', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ model: GROQ_MODEL, max_tokens: 600, temperature: 0.85,
+        messages: [{ role:'system', content:system }, { role:'user', content:user }] })
+    });
+    const text = await res.text();
+    let d;
+    try {
+      d = JSON.parse(text);
+    } catch (e) {
+      console.error("Groq JSON parse error:", e.message, "Text preview:", text.substring(0, 200));
+      return 'Could not get response.';
+    }
+    return d.choices?.[0]?.message?.content || 'Could not get response.';
+  } catch (e) {
+    console.error("askGroq fetch error:", e);
+    return 'Could not get response.';
+  }
 }
 
 function buildMockSummary() {
@@ -5137,10 +5149,10 @@ async function startMockSim() {
   }
 }
 
-async function generateMSSection(sec, idx) {
+async function generateMSSection(sec, idx, retries = 2) {
   const dot = $('ms-dot-'+idx);
   if (dot) dot.style.background = '#f59e0b';
-  $('ms-load-status').textContent = `Generating ${sec.name} questions…`;
+  $('ms-load-status').textContent = `Generating ${sec.name} questions...`;
 
   const system = `You are a bank exam question setter. Generate exactly 10 MCQs for the ${sec.name} section of SBI PO / IBPS PO prelims covering diverse topics.
 
@@ -5155,23 +5167,33 @@ TOPIC|DIFFICULTY|QUESTION|OPTION_A|OPTION_B|OPTION_C|OPTION_D|CORRECT_LETTER|EXP
 
   const user = `Generate 10 diverse ${sec.name} questions (mix of Easy/Medium/Hard) covering these topics: ${sec.topics.join(', ')}. Make each question different from the others.`;
 
-  const raw = await askGroq(system, user);
-  const lines = raw.split('\n').filter(l => l.includes('|') && l.split('|').length >= 9);
-  if (lines.length < 5) throw new Error(`Too few questions for ${sec.name}`);
-  const qs = lines.slice(0, 10).map(l => {
-    const p = l.split('|');
-    return {
-      topic: p[0].trim(),
-      difficulty: p[1].trim(),
-      question: p[2].trim(),
-      options: [`A) ${p[3].trim()}`, `B) ${p[4].trim()}`, `C) ${p[5].trim()}`, `D) ${p[6].trim()}`],
-      correct: p[7].trim().toUpperCase(),
-      explanation: p[8].trim()
-    };
-  });
+  for (let attempt = 1; attempt <= retries; attempt++) {
+    try {
+      const raw = await askGroq(system, user);
+      const lines = raw.split('
+').filter(l => l.includes('|') && l.split('|').length >= 9);
+      if (lines.length < 5) throw new Error(`Too few questions generated for ${sec.name}. Please try again.`);
+      
+      const qs = lines.slice(0, 10).map(l => {
+        const p = l.split('|');
+        return {
+          topic: p[0].trim(),
+          difficulty: p[1].trim(),
+          question: p[2].trim(),
+          options: [`A) ${p[3].trim()}`, `B) ${p[4].trim()}`, `C) ${p[5].trim()}`, `D) ${p[6].trim()}`],
+          correct: p[7].trim().toUpperCase(),
+          explanation: p[8].trim()
+        };
+      });
 
-  if (dot) dot.style.background = '#10b981';
-  return qs.slice(0, 10);
+      if (dot) dot.style.background = '#10b981';
+      return qs.slice(0, 10);
+    } catch (e) {
+      console.warn(`Attempt ${attempt} failed for ${sec.name}:`, e.message);
+      if (attempt === retries) throw e;
+      await new Promise(r => setTimeout(r, 1000));
+    }
+  }
 }
 
 function beginMSSection(idx) {
