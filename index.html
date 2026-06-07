@@ -2285,13 +2285,26 @@ function renderDash() {
 
   const last10 = MOCKS.slice(-10);
 
-  // Score trend — mini bar chart (no Chart.js)
+    // Score trend - mini bar chart (no Chart.js)
   const scores = last10.map(totalScore);
   const maxSc = Math.max(...scores, 1);
-  $('score-bars').innerHTML = scores.map((s,i)=>{
-    const pct = Math.round((s/100)*100);
-    const col = s>=65?'#10b981':s>=50?'#1e3a5f':'#f97316';
-    return `<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:2px">
+  
+  // Feature 5: Dynamic Cutoff Line
+  const targetExamName = window.PROFILE?.targetExam || 'SBI PO';
+  const cutoffData = window.CUTOFF_HISTORY ? window.CUTOFF_HISTORY[targetExamName] : null;
+  const targetCutoff = cutoffData ? (cutoffData.overall['gen'] || 62) : 62; // fallback
+  const lineBottomPx = Math.round((targetCutoff/100)*50);
+
+  const cutoffLineHtml = `
+    <div style="position:absolute;bottom:${lineBottomPx}px;left:0;right:0;border-bottom:1px dashed #ef4444;pointer-events:none;z-index:0;opacity:0.6"></div>
+    <div style="position:absolute;bottom:${lineBottomPx + 2}px;left:2px;font-size:8px;font-weight:700;color:#ef4444;pointer-events:none;z-index:0;opacity:0.8">${targetExamName} Cutoff: ${targetCutoff}</div>
+  `;
+
+  $('score-bars').style.position = 'relative';
+  $('score-bars').innerHTML = cutoffLineHtml + scores.map((s,i)=>{
+    // Dynamic color based on dynamic cutoff
+    const col = s >= targetCutoff ? '#10b981' : (s >= targetCutoff - 10 ? '#f59e0b' : '#ef4444');
+    return `<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;z-index:1;position:relative;">
       <div style="font-size:9px;font-weight:700;color:${col}">${fmt(s)}</div>
       <div style="width:100%;background:${col};border-radius:3px 3px 0 0;height:${Math.max(4,Math.round((s/100)*50))}px"></div>
     </div>`;
