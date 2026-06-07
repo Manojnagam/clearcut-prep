@@ -706,6 +706,15 @@ tr:last-child td{border-bottom:none}
         <div id="topic-acc-content"></div>
       </div>
 
+      <!-- Time Sinks chart -->
+      <div id="time-sinks-card" style="display:none;background:var(--surface);border:1px solid #fca5a5;border-radius:14px;padding:14px 16px;margin-bottom:10px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+          <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#b91c1c">⏳ Biggest Time Sinks</div>
+          <div style="font-size:11px;color:var(--muted)">avg time per topic</div>
+        </div>
+        <div id="time-sinks-content"></div>
+      </div>
+
     </section>
 
     <!-- ── LOG MOCK ── -->
@@ -751,7 +760,28 @@ tr:last-child td{border-bottom:none}
         <label class="fld"><span>Weak topics (tap any that gave trouble)</span></label>
         <div id="topic-chips"></div>
 
-        <label class="fld" style="margin-top:14px">
+        <label class="fld" style="margin-top:14px"><span>Time Sinks (log topics that took too long)</span></label>
+        <div style="background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:12px;margin-bottom:14px">
+          <select id="ts-topic" style="padding:8px 10px;font-size:13px;margin-bottom:10px;width:100%;border-radius:8px;border:1.5px solid var(--border);background:var(--surface);font-family:inherit">
+            <option value="">-- Select a topic --</option>
+            <option value="Puzzles">Puzzles</option>
+            <option value="Seating Arrangement">Seating Arrangement</option>
+            <option value="Data Interpretation">Data Interpretation</option>
+            <option value="Arithmetic">Arithmetic</option>
+            <option value="Reading Comprehension">Reading Comprehension</option>
+            <option value="Other">Other</option>
+          </select>
+          <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px">
+            <button type="button" class="btn ghost sm" onclick="addTimeSink(1)">1 min</button>
+            <button type="button" class="btn ghost sm" onclick="addTimeSink(2)">2 min</button>
+            <button type="button" class="btn ghost sm" onclick="addTimeSink(3)">3 min</button>
+            <button type="button" class="btn ghost sm" onclick="addTimeSink(4)">4 min</button>
+            <button type="button" class="btn ghost sm" onclick="addTimeSink(5)">5+ min</button>
+          </div>
+          <div id="ts-list" style="display:flex;flex-wrap:wrap;gap:6px"></div>
+        </div>
+
+        <label class="fld">
           <span>Notes (optional)</span>
           <textarea id="f-notes" rows="2" placeholder="Silly errors in DI, ran out of time in puzzles..."></textarea>
         </label>
@@ -2178,6 +2208,7 @@ function renderDash() {
   renderPrediction();
   renderStrategyCard();
   renderTopicAccuracy();
+  if (typeof renderTimeSinksChart === 'function') renderTimeSinksChart();
   checkCoachQuizBanner();
   renderDailyMotivation();
 
@@ -2378,6 +2409,60 @@ function recalc() {
   $('f-total').textContent = fmt(tot)+' / '+maxTot;
 }
 
+/* ── TIME SINKS ── */
+window.timeSinksArr = [];
+function addTimeSink(mins) {
+  const t = $('ts-topic').value;
+  if(!t) { alert('Select a topic first'); return; }
+  window.timeSinksArr.push({topic: t, time: mins});
+  renderTimeSinksList();
+  $('ts-topic').value = '';
+}
+function removeTimeSink(i) {
+  window.timeSinksArr.splice(i, 1);
+  renderTimeSinksList();
+}
+function renderTimeSinksList() {
+  $('ts-list').innerHTML = window.timeSinksArr.map((s,i)=>`<span class="chip on" onclick="removeTimeSink(${i})" style="background:#fee2e2;color:#991b1b;border-color:#fca5a5">${s.topic}: ${s.time}m ✕</span>`).join('');
+}
+
+function renderTimeSinksChart() {
+  const card = $('time-sinks-card');
+  if (!card) return;
+  const sums = {};
+  const counts = {};
+  MOCKS.forEach(m => {
+    (m.time_sinks || []).forEach(ts => {
+      sums[ts.topic] = (sums[ts.topic] || 0) + ts.time;
+      counts[ts.topic] = (counts[ts.topic] || 0) + 1;
+    });
+  });
+  const avgs = Object.keys(sums).map(topic => ({ topic, avg: sums[topic]/counts[topic] }));
+  avgs.sort((a,b) => b.avg - a.avg);
+  
+  if (!avgs.length) {
+    card.style.display = 'none';
+    return;
+  }
+  card.style.display = 'block';
+  
+  const maxAvg = avgs[0].avg;
+  $('time-sinks-content').innerHTML = avgs.map(a => {
+    const pct = Math.max(5, (a.avg / Math.max(5, maxAvg)) * 100);
+    return `
+      <div style="margin-bottom:10px">
+        <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:6px;font-weight:500">
+          <span>${a.topic}</span>
+          <span style="color:#991b1b;font-weight:700">${fmt(a.avg)}m</span>
+        </div>
+        <div style="height:6px;background:var(--surface2);border-radius:4px;overflow:hidden">
+          <div style="height:100%;width:${pct}%;background:#ef4444;border-radius:4px"></div>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
 function resetForm() {
   editingId = null;
   $('log-title').textContent = 'Log a mock';
@@ -2388,6 +2473,8 @@ function resetForm() {
   $('f-name').value = '';
   if ($('f-diff')) $('f-diff').value = 'Moderate';
   $('f-notes').value = '';
+  window.timeSinksArr = [];
+  if (typeof renderTimeSinksList === 'function') renderTimeSinksList();
   onExamChange();
 }
 
@@ -2400,6 +2487,7 @@ async function saveMock() {
     mock_name:  $('f-name').value.trim(),
     difficulty: $('f-diff') ? $('f-diff').value : 'Moderate',
     weak_topics:[...document.querySelectorAll('#topic-chips .chip.on')].map(c=>c.dataset.topic),
+    time_sinks: window.timeSinksArr ? [...window.timeSinksArr] : [],
     notes:      $('f-notes').value.trim()
   };
   secs.forEach(s=>{
@@ -2445,6 +2533,8 @@ function editMock(id) {
   document.querySelectorAll('#topic-chips .chip').forEach(c=>{
     c.classList.toggle('on', wt.includes(c.dataset.topic));
   });
+  window.timeSinksArr = m.time_sinks ? [...m.time_sinks] : [];
+  if (typeof renderTimeSinksList === 'function') renderTimeSinksList();
   recalc();
   document.querySelector('[data-t="logmock"]').click();
   window.scrollTo(0,0);
