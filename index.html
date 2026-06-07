@@ -4967,16 +4967,25 @@ FORMATTING:
 - DI: include a small self-contained data set in the question
 - Quant: show calculation steps in the explanation
 
-Return ONLY a valid JSON array of 10 objects, no markdown:
-[{"topic":"...","difficulty":"Easy|Medium|Hard","question":"...","options":["A) ...","B) ...","C) ...","D) ..."],"correct":"A","explanation":"..."}]`;
+Return ONLY 10 lines in this exact pipe-delimited format (no markdown, no JSON):
+TOPIC|DIFFICULTY|QUESTION|OPTION_A|OPTION_B|OPTION_C|OPTION_D|CORRECT_LETTER|EXPLANATION`;
 
   const user = `Generate 10 diverse ${sec.name} questions (mix of Easy/Medium/Hard) covering these topics: ${sec.topics.join(', ')}. Make each question different from the others.`;
 
   const raw = await askGroq(system, user);
-  const match = raw.match(/\[[\s\S]*\]/);
-  if (!match) throw new Error(`Invalid response for ${sec.name}`);
-  const qs = JSON.parse(match[0]);
-  if (!Array.isArray(qs) || qs.length < 5) throw new Error(`Too few questions for ${sec.name}`);
+  const lines = raw.split('\n').filter(l => l.includes('|') && l.split('|').length >= 9);
+  if (lines.length < 5) throw new Error(`Too few questions for ${sec.name}`);
+  const qs = lines.slice(0, 10).map(l => {
+    const p = l.split('|');
+    return {
+      topic: p[0].trim(),
+      difficulty: p[1].trim(),
+      question: p[2].trim(),
+      options: [`A) ${p[3].trim()}`, `B) ${p[4].trim()}`, `C) ${p[5].trim()}`, `D) ${p[6].trim()}`],
+      correct: p[7].trim().toUpperCase(),
+      explanation: p[8].trim()
+    };
+  });
 
   if (dot) dot.style.background = '#10b981';
   return qs.slice(0, 10);
