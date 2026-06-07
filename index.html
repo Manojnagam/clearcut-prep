@@ -349,6 +349,62 @@ tr:last-child td{border-bottom:none}
 .rc-divider{height:1px;background:var(--border);margin:16px 0}
 .rc-empty{text-align:center;color:var(--muted);padding:32px 20px;font-size:14px}
 @media(max-width:480px){.rc-stats{grid-template-columns:1fr 1fr}}
+
+/* Panic Mode CSS */
+.panic-btn {
+  position: fixed;
+  bottom: 80px;
+  right: 20px;
+  width: 50px;
+  height: 50px;
+  border-radius: 25px;
+  background: rgba(239, 68, 68, 0.8);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.4);
+  z-index: 99;
+  cursor: pointer;
+  transition: transform 0.2s;
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+.panic-btn:active { transform: scale(0.9); }
+
+#panic-overlay {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(15, 23, 42, 0.95);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  z-index: 9999;
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  text-align: center;
+  opacity: 0;
+  transition: opacity 0.5s ease;
+}
+
+.breathe-circle {
+  width: 150px;
+  height: 150px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(56,189,248,0.8) 0%, rgba(56,189,248,0) 70%);
+  animation: breathe 8s infinite ease-in-out;
+  margin-bottom: 40px;
+}
+
+@keyframes breathe {
+  0% { transform: scale(0.8); opacity: 0.5; }
+  50% { transform: scale(1.5); opacity: 1; }
+  100% { transform: scale(0.8); opacity: 0.5; }
+}
+
 </style>
 </head>
 <body>
@@ -5627,6 +5683,39 @@ function shareDailyReport() {
 
   window.open('whatsapp://send?text=' + encodeURIComponent(text));
 }
+
+/* ── PANIC MODE ── */
+function openPanicMode() {
+  const overlay = document.getElementById('panic-overlay');
+  overlay.style.display = 'flex';
+  setTimeout(() => { overlay.style.opacity = '1'; }, 10);
+}
+function closePanicMode() {
+  const overlay = document.getElementById('panic-overlay');
+  overlay.style.opacity = '0';
+  setTimeout(() => { overlay.style.display = 'none'; }, 500);
+}
 </script>
+
+<!-- Panic Button -->
+<div class="panic-btn" onclick="openPanicMode()">❤️</div>
+
+<!-- Panic Overlay -->
+<div id="panic-overlay">
+  <div style="font-size: 28px; color: white; margin-bottom: 10px; font-family: 'DM Serif Display', serif;">Breathe, Nanditha.</div>
+  <div style="font-size: 14px; color: #94a3b8; margin-bottom: 50px;">Follow the circle. Inhale... Exhale...</div>
+  
+  <div class="breathe-circle"></div>
+  
+  <div style="background: rgba(255,255,255,0.05); padding: 20px; border-radius: 16px; border: 1px solid rgba(255,255,255,0.1); max-width: 320px;">
+    <div style="font-size: 16px; color: #f1f5f9; line-height: 1.5; font-style: italic;">
+      "Hey. I know it feels like too much right now, but I also know how strong you are. You don't have to figure it all out today. Just take it one step at a time. I am so incredibly proud of you, and I believe in you completely. I'm right here with you."
+    </div>
+    <div style="margin-top: 15px; font-size: 14px; color: #38bdf8; font-weight: 700;">— Manoj ❤️</div>
+  </div>
+  
+  <button onclick="closePanicMode()" style="margin-top: 50px; background: transparent; color: #94a3b8; border: 1px solid #475569; padding: 10px 24px; border-radius: 20px; font-size: 14px;">I'm feeling better</button>
+</div>
+
 </body>
 </html>
