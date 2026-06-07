@@ -4249,33 +4249,35 @@ async function generateDQ() {
 
   const system = `You are a bank exam question setter for Indian bank exams (SBI PO, IBPS PO). Generate ONE multiple choice question.
 
-FORMATTING RULES:
-- Para Jumbles: "Arrange the sentences in correct order:\nP) ...\nQ) ...\nR) ...\nS) ...\nT) ...\nWhich is the correct sequence?"
-- Fillers / Cloze Test: show the sentence with a clear blank — e.g. "She was _______ by the sudden news."
-- Data Interpretation: include a small self-contained data set (table or values) in the question field, then ask ONE calculation question about it.
-- Reading Comprehension: include a short 4-6 line passage, then ask ONE question about it.
-- Puzzles / Seating Arrangement: keep the arrangement solvable in under 2 minutes — max 4-5 people/items.
-- Quant (non-DI): show the full problem in one sentence; include working steps in the explanation.
-- All others: single clear sentence or short paragraph.
+Output EXACTLY one line in this pipe-delimited format (no other text):
+SECTION|TOPIC|DIFFICULTY|QUESTION|OPTION_A|OPTION_B|OPTION_C|OPTION_D|CORRECT_LETTER|EXPLANATION
 
-RESPOND IN THIS EXACT JSON FORMAT — nothing else, no markdown, no explanation outside the JSON:
-{
-  "section": "Reasoning",
-  "topic": "Puzzles",
-  "difficulty": "Medium",
-  "question": "The full question text here",
-  "options": ["A) option1", "B) option2", "C) option3", "D) option4"],
-  "correct": "A",
-  "explanation": "Clear explanation of why A is correct and why others are wrong. For Quant, show the calculation steps."
-}`;
+Rules:
+- CORRECT_LETTER is just A, B, C, or D
+- No pipe characters inside any field (use comma instead)
+- Para Jumbles: put sentences on separate lines using \\n between them e.g. "Arrange sentences:\\nP) ...\\nQ) ...\\nR) ...\\nS) ..."
+- Fillers: use _______ for the blank
+- DI: include a small data set in the question field
+- RC: include a short 4-6 line passage in the question field
+- Puzzles: max 4-5 people/items, solvable in 2 minutes
+- Quant: include calculation steps in explanation`;
 
-  const user = `Generate a ${difficulty} difficulty ${section} question about "${topic}" suitable for SBI PO / IBPS PO prelims. Make it different from questions about: ${usedTopics.join(', ') || 'none yet'}.`;
+  const user = `Generate ONE ${difficulty} ${section} question on "${topic}" for SBI PO / IBPS PO prelims. Not similar to: ${usedTopics.join(', ') || 'none'}. Output one pipe-delimited line only.`;
 
   try {
     const raw = await askGroq(system, user);
-    const jsonMatch = raw.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) throw new Error('Invalid response format');
-    const q = JSON.parse(jsonMatch[0]);
+    const line = raw.trim().split('\n').map(l => l.trim()).find(l => l.includes('|') && l.split('|').length >= 9);
+    if (!line) throw new Error('Invalid response format');
+    const p = line.split('|');
+    const q = {
+      section:     p[0]?.trim() || section,
+      topic:       p[1]?.trim() || topic,
+      difficulty:  p[2]?.trim() || difficulty,
+      question:    p[3]?.trim() || '',
+      options:     [`A) ${p[4]?.trim()}`, `B) ${p[5]?.trim()}`, `C) ${p[6]?.trim()}`, `D) ${p[7]?.trim()}`],
+      correct:     (p[8]?.trim() || 'A').toUpperCase().charAt(0),
+      explanation: p[9]?.trim() || ''
+    };
     q.date = todayStr();
     q.answered = false;
     q.qIndex = queue.questions.length; // 0-based
@@ -4287,7 +4289,7 @@ RESPOND IN THIS EXACT JSON FORMAT — nothing else, no markdown, no explanation 
   } catch(e) {
     $('dq-loading').style.display = 'none';
     $('dq-question').style.display = 'block';
-    $('dq-qtext').textContent = 'Could not generate question. Check your connection and try again.';
+    $('dq-qtext').textContent = 'Could not generate question. Tap "Next Question" to try again.';
     console.error('DQ error:', e);
   }
   updateDQStats();
