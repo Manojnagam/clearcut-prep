@@ -545,6 +545,15 @@ tr:last-child td{border-bottom:none}
     <section class="panel on" id="dash">
       <div id="dash-countdowns" class="countdown-grid"></div>
 
+      <!-- Daily Target -->
+      <div class="card" style="display:none;padding:14px 16px;margin-bottom:10px;background:linear-gradient(135deg,#fffbeb,#fef3c7);border-color:#fde68a" id="daily-target-card">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+          <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#b45309" id="dt-title">🎯 Today's Target</div>
+          <button id="dt-done-btn" onclick="markTargetDone()" style="background:#f59e0b;color:#fff;border:none;border-radius:8px;padding:5px 12px;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit">Mark Done ✓</button>
+        </div>
+        <div id="dt-text" style="font-size:14px;font-weight:500;color:#78350f;line-height:1.5">Generating target...</div>
+      </div>
+
       <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px">
         <div class="stat-card gold" style="flex:1;min-width:100px;padding:8px 12px">
           <div class="stat-label">🔥 Streak</div>
@@ -1799,6 +1808,49 @@ function saveModalDate() {
 }
 $('date-modal').addEventListener('click', e=>{ if(e.target===$('date-modal')) closeModal(); });
 
+/* ── DAILY TARGET ── */
+function renderDailyTarget() {
+  if (MOCKS.length === 0) {
+    $('daily-target-card').style.display = 'none';
+    return;
+  }
+  $('daily-target-card').style.display = 'block';
+
+  const todayStr = new Date().toISOString().slice(0,10);
+  const doneDate = localStorage.getItem('clearcut_target_done_' + PROFILE.name);
+  
+  if (doneDate === todayStr) {
+    $('dt-text').innerHTML = '✅ You completed your target for today! Great job.';
+    $('dt-done-btn').style.display = 'none';
+    $('daily-target-card').style.background = '#f0fdf4';
+    $('daily-target-card').style.borderColor = '#bbf7d0';
+    $('dt-title').style.color = '#15803d';
+    return;
+  }
+  
+  $('dt-done-btn').style.display = 'block';
+  $('daily-target-card').style.background = 'linear-gradient(135deg,#fffbeb,#fef3c7)';
+  $('daily-target-card').style.borderColor = '#fde68a';
+  $('dt-title').style.color = '#b45309';
+
+  const freq = weakTopicFreq();
+  const sorted = Object.entries(freq).sort((a,b)=>b[1]-a[1]);
+  
+  if (sorted.length >= 2) {
+    $('dt-text').innerHTML = `Focus on your weak spots: <b>Practice 3 sets of ${sorted[0][0]}</b> and <b>2 sets of ${sorted[1][0]}</b> today.`;
+  } else if (sorted.length === 1) {
+    $('dt-text').innerHTML = `Deep dive on your weakness: <b>Solve 5 sets of ${sorted[0][0]}</b> today.`;
+  } else {
+    $('dt-text').innerHTML = `Build momentum: <b>Take a 20-minute sectional mock</b> today and log it.`;
+  }
+}
+
+function markTargetDone() {
+  const todayStr = new Date().toISOString().slice(0,10);
+  localStorage.setItem('clearcut_target_done_' + PROFILE.name, todayStr);
+  renderDailyTarget();
+}
+
 /* ── COUNTDOWN CARDS ── */
 function renderCountdowns() {
   const exams = Object.keys(EXAM_DATES_DEFAULT);
@@ -2121,6 +2173,7 @@ Write a personal motivational message from me (Manoj) to her.`;
 /* ── DASHBOARD ── */
 function renderDash() {
   renderCountdowns();
+  renderDailyTarget();
   renderCutoffProgress();
   renderPrediction();
   renderStrategyCard();
