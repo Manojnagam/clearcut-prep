@@ -562,6 +562,10 @@ tr:last-child td{border-bottom:none}
           <div class="stat-label">Gap to cutoff</div>
           <div class="stat-val" id="d-gap" style="font-size:20px">—</div>
         </div>
+        <div class="stat-card" style="flex:1;min-width:100px;padding:8px 12px;background:linear-gradient(135deg,#f0f9ff,#e0f2fe);border-color:#bae6fd">
+          <div class="stat-label" style="color:#0369a1">Est. Percentile</div>
+          <div class="stat-val" id="d-perc" style="font-size:20px;color:#0284c7">— <small>%ile</small></div>
+        </div>
       </div>
 
       <!-- Cutoff Progress Section -->
@@ -715,9 +719,18 @@ tr:last-child td{border-bottom:none}
             </select>
           </label>
         </div>
-        <label class="fld"><span>Mock name (optional)</span>
-          <input id="f-name" placeholder="e.g. Oliveboard Mock 12 / PYP 2024" type="text">
-        </label>
+        <div class="grid2">
+          <label class="fld"><span>Mock name (optional)</span>
+            <input id="f-name" placeholder="e.g. Oliveboard Mock 12" type="text">
+          </label>
+          <label class="fld"><span>Difficulty</span>
+            <select id="f-diff">
+              <option value="Easy">Easy</option>
+              <option value="Moderate" selected>Moderate</option>
+              <option value="Hard">Hard</option>
+            </select>
+          </label>
+        </div>
 
         <div id="sec-inputs"></div>
 
@@ -2132,7 +2145,25 @@ function renderDash() {
       : `<span style="color:var(--ok)">+${Math.abs(gap)}</span>`;
     $('d-gap').title = gap>0 ? `Need ${gap} more to clear ${prof.targetExam}` : 'Already above cutoff!';
   } else {
-    $('d-gap').textContent = '—';
+    $('d-gap').innerHTML = '—';
+  }
+
+  // Est Percentile
+  if (MOCKS.length > 0 && $('d-perc')) {
+    let last3 = MOCKS.slice().reverse().slice(0, 3);
+    let avgRaw = last3.reduce((sum, m) => {
+       let score = totalScore(m);
+       if (m.difficulty === 'Hard') score *= 1.15;
+       else if (m.difficulty === 'Easy') score *= 0.85;
+       return sum + score;
+    }, 0) / last3.length;
+    let perc = Math.min(99.9, Math.max(10, avgRaw * 1.3));
+    $('d-perc').innerHTML = fmt(perc) + ' <small>%ile</small>';
+    $('d-perc').title = 'Based on recent normalized scores';
+  } else if ($('d-perc')) {
+    $('d-perc').innerHTML = '— <small>%ile</small>';
+  }
+    
   }
 
   // Insight
@@ -2302,6 +2333,7 @@ function resetForm() {
   $('f-date').value = todayStr();
   $('f-exam').value = PROFILE.targetExam||'SBI PO';
   $('f-name').value = '';
+  if ($('f-diff')) $('f-diff').value = 'Moderate';
   $('f-notes').value = '';
   onExamChange();
 }
@@ -2313,6 +2345,7 @@ async function saveMock() {
     date:       $('f-date').value || todayStr(),
     exam,
     mock_name:  $('f-name').value.trim(),
+    difficulty: $('f-diff') ? $('f-diff').value : 'Moderate',
     weak_topics:[...document.querySelectorAll('#topic-chips .chip.on')].map(c=>c.dataset.topic),
     notes:      $('f-notes').value.trim()
   };
@@ -2345,6 +2378,7 @@ function editMock(id) {
   $('f-date').value = m.date;
   $('f-exam').value = m.exam||'SBI PO';
   $('f-name').value = m.mock_name||'';
+  if ($('f-diff')) $('f-diff').value = m.difficulty || 'Moderate';
   $('f-notes').value = m.notes||'';
   onExamChange();
   const secs = getSections(m.exam);
@@ -2740,7 +2774,7 @@ function renderHistory() {
     return `<div class="mock-card">
       <div class="mock-top">
         <div>
-          <div class="mock-name">${m.mock_name||m.exam}</div>
+          <div class="mock-name">${m.mock_name||m.exam} ${m.difficulty === 'Hard' ? '<span class="badge" style="background:#fee2e2;color:#991b1b;margin-left:6px">🌶️ Hard</span>' : m.difficulty === 'Easy' ? '<span class="badge" style="background:#d1fae5;color:#065f46;margin-left:6px">🟢 Easy</span>' : ''}</div>
           <div class="mock-meta">${m.exam} · ${fmtDate(m.date)}</div>
         </div>
         <div>
