@@ -14,7 +14,14 @@ export async function onRequestPost(context) {
     body: JSON.stringify({ model, max_tokens, temperature, messages })
   });
 
-  const data = await res.json();
+  let data;
+  try {
+    data = await res.json();
+  } catch (e) {
+    return new Response(JSON.stringify({ error: 'Groq API returned invalid response: ' + e.message }), {
+      status: 502, headers: { 'Content-Type': 'application/json' }
+    });
+  }
   return new Response(JSON.stringify(data), {
     status: res.status,
     headers: { 'Content-Type': 'application/json' }

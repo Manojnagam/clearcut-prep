@@ -3368,12 +3368,12 @@ function initChat() {
 }
 
 /* ── AI ── */
-async function askGroq(system, user) {
+async function askGroq(system, user, maxTokens = 1200) {
   try {
     const res = await fetch('/api/groq', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ model: GROQ_MODEL, max_tokens: 600, temperature: 0.85,
+      body: JSON.stringify({ model: GROQ_MODEL, max_tokens: maxTokens, temperature: 0.85,
         messages: [{ role:'system', content:system }, { role:'user', content:user }] })
     });
     const text = await res.text();
@@ -3382,6 +3382,10 @@ async function askGroq(system, user) {
       d = JSON.parse(text);
     } catch (e) {
       console.error("Groq JSON parse error:", e.message, "Text preview:", text.substring(0, 200));
+      return 'Could not get response.';
+    }
+    if (d.error) {
+      console.error("Groq API error:", d.error);
       return 'Could not get response.';
     }
     return d.choices?.[0]?.message?.content || 'Could not get response.';
@@ -5238,7 +5242,7 @@ TOPIC|DIFFICULTY|QUESTION|OPTION_A|OPTION_B|OPTION_C|OPTION_D|CORRECT_LETTER|EXP
 
   for (let attempt = 1; attempt <= retries; attempt++) {
     try {
-      const raw = await askGroq(system, user);
+      const raw = await askGroq(system, user, 2500);
       const lines = raw.split('
 ').filter(l => l.includes('|') && l.split('|').length >= 9);
       if (lines.length < 5) throw new Error(`Too few questions generated for ${sec.name}. Please try again.`);
