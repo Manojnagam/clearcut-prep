@@ -6,7 +6,7 @@
 // after the browser is fully closed. There is no Web Push server here, so
 // this is a best-effort client-side reminder only.
 
-const CACHE = 'clearcut-v1';
+const CACHE = 'clearcut-v2';
 const ASSETS = ['/', '/index.html'];
 
 self.addEventListener('install', e => {
@@ -15,7 +15,12 @@ self.addEventListener('install', e => {
 });
 
 self.addEventListener('activate', e => {
-  e.waitUntil(clients.claim());
+  // Delete old cache versions so deploys are picked up immediately
+  e.waitUntil(
+    caches.keys()
+      .then(keys => Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k))))
+      .then(() => clients.claim())
+  );
 });
 
 self.addEventListener('fetch', e => {

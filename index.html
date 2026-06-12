@@ -505,7 +505,7 @@ tr:last-child td{border-bottom:none}
 </div>
 
 <!-- ══════════════ SETUP SCREEN ══════════════ -->
-<div id="setup">
+<div id="setup" style="display:none">
   <div class="setup-split">
     <div class="setup-left">
       <div class="sl-brand">
@@ -2571,18 +2571,34 @@ async function saveMock() {
     o[s.key+'_time'] = +($('i-'+s.key+'-time')?.value||0);
   });
   if (secs.every(s=>!o[s.key+'_att'])) { alert('Enter at least one section.'); return; }
+  for (const s of secs) {
+    if (o[s.key+'_corr'] > o[s.key+'_att']) {
+      alert(`${s.name}: Correct (${o[s.key+'_corr']}) can't be more than Attempted (${o[s.key+'_att']}).`);
+      return;
+    }
+  }
 
+  const isNew = !editingId;
   $('save-btn').textContent = 'Saving…'; $('save-btn').disabled = true;
+
+  // Only the actual DB write is in the try — post-save UI errors won't fake a save failure
   try {
     if (editingId) await db.update(editingId, o); else await db.add(o);
-    await load();
-    checkMilestones();
-    resetForm();
-    document.querySelector('[data-t="dash"]').click();
-    // Auto-trigger AI insight after saving
-    if (!editingId) askAI('her');
-  } catch(e) { alert('Save failed: '+e.message); }
-  $('save-btn').disabled = false; $('save-btn').textContent = editingId?'Update mock':'Save mock';
+  } catch(e) {
+    alert('Save failed: '+e.message);
+    $('save-btn').disabled = false;
+    $('save-btn').textContent = editingId ? 'Update mock' : 'Save mock';
+    return;
+  }
+
+  // Save succeeded — refresh data and update UI
+  await load();
+  checkMilestones();
+  resetForm();
+  document.querySelector('[data-t="dash"]').click();
+  if (isNew) askAI('her');
+  $('save-btn').disabled = false;
+  $('save-btn').textContent = 'Save mock';
 }
 
 function editMock(id) {
