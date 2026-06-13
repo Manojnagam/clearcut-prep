@@ -1,0 +1,7 @@
+{
+  "name": "clearcut-prep",
+  "version": "1.0.0",
+  "scripts": {
+    "build": "mkdir -p dist/functions/api && cp index.html manifest.json sw.js dist/ && cp functions/api/groq.js dist/functions/api/"
+  }
+}
