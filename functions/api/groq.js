@@ -14,14 +14,27 @@ export async function onRequestPost(context) {
     body: JSON.stringify({ model, max_tokens, temperature, messages })
   });
 
+  const text = await res.text();
+
   let data;
   try {
-    data = await res.json();
+    data = JSON.parse(text);
   } catch (e) {
-    return new Response(JSON.stringify({ error: 'Groq API returned invalid response: ' + e.message }), {
-      status: 502, headers: { 'Content-Type': 'application/json' }
-    });
+    // Groq sometimes returns malformed JSON (literal newlines inside string values).
+    // Try to salvage the content string via regex so the app still gets the response.
+    const contentMatch = text.match(/"content"\s*:\s*"([\s\S]*?)"\s*,\s*"role"/);
+    if (contentMatch) {
+      const content = contentMatch[1].replace(/\\n/g, '\n');
+      data = {
+        choices: [{ message: { role: 'assistant', content } }]
+      };
+    } else {
+      return new Response(JSON.stringify({ error: 'Groq API returned invalid JSON: ' + e.message }), {
+        status: 502, headers: { 'Content-Type': 'application/json' }
+      });
+    }
   }
+
   return new Response(JSON.stringify(data), {
     status: res.status,
     headers: { 'Content-Type': 'application/json' }
