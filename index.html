@@ -2309,8 +2309,6 @@ function renderDash() {
   } else if ($('d-perc')) {
     $('d-perc').innerHTML = '— <small>%ile</small>';
   }
-    
-  }
 
   // Insight
   if (MOCKS.length >= 2) {
@@ -2348,18 +2346,18 @@ function renderDash() {
   // Feature 5: Dynamic Cutoff Line
   const targetExamName = window.PROFILE?.targetExam || 'SBI PO';
   const cutoffData = window.CUTOFF_HISTORY ? window.CUTOFF_HISTORY[targetExamName] : null;
-  const targetCutoff = cutoffData ? (cutoffData.overall['gen'] || 62) : 62; // fallback
-  const lineBottomPx = Math.round((targetCutoff/100)*50);
+  const cutoffScore = cutoffData ? (cutoffData.overall['gen'] || 62) : 62; // fallback
+  const lineBottomPx = Math.round((cutoffScore/100)*50);
 
   const cutoffLineHtml = `
     <div style="position:absolute;bottom:${lineBottomPx}px;left:0;right:0;border-bottom:1px dashed #ef4444;pointer-events:none;z-index:0;opacity:0.6"></div>
-    <div style="position:absolute;bottom:${lineBottomPx + 2}px;left:2px;font-size:8px;font-weight:700;color:#ef4444;pointer-events:none;z-index:0;opacity:0.8">${targetExamName} Cutoff: ${targetCutoff}</div>
+    <div style="position:absolute;bottom:${lineBottomPx + 2}px;left:2px;font-size:8px;font-weight:700;color:#ef4444;pointer-events:none;z-index:0;opacity:0.8">${targetExamName} Cutoff: ${cutoffScore}</div>
   `;
 
   $('score-bars').style.position = 'relative';
   $('score-bars').innerHTML = cutoffLineHtml + scores.map((s,i)=>{
     // Dynamic color based on dynamic cutoff
-    const col = s >= targetCutoff ? '#10b981' : (s >= targetCutoff - 10 ? '#f59e0b' : '#ef4444');
+    const col = s >= cutoffScore ? '#10b981' : (s >= cutoffScore - 10 ? '#f59e0b' : '#ef4444');
     return `<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;z-index:1;position:relative;">
       <div style="font-size:9px;font-weight:700;color:${col}">${fmt(s)}</div>
       <div style="width:100%;background:${col};border-radius:3px 3px 0 0;height:${Math.max(4,Math.round((s/100)*50))}px"></div>
@@ -5259,8 +5257,7 @@ TOPIC|DIFFICULTY|QUESTION|OPTION_A|OPTION_B|OPTION_C|OPTION_D|CORRECT_LETTER|EXP
   for (let attempt = 1; attempt <= retries; attempt++) {
     try {
       const raw = await askGroq(system, user, 2500);
-      const lines = raw.split('
-').filter(l => l.includes('|') && l.split('|').length >= 9);
+      const lines = raw.split('\n').filter(l => l.includes('|') && l.split('|').length >= 9);
       if (lines.length < 5) throw new Error(`Too few questions generated for ${sec.name}. Please try again.`);
       
       const qs = lines.slice(0, 10).map(l => {
