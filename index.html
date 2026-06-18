@@ -4975,49 +4975,113 @@ async function generateDQ() {
   const difficulty = getDifficulty();
   const section = getSectionForTopic(topic);
 
-  const system = `You are a bank exam question setter for Indian bank exams (SBI PO, IBPS PO). Generate ONE multiple choice question.
+  // We request tag-based block format as it is extremely robust against newline and formatting errors
+  const system = `You are a bank exam question setter for Indian bank exams (SBI PO, IBPS PO). Generate ONE multiple choice question on the requested topic.
 
-Output EXACTLY one line in this pipe-delimited format (no other text):
-SECTION|TOPIC|DIFFICULTY|QUESTION|OPTION_A|OPTION_B|OPTION_C|OPTION_D|CORRECT_LETTER|EXPLANATION
+You MUST format the output using these block tags (preserve newlines inside blocks, output no other text outside blocks):
+[SECTION]
+Quant
+[TOPIC]
+Data Interpretation
+[DIFFICULTY]
+Moderate
+[QUESTION]
+Question text goes here (you can include tables, data sets, or multiple lines)
+[OPTION_A]
+Option A text
+[OPTION_B]
+Option B text
+[OPTION_C]
+Option C text
+[OPTION_D]
+Option D text
+[CORRECT]
+A, B, C, or D
+[EXPLANATION]
+Explanation text here (include calculations for Quant)
+[END]
 
 Rules:
-- CORRECT_LETTER is just A, B, C, or D
-- No pipe characters inside any field (use comma instead)
-- Para Jumbles: put sentences on separate lines using \\n between them e.g. "Arrange sentences:\\nP) ...\\nQ) ...\\nR) ...\\nS) ..."
-- Fillers: use _______ for the blank
-- DI: include a small data set in the question field
-- RC: include a short 4-6 line passage in the question field
-- Puzzles: max 4-5 people/items, solvable in 2 minutes
-- Quant: include calculation steps in explanation`;
+- CORRECT is just a single letter: A, B, C, or D.
+- Include data tables, paragraphs, or sentence lists directly in the [QUESTION] block.`;
 
-  const user = `Generate ONE ${difficulty} ${section} question on "${topic}" for SBI PO / IBPS PO prelims. Not similar to: ${usedTopics.join(', ') || 'none'}. Output one pipe-delimited line only.`;
+  const user = `Generate ONE ${difficulty} ${section} question on "${topic}" for SBI PO / IBPS PO prelims. Not similar to: ${usedTopics.join(', ') || 'none'}. Use the block tag format.`;
 
   try {
     const raw = await askGroq(system, user);
     if (!raw || raw === 'Could not get response.') throw new Error('AI service unavailable — check your connection or try again shortly.');
-    const line = raw.trim().split('\n').map(l => l.trim().replace(/^```[\w]*\s*$/, '').replace(/^\d+[\.\)]\s*/, '')).find(l => l.includes('|') && l.split('|').length >= 9 && !/^SECTION\|/i.test(l) && !/^TOPIC\|/i.test(l));
-    if (!line) throw new Error('Question format error — retrying should fix this.');
-    const p = line.split('|');
-    const cleanOptionPrefix = (opt, letter) => {
-      if (!opt) return '';
-      opt = opt.trim();
-      const regex = new RegExp('^' + letter + '\\b[\\s\\)\\.\\-:\\/]*', 'i');
-      return opt.replace(regex, '').trim();
-    };
-    const q = {
-      section:     p[0]?.trim() || section,
-      topic:       p[1]?.trim() || topic,
-      difficulty:  p[2]?.trim() || difficulty,
-      question:    p[3]?.trim() || '',
-      options:     [
-        `A) ${cleanOptionPrefix(p[4]?.trim(), 'A')}`,
-        `B) ${cleanOptionPrefix(p[5]?.trim(), 'B')}`,
-        `C) ${cleanOptionPrefix(p[6]?.trim(), 'C')}`,
-        `D) ${cleanOptionPrefix(p[7]?.trim(), 'D')}`
-      ],
-      correct:     (p[8]?.trim() || 'A').toUpperCase().charAt(0),
-      explanation: p[9]?.trim() || ''
-    };
+    
+    let q;
+    // Check if the response contains block tags
+    if (raw.includes('[SECTION]') && raw.includes('[QUESTION]') && raw.includes('[CORRECT]')) {
+      const tags = ['SECTION', 'TOPIC', 'DIFFICULTY', 'QUESTION', 'OPTION_A', 'OPTION_B', 'OPTION_C', 'OPTION_D', 'CORRECT', 'EXPLANATION', 'END'];
+      const parsed = {};
+      tags.forEach(tag => {
+        const startTag = `[${tag}]`;
+        const startIndex = raw.indexOf(startTag);
+        if (startIndex === -1) return;
+        
+        let endIndex = raw.length;
+        tags.forEach(nextTag => {
+          const nextStartTag = `[${nextTag}]`;
+          if (nextTag !== tag) {
+            const nextIndex = raw.indexOf(nextStartTag, startIndex + startTag.length);
+            if (nextIndex !== -1 && nextIndex < endIndex) {
+              endIndex = nextIndex;
+            }
+          }
+        });
+        parsed[tag.toLowerCase()] = raw.substring(startIndex + startTag.length, endIndex).trim();
+      });
+
+      const cleanOptionPrefix = (opt, letter) => {
+        if (!opt) return '';
+        opt = opt.trim();
+        const regex = new RegExp('^' + letter + '\\b[\\s\\)\\.\\-:\\/]*', 'i');
+        return opt.replace(regex, '').trim();
+      };
+
+      q = {
+        section:     parsed.section || section,
+        topic:       parsed.topic || topic,
+        difficulty:  parsed.difficulty || difficulty,
+        question:    parsed.question || '',
+        options:     [
+          `A) ${cleanOptionPrefix(parsed.option_a, 'A')}`,
+          `B) ${cleanOptionPrefix(parsed.option_b, 'B')}`,
+          `C) ${cleanOptionPrefix(parsed.option_c, 'C')}`,
+          `D) ${cleanOptionPrefix(parsed.option_d, 'D')}`
+        ],
+        correct:     (parsed.correct || 'A').toUpperCase().charAt(0),
+        explanation: parsed.explanation || ''
+      };
+    } else {
+      // Fallback to legacy pipe-delimited format parsing
+      const line = raw.trim().split('\n').map(l => l.trim().replace(/^```[\w]*\s*$/, '').replace(/^\d+[\.\)]\s*/, '')).find(l => l.includes('|') && l.split('|').length >= 9 && !/^SECTION\|/i.test(l) && !/^TOPIC\|/i.test(l));
+      if (!line) throw new Error('Question format error — retrying should fix this.');
+      const p = line.split('|');
+      const cleanOptionPrefix = (opt, letter) => {
+        if (!opt) return '';
+        opt = opt.trim();
+        const regex = new RegExp('^' + letter + '\\b[\\s\\)\\.\\-:\\/]*', 'i');
+        return opt.replace(regex, '').trim();
+      };
+      q = {
+        section:     p[0]?.trim() || section,
+        topic:       p[1]?.trim() || topic,
+        difficulty:  p[2]?.trim() || difficulty,
+        question:    p[3]?.trim() || '',
+        options:     [
+          `A) ${cleanOptionPrefix(p[4]?.trim(), 'A')}`,
+          `B) ${cleanOptionPrefix(p[5]?.trim(), 'B')}`,
+          `C) ${cleanOptionPrefix(p[6]?.trim(), 'C')}`,
+          `D) ${cleanOptionPrefix(p[7]?.trim(), 'D')}`
+        ],
+        correct:     (p[8]?.trim() || 'A').toUpperCase().charAt(0),
+        explanation: p[9]?.trim() || ''
+      };
+    }
+
     q.date = todayStr();
     q.answered = false;
     q.qIndex = queue.questions.length; // 0-based
