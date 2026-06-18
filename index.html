@@ -680,6 +680,66 @@ tr:last-child td{border-bottom:none}
         </div>
       </div>
 
+      <!-- Topper's Daily Action Blueprint -->
+      <div id="topper-blueprint-card" class="card" style="padding:16px; margin-bottom:10px; border:1.5px solid var(--border)">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px">
+          <div style="font-family:'DM Serif Display',serif; font-size:16px; display:flex; align-items:center; gap:6px; color:var(--navy)">
+            🔥 Topper's Daily Action Blueprint
+          </div>
+          <span style="font-size:11px; font-weight:700; color:var(--gold-d); background:#fef3c7; padding:3px 8px; border-radius:12px" id="blueprint-progress-badge">0/4 Completed</span>
+        </div>
+        
+        <div style="display:flex; flex-direction:column; gap:10px" id="blueprint-list">
+          <!-- Item 1: Speed Math -->
+          <div style="display:flex; justify-content:space-between; align-items:center; padding:8px 10px; border-radius:8px; background:var(--surface2); border:1px solid var(--border)" id="bp-item-speedmath">
+            <div style="display:flex; align-items:center; gap:8px">
+              <span id="bp-check-speedmath" style="font-size:16px">⬜</span>
+              <div>
+                <div style="font-weight:600; font-size:13px">Speed Math Drill</div>
+                <div style="font-size:11px; color:var(--muted)">Target: 1 challenge daily to build Quant calculation speed</div>
+              </div>
+            </div>
+            <button class="btn sm primary" onclick="document.querySelector('[data-t=\'speedmath\']').click()" style="padding:4px 8px; font-size:11px; width:auto; border-radius:6px">Drill</button>
+          </div>
+
+          <!-- Item 2: Practice Qs -->
+          <div style="display:flex; justify-content:space-between; align-items:center; padding:8px 10px; border-radius:8px; background:var(--surface2); border:1px solid var(--border)" id="bp-item-practiceq">
+            <div style="display:flex; align-items:center; gap:8px">
+              <span id="bp-check-practiceq" style="font-size:16px">⬜</span>
+              <div>
+                <div style="font-weight:600; font-size:13px">Daily Practice Qs</div>
+                <div style="font-size:11px; color:var(--muted)" id="bp-text-practiceq">Target: Answer all 10 questions of the day</div>
+              </div>
+            </div>
+            <button class="btn sm primary" onclick="goToDQTab()" style="padding:4px 8px; font-size:11px; width:auto; border-radius:6px">Solve</button>
+          </div>
+
+          <!-- Item 3: Mistake Book -->
+          <div style="display:flex; justify-content:space-between; align-items:center; padding:8px 10px; border-radius:8px; background:var(--surface2); border:1px solid var(--border)" id="bp-item-mistakes">
+            <div style="display:flex; align-items:center; gap:8px">
+              <span id="bp-check-mistakes" style="font-size:16px">⬜</span>
+              <div>
+                <div style="font-weight:600; font-size:13px">Mistake Book Review</div>
+                <div style="font-size:11px; color:var(--muted)" id="bp-text-mistakes">Re-attempt due errors to lock in learning</div>
+              </div>
+            </div>
+            <button class="btn sm primary" onclick="goToDQTab(); setTimeout(()=>{$('dq-mistake-card').scrollIntoView({behavior:'smooth'});},300)" style="padding:4px 8px; font-size:11px; width:auto; border-radius:6px">Review</button>
+          </div>
+
+          <!-- Item 4: Mock Simulator -->
+          <div style="display:flex; justify-content:space-between; align-items:center; padding:8px 10px; border-radius:8px; background:var(--surface2); border:1px solid var(--border)" id="bp-item-mock">
+            <div style="display:flex; align-items:center; gap:8px">
+              <span id="bp-check-mock" style="font-size:16px">⬜</span>
+              <div>
+                <div style="font-weight:600; font-size:13px">Mock Simulation</div>
+                <div style="font-size:11px; color:var(--muted)" id="bp-text-mock">Take a mock simulator section or full exam</div>
+              </div>
+            </div>
+            <button class="btn sm primary" onclick="document.querySelector('[data-t=\'mocksim\']').click()" style="padding:4px 8px; font-size:11px; width:auto; border-radius:6px">Test</button>
+          </div>
+        </div>
+      </div>
+
       <!-- Cutoff Progress Section -->
       <div id="cutoff-progress-section" style="background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:14px 16px;margin-bottom:10px">
         <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin-bottom:12px">
@@ -1940,7 +2000,7 @@ const knownMockColumns = new Set([
   'eng_att', 'eng_corr', 'eng_time',
   'quant_att', 'quant_corr', 'quant_time',
   'reas_att', 'reas_corr', 'reas_time',
-  'weak_topics'
+  'weak_topics', 'time_sinks'
 ]);
 
 function deserializeExtraFields(m) {
@@ -2724,6 +2784,7 @@ function renderDash() {
   if (typeof renderTimeSinksChart === 'function') renderTimeSinksChart();
   checkCoachQuizBanner();
   renderDailyMotivation();
+  updateTopperBlueprint();
 
   const streak = calcStreak();
   $('d-streak').innerHTML = streak+' <small>days</small>';
@@ -7419,6 +7480,97 @@ function initSpeedMath() {
   $('sm-result').style.display = 'none';
   $('sm-menu').style.display = 'block';
   clearInterval(smState.timer);
+}
+
+/* ── TOPPER BLUEPRINT ── */
+function updateTopperBlueprint() {
+  const today = todayStr();
+  let doneCount = 0;
+  
+  // 1. Speed Math check
+  const hasSpeedMathToday = STUDY_LOGS.some(l => l.date === today && l.topic && l.topic.includes('Speed Math'));
+  const checkSM = $('bp-check-speedmath');
+  const itemSM = $('bp-item-speedmath');
+  if (hasSpeedMathToday) {
+    checkSM.textContent = '✅';
+    itemSM.style.borderColor = '#34d399';
+    itemSM.style.background = '#f0fdf4';
+    doneCount++;
+  } else {
+    checkSM.textContent = '⬜';
+    itemSM.style.borderColor = 'var(--border)';
+    itemSM.style.background = 'var(--surface2)';
+  }
+  
+  // 2. Daily Practice Qs check
+  const q = getDailyQueue();
+  const answeredCount = q ? (q.answeredCount || 0) : 0;
+  const checkDQ = $('bp-check-practiceq');
+  const textDQ = $('bp-text-practiceq');
+  const itemDQ = $('bp-item-practiceq');
+  if (answeredCount >= 10) {
+    checkDQ.textContent = '✅';
+    textDQ.textContent = `All 10 questions done for today!`;
+    itemDQ.style.borderColor = '#34d399';
+    itemDQ.style.background = '#f0fdf4';
+    doneCount++;
+  } else {
+    checkDQ.textContent = '⬜';
+    textDQ.textContent = `Answer all 10 questions (Completed: ${answeredCount}/10)`;
+    itemDQ.style.borderColor = 'var(--border)';
+    itemDQ.style.background = 'var(--surface2)';
+  }
+  
+  // 3. Mistake Book check
+  const mistakes = typeof MISTAKE_BOOK !== 'undefined' ? MISTAKE_BOOK : [];
+  const dueMistakes = mistakes.filter(m => !m.mastered && (m.nextReviewDate || today) <= today).length;
+  const checkMistakes = $('bp-check-mistakes');
+  const textMistakes = $('bp-text-mistakes');
+  const itemMistakes = $('bp-item-mistakes');
+  if (dueMistakes === 0) {
+    checkMistakes.textContent = '✅';
+    textMistakes.textContent = `No mistakes due today. Great work!`;
+    itemMistakes.style.borderColor = '#34d399';
+    itemMistakes.style.background = '#f0fdf4';
+    doneCount++;
+  } else {
+    checkMistakes.textContent = '⬜';
+    textMistakes.textContent = `Review due errors to clear your backlog (${dueMistakes} due today)`;
+    itemMistakes.style.borderColor = 'var(--border)';
+    itemMistakes.style.background = 'var(--surface2)';
+  }
+  
+  // 4. Mock Sim check
+  const hasMockToday = MOCKS.some(m => m.date === today);
+  const checkMock = $('bp-check-mock');
+  const textMock = $('bp-text-mock');
+  const itemMock = $('bp-item-mock');
+  if (hasMockToday) {
+    checkMock.textContent = '✅';
+    textMock.textContent = `Logged a mock today! Excellent focus.`;
+    itemMock.style.borderColor = '#34d399';
+    itemMock.style.background = '#f0fdf4';
+    doneCount++;
+  } else {
+    checkMock.textContent = '⬜';
+    textMock.textContent = `Attempt a section mock to build exam endurance`;
+    itemMock.style.borderColor = 'var(--border)';
+    itemMock.style.background = 'var(--surface2)';
+  }
+  
+  // Update progress badge
+  const progressBadge = $('blueprint-progress-badge');
+  progressBadge.textContent = `${doneCount}/4 Completed`;
+  if (doneCount === 4) {
+    progressBadge.style.background = '#d1fae5';
+    progressBadge.style.color = '#065f46';
+    progressBadge.style.borderColor = '#34d399';
+    progressBadge.textContent = 'All Targets Cleared! 🎉';
+  } else {
+    progressBadge.style.background = '#fef3c7';
+    progressBadge.style.color = 'var(--gold-d)';
+    progressBadge.style.borderColor = '#fde68a';
+  }
 }
 
 /* ── FLOATING SCRATCHPAD ENGINE ── */
