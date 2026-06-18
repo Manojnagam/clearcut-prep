@@ -798,6 +798,15 @@ tr:last-child td{border-bottom:none}
         <div id="topic-acc-content"></div>
       </div>
 
+      <!-- Time Traps Alert Banner -->
+      <div id="time-traps-alert" style="display:none;background:linear-gradient(135deg, #fff5f5, #fed7d7);border:1px solid #feb2b2;border-radius:14px;padding:14px 16px;margin-bottom:10px;box-shadow:0 4px 6px -1px rgba(0,0,0,0.05)">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+          <span style="font-size:18px">🚨</span>
+          <span style="font-weight:700;color:#9b1c1c;font-size:11px;letter-spacing:.5px;text-transform:uppercase">Time Trap Alert!</span>
+        </div>
+        <div id="time-traps-alert-content" style="font-size:13px;color:#7f1d1d;line-height:1.5"></div>
+      </div>
+
       <!-- Time Sinks chart -->
       <div id="time-sinks-card" style="display:none;background:var(--surface);border:1px solid #fca5a5;border-radius:14px;padding:14px 16px;margin-bottom:10px">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
@@ -1094,6 +1103,7 @@ tr:last-child td{border-bottom:none}
         <div class="grid2">
           <label class="fld"><span>Topic</span>
             <input type="text" id="sl-topic" placeholder="e.g. Puzzles, Number Series">
+            <div id="sl-weak-booster-chips" style="margin-top:6px;display:flex;flex-wrap:wrap;gap:6.5px"></div>
           </label>
           <label class="fld"><span>Duration (minutes)</span>
             <input type="number" id="sl-duration" min="1" max="600" placeholder="e.g. 45">
@@ -1849,6 +1859,8 @@ const local = {
   setDates(o)  { const k=PROFILE.name?LS_DATES+'_'+PROFILE.name:LS_DATES; localStorage.setItem(k, JSON.stringify(o)) },
   getLogs()    { try{return JSON.parse(localStorage.getItem('cc_studylogs'))||[]}catch{return[]} },
   setLogs(a)   { localStorage.setItem('cc_studylogs', JSON.stringify(a)) },
+  getMistakesCompat() { try{return JSON.parse(localStorage.getItem('cc_mistake_book'))||[]}catch{return[]} },
+  setMistakesCompat(a){ localStorage.setItem('cc_mistake_book', JSON.stringify(a)) },
 };
 
 const db = {
@@ -1908,12 +1920,105 @@ const studyLogDb = {
   }
 };
 
+const mistakeDb = {
+  async all() {
+    if (USE_SB) {
+      const uq = PROFILE.name ? '&user_name=eq.'+encodeURIComponent(PROFILE.name) : '';
+      const list = await sbReq(STUDY_LOG_TABLE+'?select=*&section=eq.__MISTAKE__'+uq);
+      return (list || []).map(this.deserialize);
+    }
+    return local.getMistakesCompat();
+  },
+  async add(m) {
+    const o = this.serialize(m);
+    if (USE_SB) {
+      return await sbReq(STUDY_LOG_TABLE, {method:'POST', body:JSON.stringify(o)});
+    }
+    const a = local.getMistakesCompat();
+    a.push(m);
+    local.setMistakesCompat(a);
+    return m;
+  },
+  async update(id, m) {
+    const o = this.serialize(m);
+    delete o.created_at;
+    if (USE_SB) {
+      return await sbReq(STUDY_LOG_TABLE+'?id=eq.'+id, {method:'PATCH', body:JSON.stringify(o)});
+    }
+    const a = local.getMistakesCompat();
+    const i = a.findIndex(x => x.id === id);
+    if (i > -1) {
+      a[i] = { ...a[i], ...m };
+      local.setMistakesCompat(a);
+    }
+    return m;
+  },
+  async del(id) {
+    if (USE_SB) {
+      return await sbReq(STUDY_LOG_TABLE+'?id=eq.'+id, {method:'DELETE'});
+    }
+    const a = local.getMistakesCompat();
+    local.setMistakesCompat(a.filter(x => x.id !== id));
+    return null;
+  },
+  serialize(m) {
+    return {
+      id: m.id || (Date.now()+''+Math.floor(Math.random()*9999)),
+      date: m.date || todayStr(),
+      section: '__MISTAKE__',
+      topic: m.topic || 'Reasoning',
+      duration: m.box || 1,
+      confidence: m.mastered ? 'mastered' : 'active',
+      notes: JSON.stringify({
+        difficulty: m.difficulty,
+        question: m.question,
+        options: m.options,
+        correct: m.correct,
+        explanation: m.explanation,
+        userAnswer: m.userAnswer,
+        retried: m.retried,
+        nextReviewDate: m.nextReviewDate,
+        correctStreak: m.correctStreak,
+        _origId: m._origId
+      }),
+      user_name: PROFILE.name
+    };
+  },
+  deserialize(row) {
+    let extra = {};
+    try {
+      extra = JSON.parse(row.notes);
+    } catch (e) {
+      console.error("Failed to parse mistake notes:", e);
+    }
+    return {
+      id: row.id,
+      date: row.date,
+      section: extra.section || row.topic,
+      topic: row.topic,
+      difficulty: extra.difficulty || 'Moderate',
+      question: extra.question,
+      options: extra.options,
+      correct: extra.correct,
+      explanation: extra.explanation,
+      userAnswer: extra.userAnswer,
+      retried: extra.retried || false,
+      box: row.duration || 1,
+      nextReviewDate: extra.nextReviewDate,
+      correctStreak: extra.correctStreak || 0,
+      mastered: row.confidence === 'mastered',
+      _origId: extra._origId
+    };
+  }
+};
+
 /* ── HELPERS ── */
 let MOCKS = [];
 let SYLLABUS = {};
 let PROFILE = {};
 let EXAM_DATES = {};
 let STUDY_LOGS = [];
+let MISTAKE_BOOK = [];
 let charts = {};
 let editingId = null;
 let currentSections = SECTIONS_FULL;
@@ -2717,9 +2822,41 @@ function renderTimeSinksChart() {
       counts[ts.topic] = (counts[ts.topic] || 0) + 1;
     });
   });
-  const avgs = Object.keys(sums).map(topic => ({ topic, avg: sums[topic]/counts[topic] }));
+  const avgs = Object.keys(sums).map(topic => ({
+    topic,
+    avg: sums[topic]/counts[topic],
+    total: sums[topic],
+    count: counts[topic]
+  }));
   avgs.sort((a,b) => b.avg - a.avg);
   
+  // Time Traps Alert logic
+  const alertCard = $('time-traps-alert');
+  if (alertCard) {
+    const traps = avgs.filter(a => a.avg > 4 || a.total > 15);
+    if (traps.length > 0) {
+      alertCard.style.display = 'block';
+      const topTrap = traps[0]; // worst offender
+      let advice = '';
+      const topicLower = topTrap.topic.toLowerCase();
+      if (topicLower.includes('puzzle') || topicLower.includes('arrangement')) {
+        advice = 'Puzzles & seating arrangements can be massive time sinks. Consider skipping them initially and picking them up only in the last 5-7 minutes of the section.';
+      } else if (topicLower.includes('comprehension') || topicLower.includes('rc')) {
+        advice = 'Reading Comprehension is eating up valuable time. Try reading the questions first to scan for answers, or speed up your passage parsing.';
+      } else if (topicLower.includes('data interpretation') || topicLower.includes('di')) {
+        advice = 'DI sets can contain heavy calculations. Try rounding/estimating numbers to solve faster, or leave complex sets for the end.';
+      } else {
+        advice = 'You are spending a significant amount of time here. Practice sectional quizzes on this topic to improve speed, or skip it initially to secure marks elsewhere.';
+      }
+      $('time-traps-alert-content').innerHTML = `
+        You are spending an average of <strong>${fmt(topTrap.avg)} mins</strong> on <strong>${topTrap.topic}</strong> (logged ${topTrap.count} times).
+        <div style="margin-top:6px;font-size:12px;opacity:0.9;border-left:3px solid #f43f5e;padding-left:8px;font-style:italic;color:#4c0519">${advice}</div>
+      `;
+    } else {
+      alertCard.style.display = 'none';
+    }
+  }
+
   if (!avgs.length) {
     card.style.display = 'none';
     return;
@@ -2786,14 +2923,31 @@ async function saveMock() {
   const isNew = !editingId;
   $('save-btn').textContent = 'Saving…'; $('save-btn').disabled = true;
 
-  // Only the actual DB write is in the try — post-save UI errors won't fake a save failure
   try {
     if (editingId) await db.update(editingId, o); else await db.add(o);
   } catch(e) {
-    alert('Save failed: '+e.message);
-    $('save-btn').disabled = false;
-    $('save-btn').textContent = editingId ? 'Update mock' : 'Save mock';
-    return;
+    if (USE_SB && (!navigator.onLine || e.message.includes('Fetch') || e.message.includes('Network') || !e.message.includes('400'))) {
+      o.id = o.id || Date.now()+''+Math.floor(Math.random()*9999);
+      if (PROFILE.name) o.user_name = PROFILE.name;
+      const localList = local.getMocks();
+      if (editingId) {
+        const i = localList.findIndex(m=>m.id==editingId);
+        if (i>-1) localList[i] = {...localList[i], ...o};
+      } else {
+        localList.push(o);
+      }
+      local.setMocks(localList);
+      
+      const unsynced = JSON.parse(localStorage.getItem('cc_unsynced_mocks') || '[]');
+      unsynced.push(o);
+      localStorage.setItem('cc_unsynced_mocks', JSON.stringify(unsynced));
+      alert('Offline! Saved mock locally. It will auto-sync to the cloud when connection is restored.');
+    } else {
+      alert('Save failed: '+e.message);
+      $('save-btn').disabled = false;
+      $('save-btn').textContent = editingId ? 'Update mock' : 'Save mock';
+      return;
+    }
   }
 
   // Save succeeded — refresh data and update UI
@@ -3330,6 +3484,19 @@ function buildStudyLogForm() {
   $('sl-confidence-chips').innerHTML = chips.map(c=>
     `<span class="chip ${c.cls}" data-conf="${c.val}" onclick="pickConfidence(this)">${c.label}</span>`
   ).join('');
+
+  // Weak Topic Booster Chips
+  const boosterContainer = $('sl-weak-booster-chips');
+  if (boosterContainer) {
+    const weakTopics = topWeakTopics(5);
+    if (weakTopics.length > 0) {
+      boosterContainer.style.display = 'flex';
+      boosterContainer.innerHTML = `<span style="font-size:11px;color:var(--muted);width:100%;margin-bottom:2px">🎯 Target weak topics:</span>` +
+        weakTopics.map(t => `<span class="chip" onclick="applyWeakBoosterTopic('${t.replace(/'/g, "\\'")}')" style="background:#fee2e2;color:#991b1b;border-color:#fca5a5;font-size:11px;padding:3px 8px;cursor:pointer">${t}</span>`).join('');
+    } else {
+      boosterContainer.style.display = 'none';
+    }
+  }
 }
 
 function pickConfidence(el) {
@@ -3354,19 +3521,37 @@ async function saveStudyLog() {
 
   try {
     await studyLogDb.add(o);
-    await loadStudyLogs();
-    broadcastStudyUpdate('study_log', o);
-    // Reset form fields
-    $('sl-topic').value = '';
-    $('sl-duration').value = '';
-    $('sl-notes').value = '';
-    selectedConfidence = '';
-    document.querySelectorAll('#sl-confidence-chips .chip').forEach(c=>c.classList.remove('on'));
-    renderStudyLog();
-    renderTodayActivity();
-    renderDash();
-    checkMilestones();
-  } catch(e) { alert('Save failed: '+e.message); }
+  } catch(e) {
+    if (USE_SB && (!navigator.onLine || e.message.includes('Fetch') || e.message.includes('Network'))) {
+      o.id = o.id || Date.now()+''+Math.floor(Math.random()*9999);
+      if (PROFILE.name) o.user_name = PROFILE.name;
+      
+      const localList = local.getLogs();
+      localList.push(o);
+      local.setLogs(localList);
+      
+      const unsynced = JSON.parse(localStorage.getItem('cc_unsynced_study_logs') || '[]');
+      unsynced.push(o);
+      localStorage.setItem('cc_unsynced_study_logs', JSON.stringify(unsynced));
+      alert('Offline! Saved study log locally. Will auto-sync when online.');
+    } else {
+      alert('Failed to save study log: ' + e.message);
+      return;
+    }
+  }
+
+  await loadStudyLogs();
+  broadcastStudyUpdate('study_log', o);
+  // Reset form fields
+  $('sl-topic').value = '';
+  $('sl-duration').value = '';
+  $('sl-notes').value = '';
+  selectedConfidence = '';
+  document.querySelectorAll('#sl-confidence-chips .chip').forEach(c=>c.classList.remove('on'));
+  renderStudyLog();
+  renderTodayActivity();
+  renderDash();
+  checkMilestones();
 }
 
 function renderStudyLog() {
@@ -4696,8 +4881,16 @@ function getDailyQueue() { try { return JSON.parse(localStorage.getItem('cc_dq_d
 function setDailyQueue(q) { localStorage.setItem('cc_dq_daily', JSON.stringify(q)); }
 
 // Mistake book: full wrong questions saved for review
-function getMistakeBook() { try { return JSON.parse(localStorage.getItem('cc_mistake_book'))||[]; } catch { return []; } }
-function setMistakeBook(a) { localStorage.setItem('cc_mistake_book', JSON.stringify(a)); }
+function getMistakeBook() {
+  return MISTAKE_BOOK;
+}
+function setMistakeBook(a) {
+  MISTAKE_BOOK = a;
+  local.setMistakesCompat(a);
+  if (USE_SB) {
+    syncMistakeBookToCloud(a);
+  }
+}
 
 // Legacy compat (old single-question key)
 function getTodayDQ() {
@@ -6316,15 +6509,144 @@ function resetMockSim() {
   showMS('setup');
 }
 
+async function loadMistakeBook() {
+  const localMistakes = local.getMistakesCompat();
+  if (USE_SB) {
+    try {
+      const cloudMistakes = await mistakeDb.all() || [];
+      if (cloudMistakes.length === 0 && localMistakes.length > 0) {
+        console.log("Migrating local mistakes to Supabase...");
+        for (const m of localMistakes) {
+          await mistakeDb.add(m);
+        }
+        MISTAKE_BOOK = await mistakeDb.all() || [];
+      } else {
+        MISTAKE_BOOK = cloudMistakes;
+      }
+    } catch(e) {
+      console.error("Failed to load mistake book from cloud, falling back to local:", e);
+      MISTAKE_BOOK = localMistakes;
+    }
+  } else {
+    MISTAKE_BOOK = localMistakes;
+  }
+  // Assign ids to legacy mistakes that don't have them
+  let updated = false;
+  MISTAKE_BOOK.forEach(m => {
+    if (!m.id) {
+      m.id = 'mistake-' + Math.floor(Math.random() * 1000000) + '-' + Date.now();
+      updated = true;
+    }
+  });
+  if (updated) {
+    local.setMistakesCompat(MISTAKE_BOOK);
+  }
+}
+
+async function syncMistakeBookToCloud(list) {
+  try {
+    const cloud = await mistakeDb.all();
+    const cloudMap = new Map(cloud.map(x => [x.id, x]));
+    for (const localM of list) {
+      if (!localM.id) localM.id = 'mistake-' + Math.floor(Math.random() * 1000000) + '-' + Date.now();
+      const cloudM = cloudMap.get(localM.id);
+      if (!cloudM) {
+        await mistakeDb.add(localM);
+      } else {
+        if (localM.box !== cloudM.box || localM.mastered !== cloudM.mastered || localM.retried !== cloudM.retried || localM.correctStreak !== cloudM.correctStreak || localM.nextReviewDate !== cloudM.nextReviewDate) {
+          await mistakeDb.update(localM.id, localM);
+        }
+      }
+    }
+    const localIds = new Set(list.map(x => x.id));
+    for (const cloudM of cloud) {
+      if (!localIds.has(cloudM.id)) {
+        await mistakeDb.del(cloudM.id);
+      }
+    }
+  } catch(e) {
+    console.error("Background mistake book sync failed:", e);
+  }
+}
+
+let isSyncingQueue = false;
+async function syncOfflineQueue() {
+  if (!USE_SB || isSyncingQueue || !navigator.onLine) return;
+  const unsyncedMocks = JSON.parse(localStorage.getItem('cc_unsynced_mocks') || '[]');
+  const unsyncedLogs = JSON.parse(localStorage.getItem('cc_unsynced_study_logs') || '[]');
+  if (unsyncedMocks.length === 0 && unsyncedLogs.length === 0) return;
+  isSyncingQueue = true;
+  console.log(`Syncing offline queue: ${unsyncedMocks.length} mocks, ${unsyncedLogs.length} logs...`);
+  const badge = $('sync-badge');
+  if (badge) {
+    badge.textContent = '⚡ Syncing offline data...';
+    badge.className = 'badge warning';
+  }
+  let successCount = 0;
+  const remainingMocks = [];
+  for (const m of unsyncedMocks) {
+    try {
+      const serialized = serializeExtraFields(m);
+      await sbReq(TABLE, {method:'POST', body:JSON.stringify(serialized)});
+      successCount++;
+    } catch(e) {
+      console.error("Failed to sync queued mock:", e);
+      remainingMocks.push(m);
+    }
+  }
+  localStorage.setItem('cc_unsynced_mocks', JSON.stringify(remainingMocks));
+  const remainingLogs = [];
+  for (const l of unsyncedLogs) {
+    try {
+      await sbReq(STUDY_LOG_TABLE, {method:'POST', body:JSON.stringify(l)});
+      successCount++;
+    } catch(e) {
+      console.error("Failed to sync queued log:", e);
+      remainingLogs.push(l);
+    }
+  }
+  localStorage.setItem('cc_unsynced_study_logs', JSON.stringify(remainingLogs));
+  isSyncingQueue = false;
+  if (successCount > 0) {
+    console.log(`Successfully synced ${successCount} items!`);
+    await load();
+    if (typeof renderHistory === 'function') renderHistory();
+    if (typeof renderStudyLog === 'function') renderStudyLog();
+    if (typeof renderTodayActivity === 'function') renderTodayActivity();
+    renderDash();
+  }
+}
+
+function applyWeakBoosterTopic(topic) {
+  $('sl-topic').value = topic;
+  const section = getSectionForTopic(topic);
+  if (section) {
+    const select = $('sl-section');
+    for (let i = 0; i < select.options.length; i++) {
+      if (select.options[i].value === section) {
+        select.selectedIndex = i;
+        break;
+      }
+    }
+  }
+}
+
 /* ── BOOT ── */
 async function loadStudyLogs() {
-  try { STUDY_LOGS = await studyLogDb.all()||[]; } catch(e) { console.error(e); STUDY_LOGS=local.getLogs(); }
+  try {
+    const raw = await studyLogDb.all()||[];
+    STUDY_LOGS = raw.filter(l => l.section !== '__MISTAKE__');
+  } catch(e) {
+    console.error(e);
+    STUDY_LOGS = local.getLogs();
+  }
 }
 
 async function load() {
   try { MOCKS = await db.all()||[]; } catch(e) { console.error(e); MOCKS=local.getMocks(); }
   SYLLABUS = local.getSyl();
   await loadStudyLogs();
+  await loadMistakeBook();
 }
 
 async function bootApp() {
@@ -6336,6 +6658,9 @@ async function bootApp() {
   PROFILE    = local.getProfile();
   EXAM_DATES = {...EXAM_DATES_DEFAULT, ...local.getDates()};
   initRealtimeSync();
+  window.addEventListener('online', syncOfflineQueue);
+  window.addEventListener('focus', syncOfflineQueue);
+  setTimeout(syncOfflineQueue, 2000);
 
   $('ahGreeting').textContent = PROFILE.name ? 'Hey, '+PROFILE.name+' 👋' : '';
   // Show switch button only when there are multiple users
