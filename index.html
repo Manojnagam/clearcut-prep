@@ -1787,8 +1787,55 @@ const LS_PROFILE  = 'cc_profile';
 const LS_PROFILES = 'cc_profiles';
 const LS_DATES    = 'cc_examdates';
 
+const knownMockColumns = new Set([
+  'id', 'date', 'exam', 'mock_name', 'difficulty', 'notes', 'user_name', 'created_at',
+  'eng_att', 'eng_corr', 'eng_time',
+  'quant_att', 'quant_corr', 'quant_time',
+  'reas_att', 'reas_corr', 'reas_time',
+  'weak_topics'
+]);
+
+function deserializeExtraFields(m) {
+  if (!m) return m;
+  if (m.notes) {
+    const regex = /\n\n\/\* METADATA: (\{.*?\}) \*\//s;
+    const match = m.notes.match(regex);
+    if (match) {
+      try {
+        const extra = JSON.parse(match[1]);
+        Object.keys(extra).forEach(k => {
+          if (!(k in m) || m[k] === undefined || m[k] === null) {
+            m[k] = extra[k];
+          }
+        });
+        m.notes = m.notes.replace(regex, '').trim();
+      } catch (e) {
+        console.error("Failed to parse metadata from notes:", e);
+      }
+    }
+  }
+  return m;
+}
+
+function serializeExtraFields(obj) {
+  const o = { ...obj };
+  const extra = {};
+  Object.keys(o).forEach(k => {
+    if (!knownMockColumns.has(k)) {
+      extra[k] = o[k];
+      delete o[k];
+    }
+  });
+  if (Object.keys(extra).length > 0) {
+    const notes = o.notes || '';
+    const cleanNotes = notes.replace(/\n\n\/\* METADATA: \{.*?\} \*\//gs, '').trim();
+    o.notes = cleanNotes + '\n\n/* METADATA: ' + JSON.stringify(extra) + ' */';
+  }
+  return o;
+}
+
 const local = {
-  getMocks()   { try{return JSON.parse(localStorage.getItem(LS_MOCKS))||[]}catch{return[]} },
+  getMocks()   { try{return (JSON.parse(localStorage.getItem(LS_MOCKS))||[]).map(deserializeExtraFields)}catch{return[]} },
   setMocks(a)  { localStorage.setItem(LS_MOCKS, JSON.stringify(a)) },
   // Syllabus is per-user when a user is active
   getSyl()     { const k=PROFILE.name?LS_SYLLABUS+'_'+PROFILE.name:LS_SYLLABUS; try{return JSON.parse(localStorage.getItem(k))||{}}catch{return{}} },
@@ -1807,19 +1854,35 @@ const local = {
 const db = {
   _uq() { return PROFILE.name ? '&user_name=eq.'+encodeURIComponent(PROFILE.name) : ''; },
   async all() {
-    if (USE_SB) return await sbReq(TABLE+'?select=*'+this._uq()+'&order=date.asc,id.asc');
-    return local.getMocks().filter(m=>!m.user_name||m.user_name===PROFILE.name).sort((a,b)=>(a.date+a.id)<(b.date+b.id)?-1:1);
+    let list;
+    if (USE_SB) {
+      list = await sbReq(TABLE+'?select=*'+this._uq()+'&order=date.asc,id.asc');
+    } else {
+      list = local.getMocks().filter(m=>!m.user_name||m.user_name===PROFILE.name).sort((a,b)=>(a.date+a.id)<(b.date+b.id)?-1:1);
+    }
+    if (list && list.length > 0) {
+      Object.keys(list[0]).forEach(k => knownMockColumns.add(k));
+    }
+    return (list || []).map(deserializeExtraFields);
   },
   async add(o) {
     o.id = Date.now()+''+Math.floor(Math.random()*9999);
     if (PROFILE.name) o.user_name = PROFILE.name;
-    if (USE_SB) return (await sbReq(TABLE, {method:'POST', body:JSON.stringify(o)}))[0];
-    const a=local.getMocks(); a.push(o); local.setMocks(a); return o;
+    const serialized = serializeExtraFields(o);
+    if (USE_SB) {
+      const added = (await sbReq(TABLE, {method:'POST', body:JSON.stringify(serialized)}))[0];
+      return deserializeExtraFields(added);
+    }
+    const a=local.getMocks(); a.push(serialized); local.setMocks(a); return o;
   },
   async update(id, o) {
-    if (USE_SB) return await sbReq(TABLE+'?id=eq.'+id, {method:'PATCH', body:JSON.stringify(o)});
+    const serialized = serializeExtraFields(o);
+    if (USE_SB) {
+      const updated = await sbReq(TABLE+'?id=eq.'+id, {method:'PATCH', body:JSON.stringify(serialized)});
+      return Array.isArray(updated) ? updated.map(deserializeExtraFields) : deserializeExtraFields(updated);
+    }
     const a=local.getMocks(); const i=a.findIndex(m=>m.id==id);
-    if (i>-1){a[i]={...a[i],...o}; local.setMocks(a);} return null;
+    if (i>-1){a[i]={...a[i],...serialized}; local.setMocks(a);} return null;
   },
   async del(id) {
     if (USE_SB) return await sbReq(TABLE+'?id=eq.'+id, {method:'DELETE'});
