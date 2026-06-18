@@ -22,7 +22,7 @@ export async function onRequestPost(context) {
   } catch (e) {
     // Groq sometimes returns malformed JSON (literal newlines inside string values).
     // Try to salvage the content string via regex so the app still gets the response.
-    const contentMatch = text.match(/"content"\s*:\s*"([\s\S]*?)"\s*,\s*"role"/);
+    const contentMatch = text.match(/"content"\s*:\s*"([\s\S]*?)(?<!\\)"/);
     if (contentMatch) {
       const content = contentMatch[1].replace(/\\n/g, '\n');
       data = {

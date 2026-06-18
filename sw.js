@@ -6,7 +6,7 @@
 // after the browser is fully closed. There is no Web Push server here, so
 // this is a best-effort client-side reminder only.
 
-const CACHE = 'clearcut-v2';
+const CACHE = 'clearcut-v3';
 const ASSETS = ['/', '/index.html'];
 
 self.addEventListener('install', e => {

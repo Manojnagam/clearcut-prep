@@ -4505,14 +4505,20 @@ async function generateDQ() {
     return;
   }
 
-  // Is there an unanswered question already in the queue? Show it.
+  // Is there an unanswered question already in the queue? Show it (skip bad/placeholder cached questions).
   const last = queue.questions[queue.questions.length - 1];
-  if (last && !last.answered) {
+  const isGoodQuestion = q => q && !q.answered && q.question && q.question !== 'QUESTION' && (q.options||[]).length === 4 && !(q.options||[]).some(o => !o || o.includes('undefined') || /OPTION_[ABCD]/.test(o));
+  if (isGoodQuestion(last)) {
     currentDQ = last;
     renderDQ(last, queue);
     updateDQStats();
     updateDQTeaser();
     return;
+  }
+  // Bad cached question — remove it and generate fresh
+  if (last && !last.answered && !isGoodQuestion(last)) {
+    queue.questions.pop();
+    setDailyQueue(queue);
   }
 
   // Generate next question
@@ -4548,15 +4554,27 @@ Rules:
 
   try {
     const raw = await askGroq(system, user);
-    const line = raw.trim().split('\n').map(l => l.trim()).find(l => l.includes('|') && l.split('|').length >= 9);
-    if (!line) throw new Error('Invalid response format');
+    if (!raw || raw === 'Could not get response.') throw new Error('AI service unavailable — check your connection or try again shortly.');
+    const line = raw.trim().split('\n').map(l => l.trim().replace(/^```[\w]*\s*$/, '').replace(/^\d+[\.\)]\s*/, '')).find(l => l.includes('|') && l.split('|').length >= 9 && !/^SECTION\|/i.test(l) && !/^TOPIC\|/i.test(l));
+    if (!line) throw new Error('Question format error — retrying should fix this.');
     const p = line.split('|');
+    const cleanOptionPrefix = (opt, letter) => {
+      if (!opt) return '';
+      opt = opt.trim();
+      const regex = new RegExp('^' + letter + '\\b[\\s\\)\\.\\-:\\/]*', 'i');
+      return opt.replace(regex, '').trim();
+    };
     const q = {
       section:     p[0]?.trim() || section,
       topic:       p[1]?.trim() || topic,
       difficulty:  p[2]?.trim() || difficulty,
       question:    p[3]?.trim() || '',
-      options:     [`A) ${p[4]?.trim()}`, `B) ${p[5]?.trim()}`, `C) ${p[6]?.trim()}`, `D) ${p[7]?.trim()}`],
+      options:     [
+        `A) ${cleanOptionPrefix(p[4]?.trim(), 'A')}`,
+        `B) ${cleanOptionPrefix(p[5]?.trim(), 'B')}`,
+        `C) ${cleanOptionPrefix(p[6]?.trim(), 'C')}`,
+        `D) ${cleanOptionPrefix(p[7]?.trim(), 'D')}`
+      ],
       correct:     (p[8]?.trim() || 'A').toUpperCase().charAt(0),
       explanation: p[9]?.trim() || ''
     };
@@ -4571,7 +4589,8 @@ Rules:
   } catch(e) {
     $('dq-loading').style.display = 'none';
     $('dq-question').style.display = 'block';
-    $('dq-qtext').textContent = 'Could not generate question. Tap "Next Question" to try again.';
+    $('dq-options').style.display = 'none';
+    $('dq-qtext').textContent = e.message || 'Could not generate question. Tap "Next Question" to try again.';
     console.error('DQ error:', e);
   }
   updateDQStats();
@@ -4590,6 +4609,7 @@ function nextDQ() {
 function renderDQ(q, queue) {
   $('dq-loading').style.display = 'none';
   $('dq-question').style.display = 'block';
+  $('dq-options').style.display = 'flex';
   $('dq-result').style.display = 'none';
   $('dq-submit-btn').style.display = 'none';
   selectedOption = null;
@@ -4606,7 +4626,7 @@ function renderDQ(q, queue) {
   $('dq-meta').textContent = `${q.section} · ${q.topic}`;
   const diffColor = q.difficulty==='Easy'?'#10b981':q.difficulty==='Hard'?'#ef4444':'#f59e0b';
   $('dq-difficulty-badge').innerHTML = `<span style="background:${diffColor}22;color:${diffColor};padding:2px 8px;border-radius:10px;font-size:11px;font-weight:700">${q.difficulty}</span>`;
-  $('dq-qtext').innerHTML = q.question.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>');
+  $('dq-qtext').innerHTML = q.question.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\\n/g,'<br>').replace(/\n/g,'<br>');
 
   // Update "Next Question" button label
   const nextBtn = $('dq-next-btn');
@@ -4784,7 +4804,7 @@ function renderMistakeBook() {
       </div>
       ${qs.map(m => `
         <div style="border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:8px;background:${m.retried?'#f0fdf4':'var(--surface)'}">
-          <div style="font-size:13px;color:var(--text);line-height:1.6;margin-bottom:8px">${m.question.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>')}</div>
+          <div style="font-size:13px;color:var(--text);line-height:1.6;margin-bottom:8px">${m.question.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\\n/g,'<br>').replace(/\n/g,'<br>')}</div>
           <div style="font-size:12px;color:#dc2626;margin-bottom:4px">Your answer: ${m.userAnswer} &nbsp;|&nbsp; <span style="color:#15803d">Correct: ${m.correct}</span></div>
           ${m.explanation ? `<div style="font-size:12px;color:var(--muted);line-height:1.5;margin-bottom:8px;font-style:italic">${m.explanation}</div>` : ''}
           <div style="display:flex;justify-content:space-between;align-items:center">
@@ -4931,8 +4951,16 @@ Rules:
 
   try {
     const raw = await askGroq(system, user);
-    const lines = raw.trim().split('\n').map(l => l.trim()).filter(l => l.includes('|') && l.split('|').length >= 9);
+    const lines = raw.trim().split('\n')
+      .map(l => l.trim().replace(/^```\w*$/, '').replace(/^\d+[\.\)]\s*/, ''))
+      .filter(l => l.includes('|') && l.split('|').length >= 9 && !/^TOPIC\|/i.test(l));
     if (!lines.length) throw new Error('No questions parsed from response');
+    const cleanOptionPrefix = (opt, letter) => {
+      if (!opt) return '';
+      opt = opt.trim();
+      const regex = new RegExp('^' + letter + '\\b[\\s\\)\\.\\-:\\/]*', 'i');
+      return opt.replace(regex, '').trim();
+    };
     const questions = lines.slice(0, 5).map(line => {
       const p = line.split('|');
       return {
@@ -4940,7 +4968,12 @@ Rules:
         section: p[1]?.trim() || '',
         difficulty: p[2]?.trim() || 'Medium',
         question: p[3]?.trim() || '',
-        options: [`A) ${p[4]?.trim()}`, `B) ${p[5]?.trim()}`, `C) ${p[6]?.trim()}`, `D) ${p[7]?.trim()}`],
+        options: [
+          `A) ${cleanOptionPrefix(p[4]?.trim(), 'A')}`,
+          `B) ${cleanOptionPrefix(p[5]?.trim(), 'B')}`,
+          `C) ${cleanOptionPrefix(p[6]?.trim(), 'C')}`,
+          `D) ${cleanOptionPrefix(p[7]?.trim(), 'D')}`
+        ],
         correct: (p[8]?.trim() || 'A').toUpperCase().charAt(0),
         explanation: p[9]?.trim() || ''
       };
@@ -5052,7 +5085,7 @@ function renderCQQuestion(idx) {
   const ans = cqState.answers[idx];
   $('cq-meta').textContent = `${q.topic} · ${q.section} · ${q.difficulty}`;
   $('cq-progress').textContent = `Q ${idx+1} / ${cqState.questions.length}`;
-  $('cq-qtext').innerHTML = q.question.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>');
+  $('cq-qtext').innerHTML = q.question.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\\n/g,'<br>').replace(/\n/g,'<br>');
   $('cq-options').innerHTML = (q.options||[]).map((opt,i) => {
     const letter = String.fromCharCode(65+i);
     const selected = ans === letter;
@@ -5244,12 +5277,13 @@ async function generateMSSection(sec, idx, retries = 2) {
   const system = `You are a bank exam question setter. Generate exactly 10 MCQs for the ${sec.name} section of SBI PO / IBPS PO prelims covering diverse topics.
 
 FORMATTING:
-- Para Jumbles: list sentences P)/Q)/R)/S)/T) each on a new line
+- Para Jumbles: separate sentences with literal \n (e.g. P) sentence1\nQ) sentence2\nR) sentence3)
 - Fillers: show blank as _______
-- DI: include a small self-contained data set in the question
+- DI: include a small self-contained data set in the question, use \n to separate rows
 - Quant: show calculation steps in the explanation
 
-Return ONLY 10 lines in this exact pipe-delimited format (no markdown, no JSON):
+CRITICAL: Each question must be ONE line only. Use literal \n (backslash-n) for line breaks inside a field — never actual newlines.
+Return ONLY 10 lines in this exact pipe-delimited format (no markdown, no JSON, no numbering):
 TOPIC|DIFFICULTY|QUESTION|OPTION_A|OPTION_B|OPTION_C|OPTION_D|CORRECT_LETTER|EXPLANATION`;
 
   const user = `Generate 10 diverse ${sec.name} questions (mix of Easy/Medium/Hard) covering these topics: ${sec.topics.join(', ')}. Make each question different from the others.`;
@@ -5257,16 +5291,29 @@ TOPIC|DIFFICULTY|QUESTION|OPTION_A|OPTION_B|OPTION_C|OPTION_D|CORRECT_LETTER|EXP
   for (let attempt = 1; attempt <= retries; attempt++) {
     try {
       const raw = await askGroq(system, user, 2500);
-      const lines = raw.split('\n').filter(l => l.includes('|') && l.split('|').length >= 9);
+      const lines = raw.split('\n')
+        .map(l => l.trim().replace(/^```\w*$/, '').replace(/^\d+[\.\)]\s*/, ''))
+        .filter(l => l.includes('|') && l.split('|').length >= 9 && !/^TOPIC\|/i.test(l));
       if (lines.length < 5) throw new Error(`Too few questions generated for ${sec.name}. Please try again.`);
       
+      const cleanOptionPrefix = (opt, letter) => {
+        if (!opt) return '';
+        opt = opt.trim();
+        const regex = new RegExp('^' + letter + '\\b[\\s\\)\\.\\-:\\/]*', 'i');
+        return opt.replace(regex, '').trim();
+      };
       const qs = lines.slice(0, 10).map(l => {
         const p = l.split('|');
         return {
           topic: p[0].trim(),
           difficulty: p[1].trim(),
           question: p[2].trim(),
-          options: [`A) ${p[3].trim()}`, `B) ${p[4].trim()}`, `C) ${p[5].trim()}`, `D) ${p[6].trim()}`],
+          options: [
+            `A) ${cleanOptionPrefix(p[3].trim(), 'A')}`,
+            `B) ${cleanOptionPrefix(p[4].trim(), 'B')}`,
+            `C) ${cleanOptionPrefix(p[5].trim(), 'C')}`,
+            `D) ${cleanOptionPrefix(p[6].trim(), 'D')}`
+          ],
           correct: p[7].trim().toUpperCase(),
           explanation: p[8].trim()
         };
@@ -5323,7 +5370,7 @@ function renderMSQuestion(qIdx) {
   const ans = (msState.answers[sec.key] || {})[qIdx];
 
   $('ms-q-meta').textContent = `Q${qIdx + 1} / ${qs.length} · ${q.topic} · ${q.difficulty}`;
-  $('ms-q-text').innerHTML = q.question.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>');
+  $('ms-q-text').innerHTML = q.question.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\\n/g,'<br>').replace(/\n/g,'<br>');
 
   const reviewed = (msState.reviews[sec.key] || {})[qIdx];
   const reviewBtn = $('ms-review-btn');
