@@ -12,6 +12,8 @@
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=DM+Serif+Display&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10.9.0/dist/mermaid.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 :root{
   --navy:#1e3a5f; --navy-d:#152c4a; --navy-l:#2a4d7a;
@@ -405,6 +407,31 @@ tr:last-child td{border-bottom:none}
   100% { transform: scale(0.8); opacity: 0.5; }
 }
 
+@keyframes floatUp {
+  0% {
+    transform: translateY(100vh) scale(0.5) rotate(0deg);
+    opacity: 0;
+  }
+  10% {
+    opacity: 1;
+  }
+  90% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(-10vh) scale(1.2) rotate(var(--rot));
+    opacity: 0;
+  }
+}
+.floating-emoji {
+  position: fixed;
+  bottom: -50px;
+  font-size: 32px;
+  pointer-events: none;
+  z-index: 9999;
+  animation: floatUp var(--dur) ease-in-out forwards;
+}
+
 </style>
 </head>
 <body>
@@ -721,6 +748,15 @@ tr:last-child td{border-bottom:none}
       </div>
 
       <div id="dash-charts" style="display:none">
+
+        <!-- Stage 5: Visual Syllabus Heatmap -->
+        <div id="syllabus-heatmap" class="card" style="padding:14px 16px;margin-bottom:10px">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+            <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--muted)">🗺️ Syllabus Mastery Heatmap</div>
+            <div style="font-size:11px;color:var(--muted)">Click a topic cell to practice it</div>
+          </div>
+          <div id="syllabus-heatmap-grid" style="display:flex;flex-direction:column;gap:12px"></div>
+        </div>
 
         <!-- Row 1: Score trend + Section accuracy in one card -->
         <div class="card" style="padding:14px 16px;margin-bottom:10px">
@@ -1160,6 +1196,11 @@ tr:last-child td{border-bottom:none}
               </select>
             </label>
           </div>
+          <div style="margin-bottom:16px">
+            <label style="display:flex;align-items:center;justify-content:center;gap:8px;cursor:pointer;font-size:13px;color:var(--text)">
+              <input type="checkbox" id="ms-real-mode" style="width:auto;margin:0"> Replicate Real TCS iON Exam Layout
+            </label>
+          </div>
           <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-bottom:20px">
             <div style="background:var(--surface2);border-radius:10px;padding:10px 14px;font-size:12px;text-align:center">
               <div style="font-weight:700;color:var(--navy)">30</div><div style="color:var(--muted)">questions</div>
@@ -1206,25 +1247,67 @@ tr:last-child td{border-bottom:none}
           </div>
         </div>
 
-        <!-- Question dots -->
-        <div id="ms-q-dots" style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:12px"></div>
+        <div id="ms-sim-layout" style="display:flex;gap:16px;flex-wrap:wrap">
+          <!-- Left Column: Question view -->
+          <div id="ms-question-column" style="flex:2.2;min-width:300px">
+            <!-- Question dots (only visible in standard mode) -->
+            <div id="ms-q-dots-container">
+              <div id="ms-q-dots" style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:12px"></div>
+            </div>
 
-        <!-- Question card -->
-        <div class="card" id="ms-q-card">
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
-            <div style="font-size:11px;font-weight:700;color:var(--muted)" id="ms-q-meta"></div>
-            <button id="ms-review-btn" onclick="toggleMSReview()" style="font-size:11px;padding:4px 10px;border-radius:8px;border:1px solid var(--border);background:none;cursor:pointer;font-family:inherit;color:var(--muted)">🚩 Mark for review</button>
+            <!-- Question card -->
+            <div class="card" id="ms-q-card">
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+                <div style="font-size:11px;font-weight:700;color:var(--muted)" id="ms-q-meta"></div>
+                <div style="display:flex;gap:6px">
+                  <button onclick="clearMSResponse()" id="ms-clear-btn" style="font-size:11px;padding:4px 10px;border-radius:8px;border:1px solid var(--border);background:none;cursor:pointer;font-family:inherit;color:var(--muted)">🧹 Clear</button>
+                  <button id="ms-review-btn" onclick="toggleMSReview()" style="font-size:11px;padding:4px 10px;border-radius:8px;border:1px solid var(--border);background:none;cursor:pointer;font-family:inherit;color:var(--muted)">🚩 Mark for review</button>
+                </div>
+              </div>
+              <div id="ms-q-text" style="font-size:15px;line-height:1.7;color:var(--text);margin-bottom:14px;font-weight:500"></div>
+              <div id="ms-q-options" style="display:flex;flex-direction:column;gap:8px"></div>
+            </div>
+
+            <!-- Navigation -->
+            <div style="display:flex;gap:8px;margin-top:12px">
+              <button class="btn ghost" onclick="navMS(-1)" id="ms-prev-btn" style="flex:1;cursor:pointer">← Prev</button>
+              <button class="btn ghost" onclick="navMS(1)" id="ms-next-btn" style="flex:1;cursor:pointer">Save &amp; Next →</button>
+            </div>
+            <button class="btn primary" onclick="confirmSubmitSection()" style="margin-top:8px;background:#059669;width:100%;cursor:pointer" id="ms-submit-sec">Submit Section →</button>
           </div>
-          <div id="ms-q-text" style="font-size:15px;line-height:1.7;color:var(--text);margin-bottom:14px;font-weight:500"></div>
-          <div id="ms-q-options" style="display:flex;flex-direction:column;gap:8px"></div>
-        </div>
 
-        <!-- Navigation -->
-        <div style="display:flex;gap:8px;margin-top:12px">
-          <button class="btn ghost" onclick="navMS(-1)" id="ms-prev-btn" style="flex:1">← Prev</button>
-          <button class="btn ghost" onclick="navMS(1)" id="ms-next-btn" style="flex:1">Next →</button>
+          <!-- Right Column: TCS iON Palette (visible in Real Mode only) -->
+          <div id="ms-palette-column" style="flex:0.8;min-width:260px;background:var(--surface);border:1.5px solid var(--border);border-radius:12px;padding:16px;display:none;align-self:flex-start">
+            <div style="font-size:13px;font-weight:700;color:var(--navy);margin-bottom:12px;border-bottom:1px solid var(--border);padding-bottom:6px">Question Palette</div>
+            
+            <!-- Grid of questions -->
+            <div id="ms-palette-grid" style="display:grid;grid-template-columns:repeat(5, 1fr);gap:8px;margin-bottom:16px"></div>
+            
+            <!-- Legend -->
+            <div style="font-size:11px;color:var(--muted);display:flex;flex-direction:column;gap:6px;border-top:1px solid var(--border);padding-top:10px">
+              <div style="display:flex;align-items:center;gap:8px">
+                <div style="width:16px;height:16px;background:#10b981;border-radius:50% 50% 3px 3px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:8px;font-weight:bold">✓</div>
+                <span>Answered</span>
+              </div>
+              <div style="display:flex;align-items:center;gap:8px">
+                <div style="width:16px;height:16px;background:#ef4444;border-radius:3px 3px 50% 50%;display:flex;align-items:center;justify-content:center;color:#fff;font-size:8px;font-weight:bold">✗</div>
+                <span>Not Answered</span>
+              </div>
+              <div style="display:flex;align-items:center;gap:8px">
+                <div style="width:16px;height:16px;background:#e2e8f0;border-radius:3px;border:1px solid #cbd5e1"></div>
+                <span>Not Visited</span>
+              </div>
+              <div style="display:flex;align-items:center;gap:8px">
+                <div style="width:16px;height:16px;background:#8b5cf6;border-radius:50%"></div>
+                <span>Marked for Review</span>
+              </div>
+              <div style="display:flex;align-items:center;gap:8px">
+                <div style="width:16px;height:16px;background:#8b5cf6;border-radius:50%;position:relative;display:flex;align-items:center;justify-content:center;color:#10b981;font-size:10px;font-weight:bold">•</div>
+                <span>Answered & Marked for Review</span>
+              </div>
+            </div>
+          </div>
         </div>
-        <button class="btn primary" onclick="confirmSubmitSection()" style="margin-top:8px;background:#059669" id="ms-submit-sec">Submit Section →</button>
       </div>
 
       <!-- Results -->
@@ -1315,11 +1398,56 @@ tr:last-child td{border-bottom:none}
         <div id="dq-history-list"></div>
       </div>
 
+      <!-- Flashcard card -->
+      <div class="card" id="dq-flashcard-card" style="margin-bottom:12px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+          <div class="card-title" style="margin:0">⚡ Daily Revision Deck</div>
+          <div style="font-size:12px;color:var(--muted)" id="dq-flashcard-progress">10 cards today</div>
+        </div>
+        <div id="dq-flashcard-view" style="text-align:center;padding:20px 10px;">
+          <!-- Active Card Container -->
+          <div id="flashcard-container" onclick="flipFlashcard()" style="perspective:1000px;width:100%;max-width:320px;height:180px;margin:0 auto 20px;cursor:pointer;position:relative;">
+            <div id="flashcard-inner" style="position:relative;width:100%;height:100%;text-align:center;transition:transform 0.6s;transform-style:preserve-3d;">
+              <!-- Front Side -->
+              <div id="flashcard-front" style="position:absolute;width:100%;height:100%;-webkit-backface-visibility:hidden;backface-visibility:hidden;background:linear-gradient(135deg, #1e293b, #0f172a);color:#fff;border-radius:16px;border:1px solid rgba(255,255,255,0.1);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px;box-shadow:0 4px 14px rgba(0,0,0,0.3)">
+                <div id="fc-front-topic" style="font-size:10px;text-transform:uppercase;color:var(--amber);font-weight:700;margin-bottom:8px">Topic</div>
+                <div id="fc-front-text" style="font-size:16px;font-weight:600;line-height:1.4">Loading...</div>
+                <div style="font-size:10px;color:rgba(255,255,255,0.4);margin-top:16px">🔄 Tap to reveal answer</div>
+              </div>
+              <!-- Back Side -->
+              <div id="flashcard-back" style="position:absolute;width:100%;height:100%;-webkit-backface-visibility:hidden;backface-visibility:hidden;background:var(--surface);color:var(--text);border-radius:16px;border:1.5px solid var(--border);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px;transform:rotateY(180deg);box-shadow:0 4px 14px rgba(0,0,0,0.15)">
+                <div id="fc-back-title" style="font-size:11px;font-weight:700;color:var(--navy);margin-bottom:6px">Answer</div>
+                <div id="fc-back-text" style="font-size:13px;line-height:1.5;overflow-y:auto;max-height:110px;width:100%">Answer detail</div>
+                <div style="font-size:10px;color:var(--muted);margin-top:12px">🔄 Tap to show front</div>
+              </div>
+            </div>
+          </div>
+          <!-- Swipe Buttons -->
+          <div id="flashcard-actions" style="display:flex;justify-content:center;gap:14px;">
+            <button onclick="rateFlashcard(false)" class="btn ghost" style="border-color:#ef4444;color:#ef4444;padding:8px 16px;font-size:12px;border-radius:20px;cursor:pointer">❌ Still Learning</button>
+            <button onclick="rateFlashcard(true)" class="btn primary" style="background:#10b981;border-color:#10b981;padding:8px 16px;font-size:12px;border-radius:20px;cursor:pointer">✅ Mastered</button>
+          </div>
+        </div>
+        <!-- Completed Deck View -->
+        <div id="dq-flashcard-complete" style="display:none;text-align:center;padding:20px 10px;">
+          <div style="font-size:36px;margin-bottom:10px">🎉</div>
+          <div style="font-weight:700;color:var(--navy);font-size:16px">Deck Complete!</div>
+          <div style="font-size:12px;color:var(--muted);margin-top:4px;line-height:1.5">You've reviewed today's revision cards. Check back tomorrow!</div>
+          <button onclick="resetFlashcardDeck()" class="btn ghost sm" style="margin-top:12px;font-size:11px;padding:5px 12px;border-radius:8px;cursor:pointer">Review Deck Again</button>
+        </div>
+      </div>
+
       <!-- Mistake Book -->
       <div class="card" id="dq-mistake-card" style="display:none">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
           <div class="card-title" style="margin:0">📕 Mistake Book</div>
           <div id="dq-mistake-count" style="font-size:12px;color:var(--muted)"></div>
+        </div>
+        <!-- Segment Filters -->
+        <div style="display:flex;gap:6px;margin-bottom:12px;border-bottom:1px solid var(--border);padding-bottom:8px">
+          <button onclick="setMistakeSegment('due')" id="ms-seg-due" class="btn sm ghost" style="padding:4px 8px;font-size:11px;border-radius:6px;cursor:pointer">Due Today</button>
+          <button onclick="setMistakeSegment('all')" id="ms-seg-all" class="btn sm ghost" style="padding:4px 8px;font-size:11px;border-radius:6px;cursor:pointer">All Active</button>
+          <button onclick="setMistakeSegment('mastered')" id="ms-seg-mastered" class="btn sm ghost" style="padding:4px 8px;font-size:11px;border-radius:6px;cursor:pointer">Mastered</button>
         </div>
         <div id="dq-mistake-list"></div>
       </div>
@@ -1404,6 +1532,21 @@ tr:last-child td{border-bottom:none}
         <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#64748b;margin-bottom:8px;padding-top:12px;border-top:1px solid #334155">📊 Last Quiz Results</div>
         <div id="cq-prev-results-content" style="font-size:13px;color:#94a3b8;line-height:1.8"></div>
       </div>
+    </div>
+
+    <!-- Live Partner Sync & Nudges -->
+    <div style="background:#1e293b;border:1px solid #334155;border-radius:14px;padding:16px;margin-bottom:20px">
+      <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#64748b;margin-bottom:10px">⚡ Live Partner Sync &amp; Nudges</div>
+      <div style="font-size:12px;color:#475569;margin-bottom:12px">Send a real-time reaction or encouragement nudge to her screen.</div>
+      <div style="display:flex;gap:10px;justify-content:space-between;flex-wrap:wrap">
+        <button onclick="sendCoachNudge('💖')" style="flex:1;background:#3b2d3a;border:1px solid #ec4899;color:#f472b6;border-radius:10px;padding:12px;font-size:20px;cursor:pointer;transition:all 0.2s" onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='scale(1)'">💖 Love</button>
+        <button onclick="sendCoachNudge('🔥')" style="flex:1;background:#3d2d23;border:1px solid #f97316;color:#fdba74;border-radius:10px;padding:12px;font-size:20px;cursor:pointer;transition:all 0.2s" onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='scale(1)'">🔥 Fire</button>
+        <button onclick="sendCoachNudge('👏')" style="flex:1;background:#3c3325;border:1px solid #eab308;color:#fef08a;border-radius:10px;padding:12px;font-size:20px;cursor:pointer;transition:all 0.2s" onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='scale(1)'">👏 Clap</button>
+        <button onclick="sendCoachNudge('💪')" style="flex:1;background:#23352c;border:1px solid #10b981;color:#a7f3d0;border-radius:10px;padding:12px;font-size:20px;cursor:pointer;transition:all 0.2s" onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='scale(1)'">💪 Power</button>
+        <button onclick="sendCoachNudge('🎉')" style="flex:1;background:#2d233d;border:1px solid #8b5cf6;color:#ddd6fe;border-radius:10px;padding:12px;font-size:20px;cursor:pointer;transition:all 0.2s" onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='scale(1)'">🎉 Party</button>
+        <button onclick="sendCoachNudge('📚')" style="flex:1;background:#23303d;border:1px solid #3b82f6;color:#bfdbfe;border-radius:10px;padding:12px;font-size:20px;cursor:pointer;transition:all 0.2s" onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='scale(1)'">📚 Study</button>
+      </div>
+      <div id="coach-nudge-status" style="font-size:11px;color:#64748b;margin-top:8px;text-align:center">Ready to sync live</div>
     </div>
 
     <!-- Should I be worried? AI card -->
@@ -1879,7 +2022,7 @@ $('tabs').addEventListener('click', e=>{
   if (b.dataset.t === 'goals') { renderGoals(); initNotifUI(); }
   if (b.dataset.t === 'studylog') renderStudyLog();
   if (b.dataset.t === 'report')   renderReport();
-  if (b.dataset.t === 'dqtab') { updateDQStats(); generateDQ(); }
+  if (b.dataset.t === 'dqtab') { updateDQStats(); generateDQ(); initFlashcards(); }
   if (b.dataset.t === 'mocksim') { initMockSim(); }
 });
 
@@ -2270,6 +2413,7 @@ function renderDash() {
   renderPrediction();
   renderStrategyCard();
   renderTopicAccuracy();
+  renderSyllabusHeatmap();
   if (typeof renderTimeSinksChart === 'function') renderTimeSinksChart();
   checkCoachQuizBanner();
   renderDailyMotivation();
@@ -2591,6 +2735,7 @@ async function saveMock() {
 
   // Save succeeded — refresh data and update UI
   await load();
+  broadcastStudyUpdate('mock', o);
   checkMilestones();
   resetForm();
   document.querySelector('[data-t="dash"]').click();
@@ -3147,6 +3292,7 @@ async function saveStudyLog() {
   try {
     await studyLogDb.add(o);
     await loadStudyLogs();
+    broadcastStudyUpdate('study_log', o);
     // Reset form fields
     $('sl-topic').value = '';
     $('sl-duration').value = '';
@@ -3296,6 +3442,7 @@ function appendMsg(role, text) {
     font-size:13px;line-height:1.6;white-space:pre-wrap">${text}</div>`;
   $('chat-messages').appendChild(div);
   $('chat-messages').scrollTop = $('chat-messages').scrollHeight;
+  if (isAI) renderVisualDiagrams();
 }
 
 function appendTyping() {
@@ -3406,6 +3553,37 @@ async function askGroq(system, user, maxTokens = 1200) {
   } catch (e) {
     console.error("askGroq fetch error:", e);
     return 'Could not get response.';
+  }
+}
+
+async function renderVisualDiagrams() {
+  if (!window.mermaid) return;
+  try {
+    const elements = document.querySelectorAll('.mermaid, #dq-explanation, .chat-bubble, #ms-q-text, #dq-qtext');
+    elements.forEach(async el => {
+      if (el.textContent.includes('```mermaid')) {
+        const rawText = el.innerHTML;
+        const regex = /```mermaid([\s\S]*?)```/g;
+        let match;
+        let newHtml = rawText;
+        while ((match = regex.exec(rawText)) !== null) {
+          const mCode = match[1].trim()
+            .replace(/&lt;/g, '<').replace(/&gt;/g, '>')
+            .replace(/&amp;/g, '&').replace(/<br\s*\/?>/gi, '\n');
+          newHtml = newHtml.replace(match[0], `<div class="mermaid-diagram" style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:12px;margin:10px 0;width:100%;overflow-x:auto;">${mCode}</div>`);
+        }
+        el.innerHTML = newHtml;
+      }
+    });
+
+    const diagrams = document.querySelectorAll('.mermaid-diagram');
+    if (diagrams.length > 0) {
+      await mermaid.run({
+        nodes: Array.from(diagrams)
+      });
+    }
+  } catch (e) {
+    console.error("Mermaid render error:", e);
   }
 }
 
@@ -3827,6 +4005,7 @@ async function initCoachView() {
 
   $('coach-last-updated').textContent = 'Updated ' + new Date().toLocaleTimeString('en-IN', {hour:'2-digit',minute:'2-digit'});
 
+  initRealtimeSync();
   renderCoachStats();
   renderCoachConsistency();
   renderCoachMood();
@@ -4472,6 +4651,11 @@ function getDifficulty() {
 }
 
 function getWeakTopicForQ(usedTopics) {
+  const pref = sessionStorage.getItem('cc_preferred_topic');
+  if (pref) {
+    sessionStorage.removeItem('cc_preferred_topic');
+    return pref;
+  }
   // Rotate through weak topics so 10 questions per day cover different areas
   const freq = weakTopicFreq();
   const sorted = Object.entries(freq).sort((a,b)=>b[1]-a[1]).map(e=>e[0]);
@@ -4670,16 +4854,52 @@ async function submitDQ() {
   setDQLog(log);
 
   // Save full question to mistake book if wrong
-  if (!correct) {
+  if (!correct && !currentDQ._isMistakeRetry) {
     const mistakes = getMistakeBook();
     mistakes.push({
       date: todayStr(), section: currentDQ.section, topic: currentDQ.topic,
       difficulty: currentDQ.difficulty, question: currentDQ.question,
       options: currentDQ.options, correct: currentDQ.correct,
       explanation: currentDQ.explanation, userAnswer: selectedOption,
-      retried: false
+      retried: false,
+      box: 1,
+      nextReviewDate: addDays(todayStr(), 1),
+      correctStreak: 0,
+      mastered: false
     });
     setMistakeBook(mistakes);
+  }
+
+  // Update box state for retry submissions
+  if (currentDQ._isMistakeRetry) {
+    const mistakes = getMistakeBook();
+    const m = mistakes[currentDQ._mistakeIdx];
+    if (m) {
+      if (correct) {
+        const currentBox = m.box || 1;
+        if (currentBox === 1) {
+          m.box = 2;
+          m.nextReviewDate = addDays(todayStr(), 3);
+        } else if (currentBox === 2) {
+          m.box = 3;
+          m.nextReviewDate = addDays(todayStr(), 7);
+        } else if (currentBox === 3) {
+          m.box = 4;
+          m.nextReviewDate = addDays(todayStr(), 14);
+        } else if (currentBox === 4) {
+          m.mastered = true;
+          m.box = 5;
+        }
+        m.retried = true;
+        m.correctStreak = (m.correctStreak || 0) + 1;
+      } else {
+        m.box = 1;
+        m.nextReviewDate = addDays(todayStr(), 1);
+        m.retried = false;
+        m.correctStreak = 0;
+      }
+      setMistakeBook(mistakes);
+    }
   }
 
   // Mark question as answered in daily queue (skip for mistake retries)
@@ -4699,6 +4919,7 @@ async function submitDQ() {
   updateDQStats();
   updateDQTeaser();
   checkMilestones();
+  broadcastStudyUpdate('dq', { correct, topic: currentDQ.topic, section: currentDQ.section });
 }
 
 function showDQResult(userAnswer, q) {
@@ -4713,7 +4934,7 @@ function showDQResult(userAnswer, q) {
   const userName = PROFILE.name || 'You';
   $('dq-result-msg').textContent = correct ? `Correct! Well done, ${userName}!` : `Wrong. Correct answer: ${q.correct}`;
   $('dq-result-msg').style.color = correct ? '#15803d' : '#dc2626';
-  $('dq-explanation').textContent = q.explanation || '';
+  $('dq-explanation').innerHTML = (q.explanation || '').replace(/\\n/g,'<br>').replace(/\n/g,'<br>');
 
   document.querySelectorAll('.dq-option').forEach(o => {
     const letter = o.dataset.letter;
@@ -4721,6 +4942,7 @@ function showDQResult(userAnswer, q) {
     else if (letter === userAnswer && !correct) { o.style.borderColor='#ef4444'; o.style.background='#fef2f2'; }
     else { o.style.opacity='0.5'; }
   });
+  renderVisualDiagrams();
 }
 
 function showDQComplete(queue) {
@@ -4781,40 +5003,113 @@ function updateDQStats() {
   }
 }
 
+let currentMistakeSegment = 'due';
+function setMistakeSegment(seg) {
+  currentMistakeSegment = seg;
+  renderMistakeBook();
+}
+
+function addDays(dateStr, days) {
+  const d = new Date(dateStr);
+  d.setDate(d.getDate() + days);
+  return d.toISOString().slice(0, 10);
+}
+
 function renderMistakeBook() {
   const card = $('dq-mistake-card');
   if (!card) return;
   const mistakes = getMistakeBook();
+  
+  // Migration & verification
+  mistakes.forEach(m => {
+    if (m.box === undefined) m.box = 1;
+    if (!m.nextReviewDate) m.nextReviewDate = m.date || todayStr();
+    if (m.mastered === undefined) m.mastered = false;
+  });
+
+  const totalDue = mistakes.filter(m => !m.mastered && (m.nextReviewDate || todayStr()) <= todayStr()).length;
+  const totalAll = mistakes.filter(m => !m.mastered).length;
+  const totalMastered = mistakes.filter(m => m.mastered).length;
+
+  if ($('ms-seg-due')) $('ms-seg-due').innerHTML = `Due Today (${totalDue})`;
+  if ($('ms-seg-all')) $('ms-seg-all').innerHTML = `All Active (${totalAll})`;
+  if ($('ms-seg-mastered')) $('ms-seg-mastered').innerHTML = `Mastered (${totalMastered})`;
+
+  ['due','all','mastered'].forEach(s => {
+    const btn = $('ms-seg-'+s);
+    if (btn) {
+      if (s === currentMistakeSegment) {
+        btn.style.background = 'var(--navy)';
+        btn.style.color = '#fff';
+        btn.style.borderColor = 'var(--navy)';
+      } else {
+        btn.style.background = 'none';
+        btn.style.color = 'var(--muted)';
+        btn.style.borderColor = 'var(--border)';
+      }
+    }
+  });
+
+  let filtered = [];
+  const today = todayStr();
+  if (currentMistakeSegment === 'due') {
+    filtered = mistakes.map((m, i) => ({ ...m, _idx: i })).filter(m => !m.mastered && m.nextReviewDate <= today);
+  } else if (currentMistakeSegment === 'all') {
+    filtered = mistakes.map((m, i) => ({ ...m, _idx: i })).filter(m => !m.mastered);
+  } else if (currentMistakeSegment === 'mastered') {
+    filtered = mistakes.map((m, i) => ({ ...m, _idx: i })).filter(m => m.mastered);
+  }
+
   if (!mistakes.length) { card.style.display = 'none'; return; }
   card.style.display = 'block';
 
-  // Group by topic
-  const byTopic = {};
-  mistakes.forEach((m, i) => {
-    if (!byTopic[m.topic]) byTopic[m.topic] = [];
-    byTopic[m.topic].push({ ...m, _idx: i });
-  });
+  if (!filtered.length) {
+    $('dq-mistake-count').textContent = '0 questions';
+    $('dq-mistake-list').innerHTML = `<div style="text-align:center;padding:20px;color:var(--muted);font-size:13px">No questions in this segment.</div>`;
+    return;
+  }
 
-  $('dq-mistake-count').textContent = `${mistakes.length} question${mistakes.length!==1?'s':''}`;
+  $('dq-mistake-count').textContent = `${filtered.length} question${filtered.length!==1?'s':''}`;
+
+  // Group filtered mistakes by topic
+  const byTopic = {};
+  filtered.forEach(m => {
+    if (!byTopic[m.topic]) byTopic[m.topic] = [];
+    byTopic[m.topic].push(m);
+  });
 
   $('dq-mistake-list').innerHTML = Object.entries(byTopic).map(([topic, qs]) => `
     <div style="margin-bottom:16px">
       <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--navy);margin-bottom:8px;padding-bottom:4px;border-bottom:2px solid var(--navy)20">
         ${topic} <span style="font-weight:400;color:var(--muted)">(${qs.length})</span>
       </div>
-      ${qs.map(m => `
-        <div style="border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:8px;background:${m.retried?'#f0fdf4':'var(--surface)'}">
-          <div style="font-size:13px;color:var(--text);line-height:1.6;margin-bottom:8px">${m.question.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\\n/g,'<br>').replace(/\n/g,'<br>')}</div>
-          <div style="font-size:12px;color:#dc2626;margin-bottom:4px">Your answer: ${m.userAnswer} &nbsp;|&nbsp; <span style="color:#15803d">Correct: ${m.correct}</span></div>
-          ${m.explanation ? `<div style="font-size:12px;color:var(--muted);line-height:1.5;margin-bottom:8px;font-style:italic">${m.explanation}</div>` : ''}
-          <div style="display:flex;justify-content:space-between;align-items:center">
-            <span style="font-size:11px;color:var(--muted)">${m.section} · ${m.difficulty} · ${m.date}</span>
-            <button onclick="retryMistake(${m._idx})" class="btn ghost" style="font-size:11px;padding:4px 10px;border-radius:8px;color:${m.retried?'#15803d':'var(--navy)'}">
-              ${m.retried ? '✅ Retried' : '🔁 Retry'}
-            </button>
+      ${qs.map(m => {
+        const badgeColor = m.box === 4 ? '#10b981' : m.box === 3 ? '#3b82f6' : m.box === 2 ? '#f59e0b' : '#ef4444';
+        const boxHtml = m.mastered 
+          ? `<span style="background:#d1fae5;color:#065f46;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:700">🏆 Mastered</span>` 
+          : `<span style="background:${badgeColor}22;color:${badgeColor};padding:2px 8px;border-radius:10px;font-size:10px;font-weight:700">Box ${m.box}</span>`;
+        const daysLeft = daysUntil(m.nextReviewDate);
+        const dueHtml = m.mastered ? '' : (daysLeft <= 0 ? ` · <span style="color:#ef4444;font-weight:700">Due Now</span>` : ` · in ${daysLeft} days`);
+        return `
+          <div style="border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:8px;background:${m.retried?'#f0fdf4':'var(--surface)'}">
+            <div style="display:flex;justify-content:space-between;margin-bottom:6px">
+              ${boxHtml}
+              <span style="font-size:11px;color:var(--muted)">Streak: 🔥 ${m.correctStreak || 0}</span>
+            </div>
+            <div style="font-size:13px;color:var(--text);line-height:1.6;margin-bottom:8px">${m.question.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\\n/g,'<br>').replace(/\n/g,'<br>')}</div>
+            <div style="font-size:12px;color:#dc2626;margin-bottom:4px">Your answer: ${m.userAnswer} &nbsp;|&nbsp; <span style="color:#15803d">Correct: ${m.correct}</span></div>
+            ${m.explanation ? `<div style="font-size:12px;color:var(--muted);line-height:1.5;margin-bottom:8px;font-style:italic">${m.explanation}</div>` : ''}
+            <div style="display:flex;justify-content:space-between;align-items:center">
+              <span style="font-size:11px;color:var(--muted)">${m.section} · ${m.difficulty}${dueHtml}</span>
+              ${m.mastered ? '' : `
+                <button onclick="retryMistake(${m._idx})" class="btn ghost" style="font-size:11px;padding:4px 10px;border-radius:8px;color:${m.retried?'#15803d':'var(--navy)'};cursor:pointer">
+                  ${m.retried ? '✅ Retried' : '🔁 Retry'}
+                </button>
+              `}
+            </div>
           </div>
-        </div>
-      `).join('')}
+        `;
+      }).join('')}
     </div>
   `).join('');
 }
@@ -4824,7 +5119,7 @@ function retryMistake(idx) {
   const m = mistakes[idx];
   if (!m) return;
 
-  // Mark as retried
+  // Mark as retried in the list (will update full box status when answered)
   mistakes[idx].retried = true;
   setMistakeBook(mistakes);
 
@@ -4833,7 +5128,8 @@ function retryMistake(idx) {
     section: m.section, topic: m.topic, difficulty: m.difficulty,
     question: m.question, options: m.options, correct: m.correct,
     explanation: m.explanation, answered: false, qIndex: -1, date: m.date,
-    _isMistakeRetry: true
+    _isMistakeRetry: true,
+    _mistakeIdx: idx
   };
   selectedOption = null;
 
@@ -4850,6 +5146,344 @@ function retryMistake(idx) {
   const queue = getDailyQueue();
   renderDQ(currentDQ, queue);
   renderMistakeBook();
+}
+
+/* ── DAILY FLASHCARDS ── */
+let flashcardDeck = [];
+let flashcardIdx = 0;
+let flashcardFlipped = false;
+
+const FALLBACK_FLASHCARDS = [
+  { topic: 'English Vocab', front: 'Anomaly', back: 'Noun. Something that deviates from what is standard, normal, or expected. Synonym: Oddity, abnormality.' },
+  { topic: 'English Vocab', front: 'Assiduous', back: 'Adjective. Showing great care, attention, and effort. Synonym: Diligent, meticulous.' },
+  { topic: 'English Vocab', front: 'Frivolous', back: 'Adjective. Not having any serious purpose or value. Synonym: Superficial, trivial.' },
+  { topic: 'Quant Formula', front: 'Speed, Distance & Time: Relative Speed', back: 'Same Direction: S1 - S2 (subtract speeds).\nOpposite Direction: S1 + S2 (add speeds).' },
+  { topic: 'Compound Interest (Half-yearly)', front: 'CI Formula', back: 'Amount = P * (1 + (R/2)/100)^(2n).\nRate is halved, Time period is doubled.' },
+  { topic: 'Quant Formula', front: 'Time & Work: Efficiency relation', back: 'Work = Efficiency * Time.\nIf A is twice as efficient as B, Ratio of times taken by A and B is 1:2.' },
+  { topic: 'Reasoning Rule', front: 'Syllogism: "Only a few A are B"', back: 'Means: "Some A are B" AND "Some A are NOT B" both must hold true.' },
+  { topic: 'Reasoning Rule', front: 'Coded Inequality: Priority order', back: 'Priority 1: > or <\nPriority 2: >= or <=\nPriority 3: =\nIf a path has >, result must be >.' },
+  { topic: 'English Rule', front: 'Subject-Verb: "Neither... nor"', back: 'The verb matches the subject closest to it.\nExample: Neither the teacher nor the students were (plural) present.' },
+  { topic: 'Quant Trick', front: 'Quadratic Signs: ax^2 - bx + c = 0', back: 'Both roots are POSITIVE (+, +).\nSign change occurs for both roots relative to sign of b and c.' }
+];
+
+function getFlashcardCache() {
+  try { return JSON.parse(localStorage.getItem('cc_flashcards')) || null; } catch { return null; }
+}
+function setFlashcardCache(deck) {
+  localStorage.setItem('cc_flashcards', JSON.stringify(deck));
+}
+
+async function initFlashcards() {
+  const cache = getFlashcardCache();
+  const today = todayStr();
+  if (cache && cache.date === today) {
+    flashcardDeck = cache.deck;
+    flashcardIdx = cache.idx || 0;
+    renderFlashcard();
+  } else {
+    await generateFlashcardDeck();
+  }
+}
+
+async function generateFlashcardDeck() {
+  $('dq-flashcard-card').style.display = 'block';
+  $('dq-flashcard-view').style.display = 'block';
+  $('dq-flashcard-complete').style.display = 'none';
+
+  $('fc-front-topic').textContent = '🤖 AI';
+  $('fc-front-text').innerHTML = 'Generating today\'s deck...';
+  $('fc-back-text').textContent = '';
+
+  const system = `You are a bank exam study mentor. Generate exactly 10 revision cards for English vocabulary, Quantitative Aptitude formulas, or Reasoning rules.
+Format: Output exactly 10 lines, each containing: TOPIC|FRONT_WORD_OR_QUESTION|BACK_ANSWER_OR_EXPLANATION.
+No markdown, no headers, no numbering.`;
+
+  const user = `Generate 10 revision cards tailored for SBI PO prelims. 5 English vocab words, 5 Quant/Reasoning shortcuts.`;
+
+  try {
+    const raw = await askGroq(system, user, 1200);
+    const lines = raw.split('\n')
+      .map(l => l.trim())
+      .filter(l => l.includes('|') && l.split('|').length >= 3);
+
+    if (lines.length < 5) throw new Error('Too few flashcards generated.');
+
+    const deck = lines.map(line => {
+      const p = line.split('|');
+      return {
+        topic: p[0].trim(),
+        front: p[1].trim(),
+        back: p[2].trim()
+      };
+    });
+
+    flashcardDeck = deck;
+    flashcardIdx = 0;
+    setFlashcardCache({ date: todayStr(), deck, idx: 0 });
+    renderFlashcard();
+  } catch (e) {
+    console.warn("Failed to generate AI flashcards, using fallback:", e.message);
+    const shuffled = [...FALLBACK_FLASHCARDS].sort(() => 0.5 - Math.random());
+    flashcardDeck = shuffled.slice(0, 10);
+    flashcardIdx = 0;
+    setFlashcardCache({ date: todayStr(), deck: flashcardDeck, idx: 0 });
+    renderFlashcard();
+  }
+}
+
+function renderFlashcard() {
+  if (!flashcardDeck.length) return;
+  if (flashcardIdx >= flashcardDeck.length) {
+    $('dq-flashcard-view').style.display = 'none';
+    $('dq-flashcard-complete').style.display = 'block';
+    return;
+  }
+
+  $('dq-flashcard-view').style.display = 'block';
+  $('dq-flashcard-complete').style.display = 'none';
+
+  const card = flashcardDeck[flashcardIdx];
+  $('fc-front-topic').textContent = card.topic;
+  $('fc-front-text').innerHTML = card.front.replace(/\n/g, '<br>');
+  $('fc-back-text').innerHTML = card.back.replace(/\n/g, '<br>').replace(/\\n/g, '<br>');
+
+  $('dq-flashcard-progress').textContent = `Card ${flashcardIdx + 1} of ${flashcardDeck.length}`;
+
+  flashcardFlipped = false;
+  $('flashcard-inner').style.transform = 'rotateY(0deg)';
+}
+
+function flipFlashcard() {
+  flashcardFlipped = !flashcardFlipped;
+  $('flashcard-inner').style.transform = flashcardFlipped ? 'rotateY(180deg)' : 'rotateY(0deg)';
+}
+
+function rateFlashcard(mastered) {
+  flashcardIdx++;
+  const cache = getFlashcardCache();
+  if (cache) {
+    cache.idx = flashcardIdx;
+    setFlashcardCache(cache);
+  }
+  renderFlashcard();
+}
+
+function resetFlashcardDeck() {
+  flashcardIdx = 0;
+  const cache = getFlashcardCache();
+  if (cache) {
+    cache.idx = 0;
+    setFlashcardCache(cache);
+  }
+  renderFlashcard();
+}
+
+/* ── STAGE 5: SYLLABUS HEATMAP ── */
+function renderSyllabusHeatmap() {
+  const gridContainer = $('syllabus-heatmap-grid');
+  if (!gridContainer) return;
+
+  const log = getDQLog();
+  const weakFreq = weakTopicFreq();
+
+  // Aggregate DQ Log
+  const dqStats = {};
+  log.forEach(q => {
+    const t = q.topic;
+    if (!dqStats[t]) dqStats[t] = { correct: 0, total: 0 };
+    dqStats[t].total++;
+    if (q.correct) dqStats[t].correct++;
+  });
+
+  // Render each section
+  const sections = currentSections || SECTIONS_FULL;
+  gridContainer.innerHTML = sections.map(sec => {
+    const topicHtml = sec.topics.map(topic => {
+      const stats = dqStats[topic];
+      const weakCount = weakFreq[topic] || 0;
+      
+      let acc = null;
+      let color = '#64748b'; // Grey (No data)
+      let bg = '#f8fafc';
+      let border = '1px solid #e2e8f0';
+
+      if (stats) {
+        acc = Math.round((stats.correct / stats.total) * 100);
+        // Apply penalty for weak topic flags in mocks
+        if (weakCount > 0) {
+          acc = Math.max(0, acc - weakCount * 10);
+        }
+      } else if (weakCount > 0) {
+        acc = Math.max(10, 100 - weakCount * 25);
+      }
+
+      if (acc !== null) {
+        if (acc >= 75) {
+          color = '#15803d'; // Green
+          bg = '#dcfce7';
+          border = '1px solid #bbf7d0';
+        } else if (acc >= 50) {
+          color = '#b45309'; // Orange/Yellow
+          bg = '#fef3c7';
+          border = '1px solid #fef08a';
+        } else {
+          color = '#b91c1c'; // Red
+          bg = '#fee2e2';
+          border = '1px solid #fecaca';
+        }
+      }
+
+      const hoverTitle = `${topic}\nAccuracy: ${acc !== null ? acc + '%' : 'No Data'}\nDaily Practice Qs: ${stats ? stats.correct + '/' + stats.total : '0/0'}\nMock Flags: ${weakCount}`;
+
+      return `
+        <div onclick="selectPracticeTopic('${topic.replace(/'/g, "\\'")}')" 
+             title="${hoverTitle}" 
+             style="flex: 1 1 calc(25% - 8px); min-width: 120px; background:${bg}; color:${color}; border:${border}; 
+                    padding: 8px 10px; border-radius: 8px; font-size: 11px; font-weight: 600; text-align: center; 
+                    cursor: pointer; transition: all 0.2s ease; box-sizing: border-box;"
+             class="heatmap-cell"
+             onmouseover="this.style.transform='scale(1.03)'; this.style.boxShadow='0 2px 8px rgba(0,0,0,0.05)'"
+             onmouseout="this.style.transform='scale(1)'; this.style.boxShadow='none'">
+          <div style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${topic}</div>
+          ${acc !== null ? `<div style="font-size: 10px; font-weight: 700; margin-top: 2px;">${acc}%</div>` : '<div style="font-size: 10px; font-weight: 400; margin-top: 2px; opacity: 0.6;">No Data</div>'}
+        </div>
+      `;
+    }).join('');
+
+    return `
+      <div style="margin-bottom: 6px;">
+        <div style="font-size: 10px; font-weight: 700; color:${sec.color}; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px;">
+          ${sec.name}
+        </div>
+        <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+          ${topicHtml}
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+function selectPracticeTopic(topic) {
+  sessionStorage.setItem('cc_preferred_topic', topic);
+  // Discard current unanswered question if any
+  let queue = getDailyQueue();
+  if (queue && queue.date === todayStr()) {
+    const last = queue.questions[queue.questions.length - 1];
+    if (last && !last.answered) {
+      queue.questions.pop();
+      setDailyQueue(queue);
+    }
+  }
+  goToDQTab();
+  if (typeof generateDQ === 'function') {
+    generateDQ();
+  }
+}
+
+/* ── STAGE 6: REAL-TIME SYNC & NUDGES ── */
+let syncChannel = null;
+
+function initRealtimeSync() {
+  if (!USE_SB) return;
+  try {
+    if (typeof supabase === 'undefined') {
+      console.warn('Supabase client library not loaded yet.');
+      return;
+    }
+    const client = supabase.createClient(SB_URL, SB_KEY);
+    syncChannel = client.channel('study-sync', {
+      config: {
+        broadcast: { self: true },
+      },
+    });
+
+    syncChannel
+      .on('broadcast', { event: 'nudge' }, payload => {
+        if (!IS_COACH) {
+          showFloatingReaction(payload.emoji);
+        }
+      })
+      .on('broadcast', { event: 'study_update' }, payload => {
+        if (IS_COACH) {
+          console.log('Coach received real-time study update:', payload);
+          db.all().then(m => {
+            if (m) MOCKS = m;
+            studyLogDb.all().then(l => {
+              if (l) STUDY_LOGS = l;
+              renderCoachStats();
+              renderCoachConsistency();
+              renderCoachMood();
+              renderCoachScores();
+              renderCoachWeak();
+              renderCoachDQ();
+              renderCoachActivity();
+              renderCoachQuizResults();
+            });
+          });
+        }
+      })
+      .subscribe((status) => {
+        console.log('Realtime sync status:', status);
+        const el = $('coach-nudge-status');
+        if (el) {
+          el.textContent = status === 'SUBSCRIBED' ? '🟢 Live Sync Connected' : '静态 (WebSocket Offline)';
+        }
+      });
+  } catch(e) {
+    console.error('Realtime sync failed to initialize:', e);
+  }
+}
+
+function broadcastStudyUpdate(type, data) {
+  if (syncChannel) {
+    syncChannel.send({
+      type: 'broadcast',
+      event: 'study_update',
+      payload: { type, data, user: PROFILE.name, time: new Date().toISOString() }
+    });
+  }
+}
+
+function sendCoachNudge(emoji) {
+  if (syncChannel) {
+    syncChannel.send({
+      type: 'broadcast',
+      event: 'nudge',
+      payload: { emoji }
+    });
+    const el = $('coach-nudge-status');
+    if (el) {
+      el.textContent = `Sent reaction: ${emoji}`;
+      setTimeout(() => {
+        el.textContent = '🟢 Live Sync Connected';
+      }, 2000);
+    }
+  } else {
+    alert('Real-time sync not connected. Check Supabase credentials or connection.');
+  }
+}
+
+function showFloatingReaction(emoji) {
+  const container = document.body;
+  const count = 15;
+  for (let i = 0; i < count; i++) {
+    const el = document.createElement('div');
+    el.className = 'floating-emoji';
+    el.textContent = emoji || '👍';
+    
+    const left = Math.random() * 100;
+    const delay = Math.random() * 1.5;
+    const dur = 2 + Math.random() * 2;
+    const rot = (Math.random() - 0.5) * 180;
+    
+    el.style.left = left + 'vw';
+    el.style.setProperty('--dur', dur + 's');
+    el.style.setProperty('--rot', rot + 'deg');
+    el.style.animationDelay = delay + 's';
+    
+    container.appendChild(el);
+    setTimeout(() => el.remove(), (delay + dur) * 1000 + 100);
+  }
 }
 
 function updateDQTeaser() {
@@ -5255,8 +5889,9 @@ async function startMockSim() {
     ? MS_SECTIONS_FULL.filter(s => s.key !== 'eng')
     : MS_SECTIONS_FULL;
 
+  const realMode = $('ms-real-mode').checked;
   showMS('loading');
-  msState = { exam, sections, secIdx: 0, answers: {}, reviews: {}, questions: {}, timer: null, timeLeft: MS_TIME, done: false };
+  msState = { exam, sections, secIdx: 0, answers: {}, reviews: {}, questions: {}, timer: null, timeLeft: MS_TIME, done: false, realMode, visited: {} };
 
   // Generate questions for all sections in parallel
   try {
@@ -5339,6 +5974,21 @@ function beginMSSection(idx) {
   $('ms-sec-sub').textContent = `Section ${idx + 1} of ${msState.sections.length}`;
   $('ms-submit-sec').textContent = idx < msState.sections.length - 1 ? 'Submit Section →' : 'Submit Mock →';
 
+  // Toggle layout between Real Mode and Standard Mode
+  if (msState.realMode) {
+    $('ms-palette-column').style.display = 'block';
+    $('ms-q-dots-container').style.display = 'none';
+    $('ms-sim-layout').style.flexDirection = 'row';
+  } else {
+    $('ms-palette-column').style.display = 'none';
+    $('ms-q-dots-container').style.display = 'block';
+  }
+
+  // Set visited for first question
+  msState.visited = msState.visited || {};
+  msState.visited[sec.key] = msState.visited[sec.key] || {};
+  msState.visited[sec.key][0] = true;
+
   showMS('active');
   renderMSQuestion(0);
   renderMSDots();
@@ -5369,6 +6019,11 @@ function renderMSQuestion(qIdx) {
   const q = qs[qIdx];
   const ans = (msState.answers[sec.key] || {})[qIdx];
 
+  // Mark as visited
+  msState.visited = msState.visited || {};
+  msState.visited[sec.key] = msState.visited[sec.key] || {};
+  msState.visited[sec.key][qIdx] = true;
+
   $('ms-q-meta').textContent = `Q${qIdx + 1} / ${qs.length} · ${q.topic} · ${q.difficulty}`;
   $('ms-q-text').innerHTML = q.question.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\\n/g,'<br>').replace(/\n/g,'<br>');
 
@@ -5388,6 +6043,17 @@ function renderMSQuestion(qIdx) {
 
   $('ms-prev-btn').style.opacity = qIdx === 0 ? '0.3' : '1';
   $('ms-next-btn').style.opacity = qIdx === qs.length - 1 ? '0.3' : '1';
+  $('ms-next-btn').textContent = qIdx === qs.length - 1 ? 'Save & Complete' : 'Save & Next →';
+}
+
+function clearMSResponse() {
+  const secKey = msState.sections[msState.secIdx].key;
+  const qIdx = msState.currentQ;
+  if (msState.answers[secKey]) {
+    delete msState.answers[secKey][qIdx];
+  }
+  renderMSQuestion(qIdx);
+  renderMSDots();
 }
 
 function selectMSOption(letter, qIdx) {
@@ -5411,21 +6077,80 @@ function navMS(delta) {
   const sec = msState.sections[msState.secIdx];
   const qs = msState.questions[sec.key];
   const next = Math.max(0, Math.min(qs.length - 1, msState.currentQ + delta));
+  
+  // Set visited for next question
+  msState.visited = msState.visited || {};
+  msState.visited[sec.key] = msState.visited[sec.key] || {};
+  msState.visited[sec.key][next] = true;
+
   renderMSQuestion(next);
+  renderMSDots();
 }
 
 function renderMSDots() {
   const sec = msState.sections[msState.secIdx];
   const qs = msState.questions[sec.key];
-  $('ms-q-dots').innerHTML = qs.map((_, i) => {
-    const ans = (msState.answers[sec.key] || {})[i];
-    const rev = (msState.reviews[sec.key] || {})[i];
-    const isCurrent = i === msState.currentQ;
-    const bg = rev ? '#f59e0b' : ans ? sec.color : 'var(--border)';
-    return `<div onclick="renderMSQuestion(${i})" style="width:28px;height:28px;border-radius:50%;background:${bg};
-      border:2px solid ${isCurrent?'var(--navy)':'transparent'};cursor:pointer;display:flex;align-items:center;
-      justify-content:center;font-size:11px;font-weight:700;color:${ans||rev?'#fff':'var(--muted)'};">${i+1}</div>`;
-  }).join('');
+  
+  if (msState.realMode) {
+    // Render TCS iON Palette grid
+    $('ms-palette-grid').innerHTML = qs.map((_, i) => {
+      const ans = (msState.answers[sec.key] || {})[i];
+      const rev = (msState.reviews[sec.key] || {})[i];
+      const vis = (msState.visited[sec.key] || {})[i];
+      const isCurrent = i === msState.currentQ;
+      
+      let bg = '#e2e8f0'; // Not Visited (default)
+      let color = '#475569';
+      let border = '1px solid #cbd5e1';
+      let radius = '3px';
+      let content = `${i+1}`;
+      let checkHtml = '';
+
+      if (ans && rev) {
+        // Answered & Marked for Review
+        bg = '#8b5cf6';
+        color = '#fff';
+        radius = '50%';
+        border = 'none';
+        checkHtml = `<span style="position:absolute;bottom:-2px;right:-2px;width:10px;height:10px;background:#10b981;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-size:6px;">✓</span>`;
+      } else if (rev) {
+        // Marked for Review
+        bg = '#8b5cf6';
+        color = '#fff';
+        radius = '50%';
+        border = 'none';
+      } else if (ans) {
+        // Answered
+        bg = '#10b981';
+        color = '#fff';
+        radius = '50% 50% 3px 3px';
+        border = 'none';
+      } else if (vis) {
+        // Not Answered
+        bg = '#ef4444';
+        color = '#fff';
+        radius = '3px 3px 50% 50%';
+        border = 'none';
+      }
+      
+      const currentStyle = isCurrent ? 'box-shadow: 0 0 0 2px var(--navy);' : '';
+
+      return `<div onclick="renderMSQuestion(${i})" style="position:relative;width:34px;height:34px;background:${bg};
+        color:${color};border:${border};border-radius:${radius};cursor:pointer;display:flex;align-items:center;
+        justify-content:center;font-size:12px;font-weight:700;${currentStyle}">${content}${checkHtml}</div>`;
+    }).join('');
+  } else {
+    // Render standard dots
+    $('ms-q-dots').innerHTML = qs.map((_, i) => {
+      const ans = (msState.answers[sec.key] || {})[i];
+      const rev = (msState.reviews[sec.key] || {})[i];
+      const isCurrent = i === msState.currentQ;
+      const bg = rev ? '#f59e0b' : ans ? sec.color : 'var(--border)';
+      return `<div onclick="renderMSQuestion(${i})" style="width:28px;height:28px;border-radius:50%;background:${bg};
+        border:2px solid ${isCurrent?'var(--navy)':'transparent'};cursor:pointer;display:flex;align-items:center;
+        justify-content:center;font-size:11px;font-weight:700;color:${ans||rev?'#fff':'var(--muted)'};">${i+1}</div>`;
+    }).join('');
+  }
 }
 
 function confirmSubmitSection() {
@@ -5515,7 +6240,11 @@ function saveMSToLog() {
     o[sec.key+'_att'] = att; o[sec.key+'_corr'] = corr; o[sec.key+'_time'] = MS_TIME/60 - Math.floor(msState.timeLeft/60);
   });
   db.add(o).then(() => {
-    load().then(() => { $('ms-save-btn').textContent = '✅ Saved!'; $('ms-save-btn').disabled = true; });
+    load().then(() => {
+      $('ms-save-btn').textContent = '✅ Saved!';
+      $('ms-save-btn').disabled = true;
+      broadcastStudyUpdate('mock_sim', o);
+    });
   }).catch(e => alert('Save failed: ' + e.message));
 }
 
@@ -5536,8 +6265,14 @@ async function load() {
 }
 
 async function bootApp() {
+  try {
+    if (window.mermaid) {
+      mermaid.initialize({ startOnLoad: false, theme: 'neutral', securityLevel: 'loose' });
+    }
+  } catch(e) { console.error("Mermaid init failed:", e); }
   PROFILE    = local.getProfile();
   EXAM_DATES = {...EXAM_DATES_DEFAULT, ...local.getDates()};
+  initRealtimeSync();
 
   $('ahGreeting').textContent = PROFILE.name ? 'Hey, '+PROFILE.name+' 👋' : '';
   // Show switch button only when there are multiple users
