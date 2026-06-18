@@ -432,6 +432,25 @@ tr:last-child td{border-bottom:none}
   animation: floatUp var(--dur) ease-in-out forwards;
 }
 
+/* Custom Speed Math & Scratchpad styles */
+@keyframes smPop {
+  0% { opacity: 0; transform: translate(-50%, -20%) scale(0.8); }
+  50% { opacity: 1; transform: translate(-50%, -80%) scale(1.2); }
+  100% { opacity: 0; transform: translate(-50%, -120%) scale(1); }
+}
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+.spinner {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border: 2px solid var(--muted);
+  border-top-color: transparent;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  vertical-align: middle;
+}
 </style>
 </head>
 <body>
@@ -616,6 +635,7 @@ tr:last-child td{border-bottom:none}
       <button data-t="goals">Goals &amp; Cutoffs</button>
       <button data-t="mocksim">🎯 Mock Sim</button>
       <button data-t="dqtab">🧠 Practice Q</button>
+      <button data-t="speedmath">⚡ Speed Math</button>
       <button data-t="aichat">🤖 AI Coach</button>
       <button data-t="studylog">📖 Study Log</button>
       <button data-t="report">📊 Report Card</button>
@@ -1328,6 +1348,32 @@ tr:last-child td{border-bottom:none}
           <div id="ms-total-score" style="font-family:'DM Serif Display',serif;font-size:36px;color:var(--navy);margin:10px 0"></div>
         </div>
         <div id="ms-sec-results"></div>
+        
+        <!-- Diagnostic Card Placeholder -->
+        <div class="card" id="ms-sectional-diagnostic" style="display:none; padding:18px 16px; margin-bottom:12px; border:1.5px solid var(--border)">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px">
+            <div class="card-title" style="margin:0; font-size:16px; display:flex; align-items:center; gap:6px">
+              🤖 AI Sectional Gap Diagnostic
+            </div>
+            <span class="warn-badge" id="ms-diag-status" style="font-size:10px">Analyzing...</span>
+          </div>
+          <div id="ms-diag-gaps" style="display:flex; flex-direction:column; gap:8px; margin-bottom:16px"></div>
+          <div style="background:var(--surface2); border:1px solid var(--border); border-radius:10px; padding:12px 14px; margin-bottom:14px; font-size:13px; line-height:1.5; color:var(--text)" id="ms-diag-advice-box">
+            <div style="color:var(--muted); text-align:center" id="ms-diag-loading">
+              <span class="spinner"></span>
+              Running gap diagnostics...
+            </div>
+          </div>
+          <div id="ms-diag-actions" style="display:flex; gap:8px; flex-wrap:wrap">
+            <button class="btn sm ghost" onclick="goToSpeedMathFromDiag()" style="font-size:11px; padding:6px 12px; border-radius:8px; display:none" id="ms-diag-action-speedmath">
+              ⚡ Play Speed Math
+            </button>
+            <button class="btn sm primary" onclick="goToDQTabFromDiag()" style="font-size:11px; padding:6px 12px; border-radius:8px">
+              🧠 Practice Questions
+            </button>
+          </div>
+        </div>
+
         <div class="card" style="padding:14px 16px">
           <button class="btn primary" onclick="saveMSToLog()" id="ms-save-btn" style="margin-bottom:8px">💾 Save to Mock Log</button>
           <button class="btn ghost" onclick="resetMockSim()">Start New Mock</button>
@@ -1462,6 +1508,98 @@ tr:last-child td{border-bottom:none}
         <div id="dq-mistake-list"></div>
       </div>
 
+    </section>
+
+    <!-- Speed Math Game Panel -->
+    <section class="panel" id="speedmath" style="padding-bottom:40px">
+      <!-- Speed Math Intro / Menu -->
+      <div id="sm-menu" class="card" style="text-align:center; padding: 24px 18px;">
+        <div style="font-size:48px; margin-bottom:12px">⚡</div>
+        <div class="card-title" style="font-size:22px; margin-bottom:6px">Speed Math Drill</div>
+        <div style="font-size:13px; color:var(--muted); margin-bottom:20px; line-height:1.6">
+          Train your brain for Quant section speed. SBI/IBPS PO toppers practice these daily to save critical minutes!
+        </div>
+        
+        <div class="chip-group-title" style="text-align:left; margin-bottom:8px">Select Drill Mode</div>
+        <div class="chips" style="justify-content:center; margin-bottom:24px">
+          <span class="chip on" onclick="selectSMMode('mul', this)">✖️ Multiplication (11-25)</span>
+          <span class="chip" onclick="selectSMMode('frac', this)">% Fractions to %</span>
+          <span class="chip" onclick="selectSMMode('sq', this)">📐 Squares & Cubes</span>
+        </div>
+        
+        <button class="btn primary" onclick="startSpeedMath()" style="padding: 14px 20px; font-size: 15px;">
+          Start 30s Challenge 🚀
+        </button>
+      </div>
+
+      <!-- Speed Math Game Screen -->
+      <div id="sm-game" class="card" style="display:none; text-align:center; padding: 24px 18px; position:relative; overflow:hidden">
+        <!-- Progress timer bar -->
+        <div style="position:absolute; top:0; left:0; right:0; height:4px; background:var(--border)">
+          <div id="sm-timer-bar" style="height:100%; width:100%; background:var(--gold); transition: width 0.1s linear"></div>
+        </div>
+        
+        <!-- Stats Row -->
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px">
+          <div style="font-size:14px; font-weight:700; color:var(--muted)">
+            Streak: <span id="sm-streak" style="color:var(--gold-d)">0</span> 🔥
+          </div>
+          <div style="font-size:24px; font-weight:700; color:var(--navy)" id="sm-timer">30s</div>
+          <div style="font-size:14px; font-weight:700; color:var(--muted)">
+            Score: <span id="sm-score" style="color:var(--quant)">0</span>
+          </div>
+        </div>
+
+        <!-- Question Container -->
+        <div style="margin: 30px 0;">
+          <div id="sm-question-text" style="font-family:'DM Serif Display',serif; font-size:36px; color:var(--navy); min-height:54px; display:flex; align-items:center; justify-content:center">
+            12 × 17
+          </div>
+          <div id="sm-mode-hint" style="font-size:12px; color:var(--muted); margin-top:4px">Solve as fast as you can!</div>
+        </div>
+
+        <!-- Input Box -->
+        <div style="max-width:240px; margin:0 auto 20px">
+          <input type="text" id="sm-input" inputmode="decimal" placeholder="Your Answer" 
+                 style="font-size:24px; text-align:center; padding:12px; border-radius:12px; font-family:'DM Serif Display',serif"
+                 onkeydown="handleSMKeyDown(event)" autocomplete="off">
+        </div>
+
+        <button class="btn primary" onclick="checkSMAnswer()">Submit</button>
+      </div>
+
+      <!-- Speed Math Game Over Screen -->
+      <div id="sm-result" class="card" style="display:none; text-align:center; padding: 28px 20px">
+        <div style="font-size:48px; margin-bottom:12px">🏆</div>
+        <div class="card-title" style="margin-bottom:6px">Drill Complete!</div>
+        <div style="font-family:'DM Serif Display',serif; font-size:32px; color:var(--navy); margin:12px 0" id="sm-result-score">
+          Score: 120
+        </div>
+        
+        <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:10px; margin:20px 0">
+          <div class="stat-card" style="padding: 8px">
+            <div class="stat-label">Correct</div>
+            <div class="stat-val" id="sm-result-correct" style="font-size:18px">12</div>
+          </div>
+          <div class="stat-card" style="padding: 8px">
+            <div class="stat-label">Accuracy</div>
+            <div class="stat-val" id="sm-result-accuracy" style="font-size:18px">85%</div>
+          </div>
+          <div class="stat-card" style="padding: 8px">
+            <div class="stat-label">Max Streak</div>
+            <div class="stat-val" id="sm-result-streak" style="font-size:18px">8</div>
+          </div>
+        </div>
+
+        <div style="font-size:13px; color:var(--muted); margin-bottom:24px" id="sm-feedback">
+          Excellent speed! Practice daily to build mental multiplication muscle memory.
+        </div>
+
+        <div style="display:flex; gap:10px">
+          <button class="btn primary" style="flex:1" onclick="restartSM()">Play Again</button>
+          <button class="btn ghost" style="flex:1" onclick="exitSM()">Back to Menu</button>
+        </div>
+      </div>
     </section>
 
   </div><!-- /wrap -->
@@ -2192,6 +2330,7 @@ $('tabs').addEventListener('click', e=>{
   if (b.dataset.t === 'report')   renderReport();
   if (b.dataset.t === 'dqtab') { updateDQStats(); generateDQ(); initFlashcards(); }
   if (b.dataset.t === 'mocksim') { initMockSim(); }
+  if (b.dataset.t === 'speedmath') { initSpeedMath(); }
 });
 
 /* ── EXAM DATE MODAL ── */
@@ -6317,7 +6456,17 @@ function beginMSSection(idx) {
   msState.timer = setInterval(() => {
     msState.timeLeft--;
     paintMSClock();
-    if (msState.timeLeft <= 300 && msState.timeLeft > 299) beep(440, 0.5);
+    
+    // Timer Warning Beeps
+    if (msState.timeLeft === 300) {
+      beep(440, 0.5);
+    } else if (msState.timeLeft === 60) {
+      beep(550, 0.25);
+      setTimeout(() => beep(550, 0.25), 350);
+    } else if (msState.timeLeft > 0 && msState.timeLeft <= 10) {
+      beep(880, 0.08);
+    }
+
     if (msState.timeLeft <= 0) {
       clearInterval(msState.timer);
       advanceMSSection();
@@ -6544,6 +6693,87 @@ function showMSResults() {
   $('ms-result-emoji').textContent = allSectionsPassed && pct >= 60 ? '🏆' : pct >= 50 ? '💪' : '📚';
   $('ms-result-title').textContent = allSectionsPassed ? 'All sectional cutoffs cleared!' : 'Check sectional cutoffs';
   $('ms-save-btn').dataset.score = totalScore.toFixed(2);
+
+  // ── AI Sectional Gap Diagnostic ──
+  const cData = CUTOFF_HISTORY[msState.exam] || { overall: { gen: 60 }, sectional: { English: 6, Quant: 6, Reasoning: 6 } };
+  const overallTarget = cData.overall.gen;
+  const overallTargetProRated = (overallTarget / 100) * totalMax;
+  
+  const diagSections = [];
+  msState.sections.forEach(sec => {
+    const qs = msState.questions[sec.key] || [];
+    const ans = msState.answers[sec.key] || {};
+    let corr = 0, wrong = 0;
+    qs.forEach((q, i) => {
+      const a = ans[i];
+      if (a === q.correct) corr++;
+      else if (a !== undefined) wrong++;
+    });
+    const score = corr - 0.25 * wrong;
+    const cutoff = cData.sectional[sec.name] || 0;
+    diagSections.push({
+      name: sec.name,
+      score: score,
+      cutoff: cutoff,
+      gap: score - cutoff,
+      color: sec.color || 'var(--navy)'
+    });
+  });
+  
+  const gapsContainer = $('ms-diag-gaps');
+  gapsContainer.innerHTML = diagSections.map(s => {
+    const isCleared = s.gap >= 0;
+    const gapText = isCleared ? `+${s.gap.toFixed(2)} above` : `${s.gap.toFixed(2)} below`;
+    const pillColor = isCleared ? '#10b981' : '#ef4444';
+    const pillBg = isCleared ? '#ecfdf5' : '#fef2f2';
+    
+    return `
+      <div style="display:flex; justify-content:space-between; align-items:center; border:1px solid var(--border); padding:8px 12px; border-radius:8px; background:var(--surface)">
+        <div style="display:flex; align-items:center; gap:8px">
+          <span style="width:8px; height:8px; border-radius:50%; background:${s.color}"></span>
+          <span style="font-weight:600; font-size:13px">${s.name}</span>
+        </div>
+        <div style="display:flex; align-items:center; gap:10px">
+          <span style="font-size:12px; color:var(--muted)">Score: <b>${s.score.toFixed(2)}</b> / Cutoff: ${s.cutoff}</span>
+          <span style="font-size:11px; font-weight:700; color:${pillColor}; background:${pillBg}; padding:3px 8px; border-radius:12px">
+            ${gapText}
+          </span>
+        </div>
+      </div>
+    `;
+  }).join('');
+  
+  const quantDiag = diagSections.find(s => s.name === 'Quant');
+  if (quantDiag && quantDiag.gap < 1) {
+    $('ms-diag-action-speedmath').style.display = 'inline-block';
+  } else {
+    $('ms-diag-action-speedmath').style.display = 'none';
+  }
+  
+  const diagnosticCard = $('ms-sectional-diagnostic');
+  diagnosticCard.style.display = 'block';
+  
+  const statusEl = $('ms-diag-status');
+  if (allSectionsPassed && totalScore >= overallTargetProRated) {
+    statusEl.textContent = 'Cleared Cutoff';
+    statusEl.style.background = '#d1fae5';
+    statusEl.style.color = '#065f46';
+    statusEl.style.borderColor = '#34d399';
+  } else {
+    statusEl.textContent = 'Below Target';
+    statusEl.style.background = '#fee2e2';
+    statusEl.style.color = '#991b1b';
+    statusEl.style.borderColor = '#f87171';
+  }
+  
+  $('ms-diag-advice-box').innerHTML = `
+    <div style="color:var(--muted); text-align:center" id="ms-diag-loading">
+      <span class="spinner"></span>
+      Running gap diagnostics...
+    </div>
+  `;
+  
+  generateAIDiagnosticAdvice(msState.exam, diagSections, totalScore, overallTargetProRated);
 }
 
 function saveMSToLog() {
@@ -6935,6 +7165,509 @@ function shareDailyReport() {
   window.open('whatsapp://send?text=' + encodeURIComponent(text));
 }
 
+/* ── SPEED MATH ENGINE ── */
+let smState = {
+  active: false,
+  timer: null,
+  timeLeft: 30,
+  score: 0,
+  correctCount: 0,
+  totalCount: 0,
+  streak: 0,
+  maxStreak: 0,
+  currentQ: null,
+  currentAns: [],
+  mode: 'mul'
+};
+
+function selectSMMode(mode, el) {
+  document.querySelectorAll('#sm-menu .chip').forEach(c => c.classList.remove('on'));
+  el.classList.add('on');
+  smState.mode = mode;
+}
+
+function generateSMQuestion() {
+  $('sm-input').value = '';
+  $('sm-input').focus();
+  
+  let qText = '';
+  let answers = [];
+  
+  if (smState.mode === 'mul') {
+    const a = Math.floor(Math.random() * 15) + 11; // 11-25
+    const b = Math.floor(Math.random() * 18) + 2;  // 2-19
+    qText = `${a} × ${b}`;
+    answers = [String(a * b)];
+    $('sm-mode-hint').textContent = 'Enter the multiplication result.';
+  } else if (smState.mode === 'frac') {
+    const fracs = [
+      { q: '1/2', a: ['50', '50%'] },
+      { q: '1/3', a: ['33.33', '33.3', '33', '33.33%', '33.3%'] },
+      { q: '2/3', a: ['66.67', '66.6', '66.7', '66', '66.67%', '66.6%'] },
+      { q: '1/4', a: ['25', '25%'] },
+      { q: '3/4', a: ['75', '75%'] },
+      { q: '1/5', a: ['20', '20%'] },
+      { q: '2/5', a: ['40', '40%'] },
+      { q: '3/5', a: ['60', '60%'] },
+      { q: '4/5', a: ['80', '80%'] },
+      { q: '1/6', a: ['16.67', '16.6', '16.7', '16', '16.67%', '16.6%'] },
+      { q: '5/6', a: ['83.33', '83.3', '83', '83.33%', '83.3%'] },
+      { q: '1/7', a: ['14.28', '14.3', '14.2', '14', '14.28%', '14.3%'] },
+      { q: '1/8', a: ['12.5', '12.5%'] },
+      { q: '3/8', a: ['37.5', '37.5%'] },
+      { q: '5/8', a: ['62.5', '62.5%'] },
+      { q: '7/8', a: ['87.5', '87.5%'] },
+      { q: '1/9', a: ['11.11', '11.1', '11', '11.11%', '11.1%'] },
+      { q: '1/11', a: ['9.09', '9.1', '9', '9.09%', '9.1%'] },
+      { q: '1/12', a: ['8.33', '8.3', '8', '8.33%', '8.3%'] },
+      { q: '1/15', a: ['6.67', '6.7', '6.6', '6', '6.67%', '6.7%'] },
+      { q: '1/16', a: ['6.25', '6.25%'] },
+      { q: '1/20', a: ['5', '5%'] },
+      { q: '1/24', a: ['4.16', '4.17', '4.2', '4', '4.16%', '4.17%'] },
+      { q: '1/25', a: ['4', '4%'] }
+    ];
+    const item = fracs[Math.floor(Math.random() * fracs.length)];
+    qText = `Fraction: ${item.q}`;
+    answers = item.a;
+    $('sm-mode-hint').textContent = 'Convert to percentage (e.g. 12.5 or 12.5%).';
+  } else if (smState.mode === 'sq') {
+    const isSquare = Math.random() < 0.6;
+    if (isSquare) {
+      const num = Math.floor(Math.random() * 30) + 11; // 11-40
+      qText = `${num}²`;
+      answers = [String(num * num)];
+      $('sm-mode-hint').textContent = 'Calculate the square.';
+    } else {
+      const num = Math.floor(Math.random() * 14) + 2; // 2-15
+      qText = `${num}³`;
+      answers = [String(num * num * num)];
+      $('sm-mode-hint').textContent = 'Calculate the cube.';
+    }
+  }
+  
+  smState.currentQ = qText;
+  smState.currentAns = answers;
+  $('sm-question-text').textContent = qText;
+}
+
+function checkSMAnswer() {
+  const val = $('sm-input').value.trim().toLowerCase();
+  if (!val) return;
+  
+  smState.totalCount++;
+  const isCorrect = smState.currentAns.some(a => a.toLowerCase().trim() === val);
+  
+  const inputEl = $('sm-input');
+  
+  if (isCorrect) {
+    smState.correctCount++;
+    smState.streak++;
+    if (smState.streak > smState.maxStreak) {
+      smState.maxStreak = smState.streak;
+    }
+    const points = 10 + Math.floor(smState.streak / 3) * 5;
+    smState.score += points;
+    
+    inputEl.style.borderColor = 'var(--ok)';
+    inputEl.style.boxShadow = '0 0 0 4px rgba(34,197,94,0.2)';
+    
+    if (typeof beep === 'function') beep(1000, 0.1);
+    showSMPointsPop(`+${points}`, 'var(--ok)');
+  } else {
+    smState.streak = 0;
+    inputEl.style.borderColor = 'var(--danger)';
+    inputEl.style.boxShadow = '0 0 0 4px rgba(239,68,68,0.2)';
+    
+    if (typeof beep === 'function') beep(220, 0.25);
+    showSMPointsPop('Oops!', 'var(--danger)');
+  }
+  
+  $('sm-streak').textContent = smState.streak;
+  $('sm-score').textContent = smState.score;
+  
+  setTimeout(() => {
+    inputEl.style.borderColor = '';
+    inputEl.style.boxShadow = '';
+    generateSMQuestion();
+  }, 300);
+}
+
+function showSMPointsPop(text, color) {
+  const pop = document.createElement('div');
+  pop.textContent = text;
+  pop.style.position = 'absolute';
+  pop.style.left = '50%';
+  pop.style.top = '45%';
+  pop.style.transform = 'translate(-50%, -50%)';
+  pop.style.fontFamily = "'DM Serif Display', serif";
+  pop.style.fontSize = '24px';
+  pop.style.color = color;
+  pop.style.pointerEvents = 'none';
+  pop.style.animation = 'smPop 0.6s ease-out forwards';
+  $('sm-game').appendChild(pop);
+  setTimeout(() => pop.remove(), 600);
+}
+
+function handleSMKeyDown(e) {
+  if (e.key === 'Enter') {
+    checkSMAnswer();
+  }
+}
+
+function startSpeedMath() {
+  smState.active = true;
+  smState.timeLeft = 30;
+  smState.score = 0;
+  smState.correctCount = 0;
+  smState.totalCount = 0;
+  smState.streak = 0;
+  smState.maxStreak = 0;
+  
+  $('sm-streak').textContent = '0';
+  $('sm-score').textContent = '0';
+  $('sm-timer').textContent = '30s';
+  $('sm-timer-bar').style.width = '100%';
+  
+  $('sm-menu').style.display = 'none';
+  $('sm-result').style.display = 'none';
+  $('sm-game').style.display = 'block';
+  
+  generateSMQuestion();
+  
+  const startTime = Date.now();
+  const duration = 30000;
+  
+  clearInterval(smState.timer);
+  smState.timer = setInterval(() => {
+    const elapsed = Date.now() - startTime;
+    const remaining = Math.max(0, duration - elapsed);
+    const sec = Math.ceil(remaining / 1000);
+    
+    $('sm-timer').textContent = `${sec}s`;
+    $('sm-timer-bar').style.width = `${(remaining / duration) * 100}%`;
+    
+    if (remaining <= 0) {
+      clearInterval(smState.timer);
+      endSpeedMath();
+    }
+  }, 100);
+}
+
+function endSpeedMath() {
+  smState.active = false;
+  $('sm-game').style.display = 'none';
+  $('sm-result').style.display = 'block';
+  
+  const accuracy = smState.totalCount > 0 ? Math.round((smState.correctCount / smState.totalCount) * 100) : 0;
+  
+  $('sm-result-score').textContent = `Score: ${smState.score}`;
+  $('sm-result-correct').textContent = smState.correctCount;
+  $('sm-result-accuracy').textContent = `${accuracy}%`;
+  $('sm-result-streak').textContent = smState.maxStreak;
+  
+  let feedback = '';
+  if (smState.score >= 150) feedback = 'Superb! Your calculations are lightning fast. PO Quant topper material! 🔥';
+  else if (smState.score >= 80) feedback = 'Great job! Consistency is key. Practice daily to reach PO cutoff speeds.';
+  else feedback = 'Keep practicing! Focus on accuracy first, then speed will follow naturally.';
+  
+  $('sm-feedback').textContent = feedback;
+  
+  saveSpeedMathStudyLog();
+}
+
+async function saveSpeedMathStudyLog() {
+  const today = todayStr();
+  const modeText = smState.mode === 'mul' ? 'Multiplication' : smState.mode === 'frac' ? 'Fractions to %' : 'Squares & Cubes';
+  const accuracy = smState.totalCount > 0 ? Math.round((smState.correctCount / smState.totalCount) * 100) : 0;
+  const o = {
+    date: today,
+    section: 'Quant',
+    topic: `Speed Math: ${modeText}`,
+    duration: 1,
+    confidence: smState.score >= 120 ? 5 : smState.score >= 70 ? 4 : 3,
+    notes: `Speed Math drill. Scored ${smState.score} points. Questions: ${smState.correctCount}/${smState.totalCount} correct (${accuracy}% accuracy). Max streak: ${smState.maxStreak}.`
+  };
+  try {
+    await studyLogDb.add(o);
+    if (typeof loadAllData === 'function') {
+      await loadAllData();
+    } else {
+      STUDY_LOGS.push(o);
+    }
+  } catch(e) {
+    console.error('Failed to log speed math study entry:', e);
+    const localList = local.getLogs();
+    o.id = o.id || Date.now()+''+Math.floor(Math.random()*9999);
+    if (PROFILE.name) o.user_name = PROFILE.name;
+    localList.push(o);
+    local.setLogs(localList);
+    STUDY_LOGS.push(o);
+  }
+}
+
+function restartSM() {
+  startSpeedMath();
+}
+
+function exitSM() {
+  $('sm-result').style.display = 'none';
+  $('sm-menu').style.display = 'block';
+}
+
+function initSpeedMath() {
+  $('sm-game').style.display = 'none';
+  $('sm-result').style.display = 'none';
+  $('sm-menu').style.display = 'block';
+  clearInterval(smState.timer);
+}
+
+/* ── FLOATING SCRATCHPAD ENGINE ── */
+let scratchpadState = {
+  isOpen: false,
+  isDrawing: false,
+  brushColor: '#f59e0b',
+  brushSize: 2,
+  isEraser: false,
+  canvas: null,
+  ctx: null,
+  lastX: 0,
+  lastY: 0
+};
+
+function toggleScratchpad() {
+  scratchpadState.isOpen = !scratchpadState.isOpen;
+  const overlay = $('scratchpad-overlay');
+  const btn = $('scratchpad-btn');
+  
+  if (scratchpadState.isOpen) {
+    overlay.style.display = 'flex';
+    btn.style.transform = 'scale(0.85)';
+    btn.innerHTML = '❌';
+    btn.style.background = 'var(--danger)';
+    btn.style.borderColor = 'var(--danger)';
+    
+    if (!scratchpadState.canvas) {
+      initScratchpadCanvas();
+    } else {
+      resizeScratchpadCanvas();
+    }
+  } else {
+    overlay.style.display = 'none';
+    btn.style.transform = '';
+    btn.innerHTML = '📝';
+    btn.style.background = 'var(--navy)';
+    btn.style.borderColor = 'var(--gold)';
+  }
+}
+
+function initScratchpadCanvas() {
+  const canvas = $('scratchpad-canvas');
+  scratchpadState.canvas = canvas;
+  scratchpadState.ctx = canvas.getContext('2d');
+  
+  resizeScratchpadCanvas();
+  
+  canvas.addEventListener('mousedown', startDrawing);
+  canvas.addEventListener('mousemove', draw);
+  canvas.addEventListener('mouseup', stopDrawing);
+  canvas.addEventListener('mouseout', stopDrawing);
+  
+  canvas.addEventListener('touchstart', (e) => {
+    const touch = e.touches[0];
+    const mouseEvent = new MouseEvent('mousedown', {
+      clientX: touch.clientX,
+      clientY: touch.clientY
+    });
+    canvas.dispatchEvent(mouseEvent);
+  }, { passive: true });
+  
+  canvas.addEventListener('touchmove', (e) => {
+    const touch = e.touches[0];
+    const mouseEvent = new MouseEvent('mousemove', {
+      clientX: touch.clientX,
+      clientY: touch.clientY
+    });
+    canvas.dispatchEvent(mouseEvent);
+  }, { passive: true });
+  
+  canvas.addEventListener('touchend', () => {
+    const mouseEvent = new MouseEvent('mouseup', {});
+    canvas.dispatchEvent(mouseEvent);
+  }, { passive: true });
+}
+
+function resizeScratchpadCanvas() {
+  const canvas = scratchpadState.canvas;
+  if (!canvas) return;
+  
+  const tempCanvas = document.createElement('canvas');
+  tempCanvas.width = canvas.width;
+  tempCanvas.height = canvas.height;
+  const tempCtx = tempCanvas.getContext('2d');
+  tempCtx.drawImage(canvas, 0, 0);
+  
+  const rect = canvas.getBoundingClientRect();
+  canvas.width = rect.width;
+  canvas.height = rect.height;
+  
+  scratchpadState.ctx.drawImage(tempCanvas, 0, 0);
+  setupCanvasStroke();
+}
+
+function setupCanvasStroke() {
+  const ctx = scratchpadState.ctx;
+  if (!ctx) return;
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+}
+
+function startDrawing(e) {
+  scratchpadState.isDrawing = true;
+  const rect = scratchpadState.canvas.getBoundingClientRect();
+  scratchpadState.lastX = e.clientX - rect.left;
+  scratchpadState.lastY = e.clientY - rect.top;
+}
+
+function draw(e) {
+  if (!scratchpadState.isDrawing) return;
+  const rect = scratchpadState.canvas.getBoundingClientRect();
+  const x = e.clientX - rect.left;
+  const y = e.clientY - rect.top;
+  
+  const ctx = scratchpadState.ctx;
+  ctx.beginPath();
+  ctx.moveTo(scratchpadState.lastX, scratchpadState.lastY);
+  ctx.lineTo(x, y);
+  
+  ctx.strokeStyle = scratchpadState.isEraser ? 'rgba(15,23,42,1)' : scratchpadState.brushColor;
+  ctx.lineWidth = scratchpadState.isEraser ? 24 : scratchpadState.brushSize;
+  
+  ctx.globalCompositeOperation = scratchpadState.isEraser ? 'destination-out' : 'source-over';
+  ctx.stroke();
+  
+  scratchpadState.lastX = x;
+  scratchpadState.lastY = y;
+}
+
+function stopDrawing() {
+  scratchpadState.isDrawing = false;
+}
+
+function setScratchpadBrushSize(size) {
+  scratchpadState.brushSize = size;
+  scratchpadState.isEraser = false;
+  $('sp-btn-thin').style.background = size === 2 ? 'var(--navy-l)' : 'transparent';
+  $('sp-btn-thin').style.color = size === 2 ? '#fff' : '#94a3b8';
+  $('sp-btn-thick').style.background = size === 6 ? 'var(--navy-l)' : 'transparent';
+  $('sp-btn-thick').style.color = size === 6 ? '#fff' : '#94a3b8';
+  $('sp-btn-eraser').style.background = 'transparent';
+  $('sp-btn-eraser').style.color = '#94a3b8';
+}
+
+function setScratchpadColor(color) {
+  scratchpadState.brushColor = color;
+  scratchpadState.isEraser = false;
+  
+  ['gold', 'white', 'red'].forEach(col => {
+    const btn = $('sp-col-' + col);
+    if (btn) {
+      if (col === 'gold' && color === '#f59e0b') btn.style.borderColor = '#fff';
+      else if (col === 'white' && color === '#ffffff') btn.style.borderColor = 'var(--gold)';
+      else if (col === 'red' && color === '#ef4444') btn.style.borderColor = '#fff';
+      else btn.style.borderColor = 'transparent';
+    }
+  });
+  
+  $('sp-btn-eraser').style.background = 'transparent';
+  $('sp-btn-eraser').style.color = '#94a3b8';
+}
+
+function toggleScratchpadEraser() {
+  scratchpadState.isEraser = !scratchpadState.isEraser;
+  $('sp-btn-eraser').style.background = scratchpadState.isEraser ? 'var(--navy-l)' : 'transparent';
+  $('sp-btn-eraser').style.color = scratchpadState.isEraser ? '#fff' : '#94a3b8';
+  if (!scratchpadState.isEraser) {
+    setScratchpadBrushSize(scratchpadState.brushSize);
+  }
+}
+
+function clearScratchpad() {
+  const canvas = scratchpadState.canvas;
+  if (!canvas) return;
+  scratchpadState.ctx.clearRect(0, 0, canvas.width, canvas.height);
+}
+
+window.addEventListener('resize', () => {
+  if (scratchpadState.isOpen) resizeScratchpadCanvas();
+});
+
+/* ── AI SECTIONAL GAP DIAGNOSTIC HELPERS ── */
+function goToSpeedMathFromDiag() {
+  document.querySelector('[data-t="speedmath"]').click();
+}
+function goToDQTabFromDiag() {
+  document.querySelector('[data-t="dqtab"]').click();
+}
+
+async function generateAIDiagnosticAdvice(examName, sections, totalScore, targetScore) {
+  const quant = sections.find(s => s.name === 'Quant') || { score: 0, cutoff: 0 };
+  const english = sections.find(s => s.name === 'English') || { score: 0, cutoff: 0 };
+  const reasoning = sections.find(s => s.name === 'Reasoning') || { score: 0, cutoff: 0 };
+  
+  const userPrompt = `
+  Analyze this mock exam:
+  - Exam: ${examName}
+  - Total Score: ${totalScore.toFixed(2)} (Target pro-rated cutoff: ${targetScore.toFixed(2)})
+  - Quant Score: ${quant.score.toFixed(2)} (Cutoff: ${quant.cutoff})
+  - English Score: ${english.score.toFixed(2)} (Cutoff: ${english.cutoff})
+  - Reasoning Score: ${reasoning.score.toFixed(2)} (Cutoff: ${reasoning.cutoff})
+  
+  Provide brief, practical diagnostic coaching advice in 2-3 sentences. Identify the weakest section and give one clear, actionable task for it. Be encouraging but direct. Start with "Hey Nanditha,"
+  `;
+  
+  const systemPrompt = `You are Manoj, Nanditha's boyfriend and personal study coach. Keep your advice brief, direct, and actionable (maximum 55 words). Be warm but focused on her improvement.`;
+  
+  try {
+    const advice = await askGroq(systemPrompt, userPrompt, 150);
+    const cleanAdvice = advice.replace(/^["']|["']$/g, '').trim();
+    $('ms-diag-advice-box').innerHTML = `
+      <div style="display:flex; gap:10px; align-items:flex-start">
+        <div style="font-size:20px; line-height:1">💬</div>
+        <div>
+          <strong style="color:var(--navy); font-size:12px; display:block; margin-bottom:2px">Manoj's Advisory</strong>
+          <div style="font-style:italic">${cleanAdvice}</div>
+        </div>
+      </div>
+    `;
+  } catch(e) {
+    console.error('Failed to generate AI advice:', e);
+    let fallbackText = `Hey Nanditha, `;
+    const weakest = sections.reduce((min, s) => s.gap < min.gap ? s : min, sections[0]);
+    if (weakest.gap < 0) {
+      fallbackText += `we need to focus on ${weakest.name} as it's below cutoff by ${Math.abs(weakest.gap).toFixed(2)} marks. `;
+      if (weakest.name === 'Quant') {
+        fallbackText += `Practice speed math drills for 15 minutes daily and focus on DI shortcuts. You can do this!`;
+      } else if (weakest.name === 'English') {
+        fallbackText += `Spend some time reading newspaper articles and attempt standard reading comprehension tests.`;
+      } else {
+        fallbackText += `Solve at least 4 puzzle grids and practice inequality rules to pick up speed.`;
+      }
+    } else {
+      fallbackText += `overall solid work! You cleared the sectional cutoffs. Let's keep maintaining this streak to secure a safe margin on the final exam.`;
+    }
+    
+    $('ms-diag-advice-box').innerHTML = `
+      <div style="display:flex; gap:10px; align-items:flex-start">
+        <div style="font-size:20px; line-height:1">💬</div>
+        <div>
+          <strong style="color:var(--navy); font-size:12px; display:block; margin-bottom:2px">Study Advisory</strong>
+          <div style="font-style:italic">${fallbackText}</div>
+        </div>
+      </div>
+    `;
+  }
+}
+
 /* ── PANIC MODE ── */
 function openPanicMode() {
   const overlay = document.getElementById('panic-overlay');
@@ -6966,6 +7699,41 @@ function closePanicMode() {
   </div>
   
   <button onclick="closePanicMode()" style="margin-top: 50px; background: transparent; color: #94a3b8; border: 1px solid #475569; padding: 10px 24px; border-radius: 20px; font-size: 14px;">I'm feeling better</button>
+</div>
+
+<!-- Floating Scratchpad Trigger Button -->
+<div id="scratchpad-btn" onclick="toggleScratchpad()" style="position:fixed; bottom:20px; right:20px; width:54px; height:54px; border-radius:50%; background:var(--navy); border:2px solid var(--gold); box-shadow:var(--sh-md); display:flex; align-items:center; justify-content:center; font-size:24px; cursor:pointer; z-index:2000; transition: transform 0.2s">
+  📝
+</div>
+
+<!-- Scratchpad Overlay Sheet -->
+<div id="scratchpad-overlay" style="display:none; position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(15,23,42,0.85); backdrop-filter:blur(4px); z-index:1999; flex-direction:column">
+  <!-- Top Tool Bar -->
+  <div style="background:var(--navy-d); border-bottom:1px solid rgba(255,255,255,0.1); padding:10px 16px; display:flex; justify-content:space-between; align-items:center; color:#fff">
+    <div style="font-family:'DM Serif Display',serif; font-size:16px; display:flex; align-items:center; gap:8px">
+      ✍️ Scratchpad <span style="font-size:11px; font-weight:normal; color:rgba(255,255,255,0.6)">(Draw anywhere)</span>
+    </div>
+    
+    <div style="display:flex; gap:8px; align-items:center">
+      <button onclick="setScratchpadBrushSize(2)" class="btn sm" id="sp-btn-thin" style="padding:4px 8px; font-size:11px; background:var(--navy-l); color:#fff">Thin</button>
+      <button onclick="setScratchpadBrushSize(6)" class="btn sm" id="sp-btn-thick" style="padding:4px 8px; font-size:11px; background:transparent; color:#94a3b8">Thick</button>
+      
+      <div style="display:flex; gap:4px; margin:0 8px">
+        <span onclick="setScratchpadColor('#f59e0b')" style="width:20px; height:20px; border-radius:50%; background:#f59e0b; cursor:pointer; border:2px solid #fff; box-shadow:0 0 4px rgba(0,0,0,0.3)" id="sp-col-gold"></span>
+        <span onclick="setScratchpadColor('#ffffff')" style="width:20px; height:20px; border-radius:50%; background:#ffffff; cursor:pointer; border:2px solid transparent" id="sp-col-white"></span>
+        <span onclick="setScratchpadColor('#ef4444')" style="width:20px; height:20px; border-radius:50%; background:#ef4444; cursor:pointer; border:2px solid transparent" id="sp-col-red"></span>
+      </div>
+
+      <button onclick="toggleScratchpadEraser()" class="btn sm" id="sp-btn-eraser" style="padding:4px 8px; font-size:11px; background:transparent; color:#94a3b8">Eraser</button>
+      <button onclick="clearScratchpad()" class="btn sm" style="padding:4px 8px; font-size:11px; background:#ef4444; color:#fff">Clear</button>
+      <button onclick="toggleScratchpad()" class="btn sm" style="padding:4px 10px; font-size:11px; background:var(--gold); color:#000">Minimize</button>
+    </div>
+  </div>
+
+  <!-- Canvas Container -->
+  <div style="flex:1; position:relative; overflow:hidden">
+    <canvas id="scratchpad-canvas" style="display:block; width:100%; height:100%; touch-action:none; cursor:crosshair"></canvas>
+  </div>
 </div>
 
 </body>
